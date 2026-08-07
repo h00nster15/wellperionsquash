@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웰페리온 스쿼시 클럽 | Wellperion Squash</title>
+    <style>
+        /* ============ DESIGN SYSTEM & VARIABLES ============ */
+        :root {
+            --ink: #111111;
+            --wall: #FAF9F5;
+            --wall-dim: #F3F1EB;
+            --line: #E2DFD5;
+            --wood: #D4AF37;       /* Senior Tab Accent (Gold) */
+            --red: #E63946;        /* Women Tab Accent (Crimson Red) */
+            --red-deep: #B7091B;
+            --navy: #1D3557;       /* Junior Tab Accent (Ivy Navy) */
+            --font-display: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-display);
+            background-color: var(--wall);
+            color: var(--ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ============ STICKY HEADER ============ */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(246, 244, 239, .96);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid var(--line);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .brand {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: -.01em;
+        }
+        .brand .sub {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: #8a8a8d;
+            display: block;
+            margin-top: 1px;
+        }
+        .header-cta {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: .04em;
+            background: var(--ink);
+            color: var(--wall);
+            padding: 9px 14px;
+            text-decoration: none;
+            transition: background 0.2s ease;
+        }
+        .header-cta:hover {
+            background: #333333;
+        }
+
+        /* ============ TAB BAR ============ */
+        .tab-bar {
+            position: sticky;
+            top: 53px;
+            z-index: 49;
+            display: flex;
+            background: var(--wall);
+            border-bottom: 1px solid var(--line);
+        }
+        .tab-btn {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: .72rem;
+            letter-spacing: .04em;
+            text-align: center;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 14px 8px;
+            color: #8a8a8d;
+            cursor: pointer;
+            transition: color .2s ease, border-color .2s ease;
+        }
+        .tab-btn .tab-btn-title {
+            display: block;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: .95rem;
+            color: var(--ink);
+            margin-top: 3px;
+            letter-spacing: 0;
+        }
+        .tab-btn[data-tab="senior"].is-active { border-color: var(--wood); color: var(--wood); }
+        .tab-btn[data-tab="women"].is-active { border-color: var(--red); color: var(--red-deep); }
+        .tab-btn[data-tab="junior"].is-active { border-color: var(--navy); color: var(--navy); }
+        .tab-btn:not(.is-active) { opacity: .55; }
+
+        /* ============ TAB PANEL DISPLAY ============ */
+        [role="tabpanel"] {
+            display: none;
+        }
+        [role="tabpanel"].is-active {
+            display: block;
+        }
+
+        /* ============ SHARED BLOCKS ============ */
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: .72rem;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+        .cta-btn {
+            display: inline-block;
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: .82rem;
+            letter-spacing: .06em;
+            padding: .95rem 1.8rem;
+            margin-top: 1.6rem;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            text-align: center;
+        }
+        .cta-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity .5s ease, transform .5s ease;
+        }
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+        }
+
+        /* ============================================================ 
+           45+ SECTION — dark, wood accent, science-forward 
+        ============================================================ */
+        #senior {
+            background: var(--ink);
+            color: var(--wall);
+            padding: 4.5rem 1.4rem 5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .senior-pulse {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: .15;
+        }
+        .senior-pulse path {
+            fill: none;
+            stroke-width: 2;
+        }
+        .senior-pulse .steady {
+            stroke: var(--wood);
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 5s linear infinite;
+        }
+        .senior-pulse .faint {
+            stroke: rgba(246, 244, 239, .06);
+            stroke-width: 1;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+        .senior-inner {
+            position: relative;
+            z-index: 2;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        #senior .eyebrow {
+            color: #e0c9a0;
+        }
+        #senior h2 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(1.9rem, 7vw, 2.6rem);
+            line-height: 1.3;
+            margin-top: 20px;
+            letter-spacing: -.01em;
+            word-break: keep-all;
+        }
+        #senior h2 em {
+            font-style: italic;
+            color: var(--wood);
+        }
+        #senior .lede {
+            margin-top: 20px;
+            font-size: 1rem;
+            color: rgba(246, 244, 239, .72);
+            max-width: 32rem;
+            word-break: keep-all;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: rgba(246, 244, 239, .14);
+            border: 1px solid rgba(246, 244, 239, .14);
+            margin-top: 2.4rem;
+        }
+        .stat-card {
+            background: var(--ink);
+            padding: 1.3rem 1.1rem;
+        }
+        .stat-card .stat-num {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.7rem;
+            color: var(--wood);
+            display: block;
+            margin-bottom: .3rem;
+            line-height: 1.1;
+        }
+        .stat-card .stat-label {
+            font-size: .8rem;
+            color: rgba(246, 244, 239, .65);
+            line-height: 1.45;
+            word-break: keep-all;
+        }
+        .stat-source {
+            font-family: var(--font-mono);
+            font-size: .68rem;
+            color: rgba(246, 244, 239, .4);
+            margin-top: 1rem;
+        }
+
+        .program-block {
+            margin-top: 3rem;
+            border-top: 1px solid rgba(246, 244, 239, .16);
+            padding-top: 2.2rem;
+        }
+        .program-block h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1.25rem;
+            margin-bottom: .8rem;
+        }
+        .program-block p {
+            font-size: .92rem;
+            color: rgba(246, 244, 239, .68);
+            max-width: 30rem;
+            word-break: keep-all;
+        }
+        .session-options {
+            display: flex;
+            gap: .8rem;
+            margin-top: 1.4rem;
+            flex-wrap: wrap;
+        }
+        .session-pill {
+            border: 1px solid rgba(246, 244, 239, .3);
+            padding: .55rem 1rem;
+            font-family: var(--font-mono);
+            font-size: .78rem;
+            color: rgba(246, 244, 239, .8);
+        }
+        #senior .cta-btn {
+            background: var(--wood);
+            color: var(--ink);
+            width: 100%;
+        }
+
+        /* ============================================================ 
+           WOMEN SECTION — light, red accent, warm/social 
+        ============================================================ */
+        #women {
+            background: var(--wall);
+            color: var(--ink);
+            padding: 4.5rem 1.4rem 5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .women-num-bg {
+            position: absolute;
+            top: -30px;
+            right: -50px;
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: min(46vw, 420px);
+            line-height: 1;
+            color: var(--red);
+            opacity: .06;
+            letter-spacing: -.04em;
+            z-index: 1;
+            user-select: none;
+        }
+        .women-inner {
+            position: relative;
+            z-index: 2;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        #women .eyebrow {
+            color: var(--red-deep);
+        }
+        #women h2 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(1.8rem, 6.5vw, 2.4rem);
+            line-height: 1.35;
+            margin-top: 20px;
+            max-width: 22rem;
+            word-break: keep-all;
+        }
+        #women h2 em {
+            font-style: italic;
+            color: var(--red);
+        }
+        #women .lede {
+            margin-top: 20px;
+            font-size: 1rem;
+            color: #4a4a4d;
+            max-width: 30rem;
+            word-break: keep-all;
+        }
+
+        .burn-strip {
+            margin-top: 2rem;
+            display: flex;
+            align-items: baseline;
+            gap: 14px;
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            padding: 1.1rem 0;
+        }
+        .burn-num {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 2.6rem;
+            color: var(--red);
+            line-height: 1;
+        }
+        .burn-label {
+            font-size: .85rem;
+            color: #5c5c5f;
+            max-width: 14rem;
+            word-break: keep-all;
+        }
+
+        .community-block {
+            margin-top: 2.6rem;
+        }
+        .community-block h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: .9rem;
+        }
+        .community-list {
+            display: flex;
+            flex-direction: column;
+            gap:.9rem;
+        }
+        .community-item {
+            display: flex;
+            gap: .8rem;
+            align-items: flex-start;
+            font-size: .9rem;
+            color: #4a4a4d;
+            word-break: keep-all;
+        }
+        .community-item .mark {
+            font-family: var(--font-mono);
+            font-size: .72rem;
+            color: var(--red);
+            flex-shrink: 0;
+            padding-top: .15rem;
+        }
+
+        .cohort-note {
+            margin-top: 1.8rem;
+            background: var(--wall-dim);
+            border: 1px solid var(--line);
+            padding: .9rem 1.1rem;
+            font-family: var(--font-mono);
+            font-size: .75rem;
+            color: #5c5c5f;
+            word-break: keep-all;
+        }
+        #women .cta-btn {
+            background: var(--red);
+            color: var(--wall);
+            width: 100%;
+        }
+        #women .cta-btn:hover {
+            background: var(--red-deep);
+        }
+
+        /* ============================================================ 
+           JUNIOR SECTION — collegiate, navy accent, story-driven 
+        ============================================================ */
+        #junior {
+            background: var(--wall);
+            color: var(--ink);
+            padding: 3.6rem 1.4rem 5rem;
+        }
+        .junior-inner {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .credential-plate {
+            background: var(--navy);
+            color: var(--wall);
+            padding: 1.4rem 1.3rem;
+            display: flex;
+            flex-direction: column;
+            gap: .35rem;
+        }
+        .credential-plate .plate-eyebrow {
+            font-family: var(--font-mono);
+            font-size: .68rem;
+            letter-spacing: .12em;
+            color: #a9b6c2;
+            text-transform: uppercase;
+        }
+        .credential-plate .plate-main {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1.3rem;
+            line-height: 1.35;
+            word-break: keep-all;
+        }
+
+        #junior h2 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(1.7rem, 6vw, 2.3rem);
+            line-height: 1.4;
+            margin-top: 1.6rem;
+            word-break: keep-all;
+        }
+        #junior h2 em {
+            font-style: italic;
+            color: var(--navy);
+        }
+
+        .story-beat {
+            margin-top: 1.8rem;
+            padding-top: 1.4rem;
+            border-top: 1px solid var(--line);
+        }
+        .story-beat .beat-tag {
+            font-family: var(--font-mono);
+            font-size: .7rem;
+            letter-spacing: .08em;
+            color: var(--navy);
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: .5rem;
+        }
+        .story-beat p {
+            font-size: .94rem;
+            color: #3a3a3d;
+            line-height: 1.7;
+            word-break: keep-all;
+        }
+        .story-beat p + p {
+            margin-top: .7rem;
+        }
+
+        .reframe-block {
+            margin-top: 2.6rem;
+            background: var(--wall-dim);
+            border-left: 3px solid var(--navy);
+            padding: 1.3rem 1.2rem;
+        }
+        .reframe-block .reframe-title {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: .6rem;
+        }
+        .reframe-block p {
+            font-size: .9rem;
+            color: #4a4a4d;
+            line-height: 1.65;
+            word-break: keep-all;
+        }
+
+        .proof-grid {
+            margin-top: 2.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--line);
+            border: 1px solid var(--line);
+        }
+        .proof-row {
+            background: var(--wall);
+            padding: 1rem 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: baseline;
+        }
+        .proof-row .proof-name {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: .95rem;
+        }
+        .proof-row .proof-result {
+            font-size: .8rem;
+            color: #5c5c5f;
+            text-align: right;
+            word-break: keep-all;
+        }
+        .proof-note {
+            font-family: var(--font-mono);
+            font-size: .68rem;
+            color: #8a8a8d;
+            margin-top: .7rem;
+            word-break: keep-all;
+        }
+
+        #junior .cta-btn {
+            background: var(--navy);
+            color: var(--wall);
+            width: 100%;
+        }
+
+        /* ============ FOOTER ============ */
+        footer {
+            background: var(--ink);
+            color: rgba(246, 244, 239, .55);
+            padding: 2.6rem 1.4rem 2rem;
+            text-align: center;
+            font-size: .82rem;
+        }
+        footer .foot-name {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            color: var(--wall);
+            margin-bottom: .7rem;
+        }
+        footer .foot-line {
+            margin-bottom: .25rem;
+            word-break: keep-all;
+        }
+
+        @media (min-width: 720px) {
+            .stat-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- STICKY HEADER -->
+    <header class="site-header">
+        <div class="brand">
+            WELLPERION
+            <span class="sub">SQUASH CLUB</span>
+        </div>
+        <!-- 🎯 상단 헤더 Inquiry 링크 매핑 -->
+        <a href="http://wellperion.com/ko/inquiry-form/?type=adult" class="header-cta">INQUIRE</a>
+    </header>
+
+    <!-- TAB NAVIGATION BAR -->
+    <nav class="tab-bar" role="tablist">
+        <button class="tab-btn is-active" data-tab="senior" role="tab" aria-selected="true">
+            SENIOR
+            <span class="tab-btn-title">Reclaim Your Prime</span>
+        </button>
+        <button class="tab-btn" data-tab="women" role="tab" aria-selected="false">
+            WOMEN
+            <span class="tab-btn-title">50-Min Group</span>
+        </button>
+        <button class="tab-btn" data-tab="junior" role="tab" aria-selected="false">
+            JUNIOR
+            <span class="tab-btn-title">Boarding School Pathway</span>
+        </button>
+    </nav>
+
+    <!-- ==================== TAB 1: 45+ SENIOR ==================== -->
+    <main id="senior" role="tabpanel" class="tab-panel is-active">
+        <div class="senior-pulse">
+            <svg viewBox="0 0 800 200" width="100%" height="100%" preserveAspectRatio="none">
+                <path class="faint" d="M0,100 L200,100 L220,100 L230,80 L240,120 L250,100 L260,100 L270,100 L280,30 L290,170 L300,100 L800,100" />
+                <path class="steady" d="M0,100 L200,100 L220,100 L230,80 L240,120 L250,100 L260,100 L270,100 L280,30 L290,170 L300,100 L800,100" />
+            </svg>
+        </div>
+        
+        <div class="senior-inner reveal">
+            <span class="eyebrow">RECLAIM YOUR PRIME</span>
+            <h2>'진짜 운동'이 어떤 느낌이었는지 <em>기억하시나요?</em></h2>
+            <p class="lede">숨이 턱끝까지 차오르고, 온몸이 땀에 흠뻑 젖은 채로 묘한 성취감과 무적의 기분을 느꼈던 그때 그 시절의 맹렬했던 운동을 떠올려 보세요. 머릿속이 맑아지고 진정으로 살아있음을 느끼게 해주던 그런 짜릿한 피로감 말입니다.</p>
+            
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <span class="stat-num">900 kcal</span>
+                    <span class="stat-label">단 45분 플레이로 극대화되는 전신 칼로리 소모</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">80-90%</span>
+                    <span class="stat-label">고강도 인터벌 트레이닝(HIIT) 최대 심박수 도달</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">47%</span>
+                    <span class="stat-label">라켓 스포츠를 꾸준히 즐기는 성인의 전체 사망 위험 감소</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">#1</span>
+                    <span class="stat-label">포브스(Forbes) 선정 세계에서 가장 건강한 스포츠</span>
+                </div>
+            </div>
+            <div class="stat-source">Sources: British Journal of Sports Medicine (BJSM), Forbes evaluation</div>
+
+            <div class="program-block">
+                <h3>최대의 효과, 최소의 시간</h3>
+                <p>스쿼시는 바쁜 현대인들을 위한 궁극의 운동 효율을 지니고 있습니다. 일반 유산소 운동의 두 배에 달하는 칼로리 연소와 전신 근육 활성화를 단 45분 만에 경험할 수 있습니다.</p>
+                <div class="session-options">
+                    <span class="session-pill">HIIT CARDIO</span>
+                    <span class="session-pill">CORE WORK</span>
+                    <span class="session-pill">REFLEX TRAINING</span>
+                </div>
+            </div>
+
+            <!-- 🎯 성인 전용 체험 예약 링크 매핑 -->
+            <a href="http://wellperion.com/ko/inquiry-form/?type=adult" class="cta-btn">무료 체험 레슨 신청하기</a>
+        </div>
+    </main>
+
+    <!-- ==================== TAB 2: 2030 WOMEN (GROUP SESSION FOCUS) ==================== -->
+    <main id="women" role="tabpanel" class="tab-panel">
+        <div class="women-num-bg">30</div>
+        
+        <div class="women-inner reveal">
+            <span class="eyebrow">50-MINUTES Together</span>
+            <h2>혼자 어렵다면 <em>같이</em> 하면 할 수 있습니다</h2>
+            <p class="lede">지루하고 고독하게 헬스장에서 버티는 시간 대신, 완전히 독립되고 세련된 공간에서 마음이 맞는 크루들과 에너지를 나누는 소수정예 그룹 세션을 경험해 보세요.</p>
+            
+            <div class="burn-strip">
+                <div class="burn-num">2x</div>
+                <div class="burn-label">동일 시간 대비 일반 러닝머신 및 스피닝의 2배 칼로리 버닝 효과</div>
+            </div>
+
+            <div class="community-block">
+                <h3>함께하는 시너지, 소수정예 그룹 세션</h3>
+                <div class="community-list">
+                    <div class="community-item">
+                        <span class="mark">■</span>
+                        <span>혼자서 타협하는 지루한 운동 대신, 그룹 동료들과 함께 시너지를 발휘하는 1:4 소형 그룹 세션</span>
+                    </div>
+                    <div class="community-item">
+                        <span class="mark">■</span>
+                        <span>체대 및 엘리트 선수 출신 전문 강사진의 디테일한 밀착 피드백을 한눈에 받는 그룹 로테이션 프로그램</span>
+                    </div>
+                    <div class="community-item">
+                        <span class="mark">■</span>
+                        <span>운동 후 최고급 호텔식 샤워 시설 및 웰페리온 전용 최고급 사우나를 여유롭게 단독 연계 이용 가능</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cohort-note">오전 및 오후 비혼잡 시간대(Off-peak) 등록 시, 그룹 세션 특별 한정 프로모션 요금이 적용됩니다.</div>
+
+            <!-- 🎯 성인 전용 그룹 체험 예약 링크 매핑 -->
+            <a href="http://wellperion.com/ko/inquiry-form/?type=adult" class="cta-btn">그룹 세션 체험 레슨 신청하기</a>
+        </div>
+    </main>
+
+    <!-- ==================== TAB 3: JUNIOR ELITE (BOARDING SCHOOL FOCUS) ==================== -->
+    <main id="junior" role="tabpanel" class="tab-panel" data-theme="junior">
+        <div class="junior-inner reveal">
+            <!-- Credential Block -->
+            <div class="credential-plate">
+                <span class="plate-eyebrow">Phillips Exeter Alum Head Coach</span>
+                <div class="plate-main">미국 명문 보딩스쿨 'Phillips Exeter Academy' 출신 헤드코치가 직접 설계하고 리드하는 독보적 입시 스펙 솔루션</div>
+            </div>
+
+            <h2>초등기 조기 시작, <em>메이저 보딩스쿨</em> 입학의 가장 확실한 패스웨이</h2>
+            
+            <div class="story-beat">
+                <span class="beat-tag">01. Why Start in Elementary? (초등 조기 시작의 가치)</span>
+                <p>스쿼시를 통한 미국 명문 보딩스쿨 합격의 핵심은 <strong>'시기'</strong>에 있습니다. 초등학교 시기부터 일찍 체계적인 스쿼시 훈련을 시작하면, 학업 스트레스가 본격화되기 전에 탄탄한 신체적 기초와 경기 실전 감각을 미리 완벽하게 완성할 수 있습니다. 국내외 주니어 대회 출전 및 공식 랭킹 포인트를 일찌감치 선점할 수 있어, 8-9학년 시점의 메이저 보딩스쿨 리크루팅 시기에 독보적인 합격 스펙을 확보하게 됩니다.</p>
+            </div>
+
+            <div class="story-beat">
+                <span class="beat-tag">02. Guided by Phillips Exeter Alum</span>
+                <p>세계 최정상 명문 보딩스쿨인 <strong>Phillips Exeter Academy</strong>에서 엘리트 선수로 활동하며 입시 관문을 몸소 뚫어낸 헤드코치가 직접 학생들을 이끕니다. 보딩스쿨 운동팀 감독들이 실제로 선호하는 핵심 플레이 스타일을 전수하는 것은 물론, 아이비리그 진학까지 장기적으로 연계되는 전략적 포트폴리오를 밀착 정밀 지도합니다.</p>
+            </div>
+
+            <!-- 🎯 주니어용 공식 Pathway 이미지 연동 -->
+            <img src="웰페리온_스쿼시_Pathway.png" alt="웰페리온 스쿼시 Pathway" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 30px auto; border-radius: 8px; border: 1px solid var(--line);">
+
+            <div class="reframe-block">
+                <div class="reframe-title">미국 명문 보딩스쿨 바시티(Varsity) 스쿼시팀 활약 네트워크</div>
+                <p>웰페리온의 맞춤형 전략 컨설팅과 정밀 트레이닝을 거친 선배 주니어 학생들은 현재 미국 최고의 명문 보딩스쿨 대표팀(Varsity)에서 주전 선수로 당당히 코트를 누비며 눈부신 성과를 입증하고 있습니다.</p>
+            </div>
+
+            <div class="proof-grid">
+                <div class="proof-row">
+                    <span class="proof-name">Choate Rosemary Hall</span>
+                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                </div>
+                <div class="proof-row">
+                    <span class="proof-name">Hotchkiss School</span>
+                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                </div>
+                <div class="proof-row">
+                    <span class="proof-name">Loomis Chaffee School</span>
+                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                </div>
+                <div class="proof-row">
+                    <span class="proof-name">The Hill School</span>
+                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                </div>
+                <div class="proof-row">
+                    <span class="proof-name">Westminster School</span>
+                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                </div>
+                <div class="proof-row">
+                    <span class="proof-name">Mercersburg Academy</span>
+                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                </div>
+            </div>
+            <div class="proof-note">* 웰페리온에서 초등·중등기부터 훈련하여 미국 주요 보딩스쿨 스포츠 프로필 리크루팅을 통해 진출한 학생들의 대표적인 실제 활약 사례입니다.</div>
+
+            <!-- 🎯 주니어/청소년 전용 체험 상담 링크 (type=youth) 매핑 -->
+            <a href="http://wellperion.com/ko/inquiry-form/?type=youth" class="cta-btn">주니어 Elite 체험 상담 신청하기</a>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="foot-name">WELLPERION SQUASH CLUB</div>
+        <div class="foot-line">서울 한남동 최고급 웰페리온 스포츠센터 프라이빗 전용 코트</div>
+        <div class="foot-line" style="font-size: 0.75rem; margin-top: 10px; opacity: 0.6;">© 2026 Wellperion Squash. All Rights Reserved.</div>
+    </footer>
+
+    <!-- INTERACTIVE TAB SWITCHING & SCROLL REVEAL JAVASCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const panels = document.querySelectorAll('[role="tabpanel"]');
+
+            // 1. Interactive Tab Switching Logic
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetTab = tab.getAttribute('data-tab');
+
+                    // Deactivate all tabs
+                    tabs.forEach(t => {
+                        t.classList.remove('is-active');
+                        t.setAttribute('aria-selected', 'false');
+                    });
+                    // Hide all panels
+                    panels.forEach(p => p.classList.remove('is-active'));
+
+                    // Activate selected tab & panel
+                    tab.classList.add('is-active');
+                    tab.setAttribute('aria-selected', 'true');
+                    const activePanel = document.getElementById(targetTab);
+                    if (activePanel) {
+                        activePanel.classList.add('is-active');
+                    }
+                });
+            });
+
+            // 2. Premium Scroll Reveal Intersection Observer
+            const observerOptions = {
+                threshold: 0.05
+            };
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>
+```
