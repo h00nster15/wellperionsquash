@@ -11,10 +11,10 @@
             --wall: #FAF9F5;
             --wall-dim: #F3F1EB;
             --line: #E2DFD5;
-            --wood: #D4AF37;       /* Senior Tab Accent (Gold) */
-            --red: #E63946;        /* Women Tab Accent (Crimson Red) */
+            --wood: #D4AF37;           /* Senior Tab Accent (Gold) */
+            --red: #E63946;            /* Women Tab Accent (Crimson Red) */
             --red-deep: #B7091B;
-            --navy: #1D3557;       /* Junior Tab Accent (Ivy Navy) */
+            --exeter-crimson: #9E1B32; /* Phillips Exeter Academy Crimson */
             --font-display: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
             --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
         }
@@ -46,12 +46,14 @@
             align-items: center;
             justify-content: space-between;
         }
+
         .brand {
             font-family: var(--font-display);
             font-weight: 600;
             font-size: 15px;
             letter-spacing: -.01em;
         }
+
         .brand .sub {
             font-family: var(--font-mono);
             font-size: 10px;
@@ -60,6 +62,7 @@
             display: block;
             margin-top: 1px;
         }
+
         .header-cta {
             font-family: var(--font-mono);
             font-size: 11px;
@@ -70,6 +73,7 @@
             text-decoration: none;
             transition: background 0.2s ease;
         }
+
         .header-cta:hover {
             background: #333333;
         }
@@ -83,6 +87,7 @@
             background: var(--wall);
             border-bottom: 1px solid var(--line);
         }
+
         .tab-btn {
             flex: 1;
             font-family: var(--font-mono);
@@ -97,6 +102,7 @@
             cursor: pointer;
             transition: color .2s ease, border-color .2s ease;
         }
+
         .tab-btn .tab-btn-title {
             display: block;
             font-family: var(--font-display);
@@ -106,15 +112,17 @@
             margin-top: 3px;
             letter-spacing: 0;
         }
+
         .tab-btn[data-tab="senior"].is-active { border-color: var(--wood); color: var(--wood); }
         .tab-btn[data-tab="women"].is-active { border-color: var(--red); color: var(--red-deep); }
-        .tab-btn[data-tab="junior"].is-active { border-color: var(--navy); color: var(--navy); }
+        .tab-btn[data-tab="junior"].is-active { border-color: var(--exeter-crimson); color: var(--exeter-crimson); }
         .tab-btn:not(.is-active) { opacity: .55; }
 
         /* ============ TAB PANEL DISPLAY ============ */
         [role="tabpanel"] {
             display: none;
         }
+
         [role="tabpanel"].is-active {
             display: block;
         }
@@ -126,6 +134,7 @@
             letter-spacing: .14em;
             text-transform: uppercase;
         }
+
         .cta-btn {
             display: inline-block;
             text-decoration: none;
@@ -137,19 +146,23 @@
             transition: opacity 0.2s ease, transform 0.2s ease;
             text-align: center;
         }
+
         .cta-btn:hover {
             opacity: 0.9;
             transform: translateY(-1px);
         }
+
         .reveal {
             opacity: 0;
             transform: translateY(16px);
             transition: opacity .5s ease, transform .5s ease;
         }
+
         .reveal.is-visible {
             opacity: 1;
             transform: translateY(0);
         }
+
         @media (prefers-reduced-motion: reduce) {
             .reveal {
                 opacity: 1;
@@ -158,8 +171,8 @@
             }
         }
 
-        /* ============================================================ 
-           45+ SECTION — dark, wood accent, science-forward 
+        /* ============================================================
+           45+ SECTION — dark, wood accent, science-forward
         ============================================================ */
         #senior {
             background: var(--ink);
@@ -168,6 +181,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .senior-pulse {
             position: absolute;
             inset: 0;
@@ -175,34 +189,41 @@
             height: 100%;
             opacity: .15;
         }
+
         .senior-pulse path {
             fill: none;
             stroke-width: 2;
         }
+
         .senior-pulse .steady {
             stroke: var(--wood);
             stroke-dasharray: 1000;
             stroke-dashoffset: 1000;
             animation: dash 5s linear infinite;
         }
+
         .senior-pulse .faint {
             stroke: rgba(246, 244, 239, .06);
             stroke-width: 1;
         }
+
         @keyframes dash {
             to {
                 stroke-dashoffset: 0;
             }
         }
+
         .senior-inner {
             position: relative;
             z-index: 2;
             max-width: 600px;
             margin: 0 auto;
         }
+
         #senior .eyebrow {
             color: #e0c9a0;
         }
+
         #senior h2 {
             font-family: var(--font-display);
             font-weight: 700;
@@ -212,10 +233,12 @@
             letter-spacing: -.01em;
             word-break: keep-all;
         }
+
         #senior h2 em {
             font-style: italic;
             color: var(--wood);
         }
+
         #senior .lede {
             margin-top: 20px;
             font-size: 1rem;
@@ -232,10 +255,12 @@
             border: 1px solid rgba(246, 244, 239, .14);
             margin-top: 2.4rem;
         }
+
         .stat-card {
             background: var(--ink);
             padding: 1.3rem 1.1rem;
         }
+
         .stat-card .stat-num {
             font-family: var(--font-display);
             font-weight: 700;
@@ -245,12 +270,14 @@
             margin-bottom: .3rem;
             line-height: 1.1;
         }
+
         .stat-card .stat-label {
             font-size: .8rem;
             color: rgba(246, 244, 239, .65);
             line-height: 1.45;
             word-break: keep-all;
         }
+
         .stat-source {
             font-family: var(--font-mono);
             font-size: .68rem;
@@ -263,24 +290,28 @@
             border-top: 1px solid rgba(246, 244, 239, .16);
             padding-top: 2.2rem;
         }
+
         .program-block h3 {
             font-family: var(--font-display);
             font-weight: 600;
             font-size: 1.25rem;
             margin-bottom: .8rem;
         }
+
         .program-block p {
             font-size: .92rem;
             color: rgba(246, 244, 239, .68);
             max-width: 30rem;
             word-break: keep-all;
         }
+
         .session-options {
             display: flex;
             gap: .8rem;
             margin-top: 1.4rem;
             flex-wrap: wrap;
         }
+
         .session-pill {
             border: 1px solid rgba(246, 244, 239, .3);
             padding: .55rem 1rem;
@@ -288,14 +319,15 @@
             font-size: .78rem;
             color: rgba(246, 244, 239, .8);
         }
+
         #senior .cta-btn {
             background: var(--wood);
             color: var(--ink);
             width: 100%;
         }
 
-        /* ============================================================ 
-           WOMEN SECTION — light, red accent, warm/social 
+        /* ============================================================
+           WOMEN SECTION — light, red accent, warm/social
         ============================================================ */
         #women {
             background: var(--wall);
@@ -304,6 +336,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .women-num-bg {
             position: absolute;
             top: -30px;
@@ -318,15 +351,18 @@
             z-index: 1;
             user-select: none;
         }
+
         .women-inner {
             position: relative;
             z-index: 2;
             max-width: 600px;
             margin: 0 auto;
         }
+
         #women .eyebrow {
             color: var(--red-deep);
         }
+
         #women h2 {
             font-family: var(--font-display);
             font-weight: 700;
@@ -336,10 +372,12 @@
             max-width: 22rem;
             word-break: keep-all;
         }
+
         #women h2 em {
             font-style: italic;
             color: var(--red);
         }
+
         #women .lede {
             margin-top: 20px;
             font-size: 1rem;
@@ -357,6 +395,7 @@
             border-bottom: 1px solid var(--line);
             padding: 1.1rem 0;
         }
+
         .burn-num {
             font-family: var(--font-display);
             font-weight: 800;
@@ -364,6 +403,7 @@
             color: var(--red);
             line-height: 1;
         }
+
         .burn-label {
             font-size: .85rem;
             color: #5c5c5f;
@@ -374,17 +414,20 @@
         .community-block {
             margin-top: 2.6rem;
         }
+
         .community-block h3 {
             font-family: var(--font-display);
             font-weight: 600;
             font-size: 1.2rem;
             margin-bottom: .9rem;
         }
+
         .community-list {
             display: flex;
             flex-direction: column;
-            gap:.9rem;
+            gap: .9rem;
         }
+
         .community-item {
             display: flex;
             gap: .8rem;
@@ -393,6 +436,7 @@
             color: #4a4a4d;
             word-break: keep-all;
         }
+
         .community-item .mark {
             font-family: var(--font-mono);
             font-size: .72rem;
@@ -411,43 +455,48 @@
             color: #5c5c5f;
             word-break: keep-all;
         }
+
         #women .cta-btn {
             background: var(--red);
             color: var(--wall);
             width: 100%;
         }
+
         #women .cta-btn:hover {
             background: var(--red-deep);
         }
 
-        /* ============================================================ 
-           JUNIOR SECTION — collegiate, navy accent, story-driven 
+        /* ============================================================
+           JUNIOR SECTION — collegiate, Exeter Crimson accent, story-driven
         ============================================================ */
         #junior {
             background: var(--wall);
             color: var(--ink);
             padding: 3.6rem 1.4rem 5rem;
         }
+
         .junior-inner {
             max-width: 600px;
             margin: 0 auto;
         }
 
         .credential-plate {
-            background: var(--navy);
+            background: var(--exeter-crimson);
             color: var(--wall);
             padding: 1.4rem 1.3rem;
             display: flex;
             flex-direction: column;
             gap: .35rem;
         }
+
         .credential-plate .plate-eyebrow {
             font-family: var(--font-mono);
             font-size: .68rem;
             letter-spacing: .12em;
-            color: #a9b6c2;
+            color: #f1d2d6;
             text-transform: uppercase;
         }
+
         .credential-plate .plate-main {
             font-family: var(--font-display);
             font-weight: 600;
@@ -464,9 +513,10 @@
             margin-top: 1.6rem;
             word-break: keep-all;
         }
+
         #junior h2 em {
             font-style: italic;
-            color: var(--navy);
+            color: var(--exeter-crimson);
         }
 
         .story-beat {
@@ -474,37 +524,42 @@
             padding-top: 1.4rem;
             border-top: 1px solid var(--line);
         }
+
         .story-beat .beat-tag {
             font-family: var(--font-mono);
             font-size: .7rem;
             letter-spacing: .08em;
-            color: var(--navy);
+            color: var(--exeter-crimson);
             text-transform: uppercase;
             display: block;
             margin-bottom: .5rem;
         }
+
         .story-beat p {
             font-size: .94rem;
             color: #3a3a3d;
             line-height: 1.7;
             word-break: keep-all;
         }
+
         .story-beat p + p {
             margin-top: .7rem;
         }
 
         .reframe-block {
-            margin-top: 2.6rem;
+            margin-top: 2rem;
             background: var(--wall-dim);
-            border-left: 3px solid var(--navy);
+            border-left: 3px solid var(--exeter-crimson);
             padding: 1.3rem 1.2rem;
         }
+
         .reframe-block .reframe-title {
             font-family: var(--font-display);
             font-weight: 600;
             font-size: 1.05rem;
             margin-bottom: .6rem;
         }
+
         .reframe-block p {
             font-size: .9rem;
             color: #4a4a4d;
@@ -512,33 +567,537 @@
             word-break: keep-all;
         }
 
-        .proof-grid {
+        /* 🏆 SECTION 1: JUNIOR ACHIEVEMENTS */
+        .achievement-block {
+            margin-top: 3.5rem;
+            border-top: 1px solid var(--line);
+            padding-top: 2.5rem;
+        }
+
+        .achievement-block h3 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--ink);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .achievement-block h3::before {
+            content: "🏆";
+            font-size: 1.2rem;
+        }
+
+        .achievement-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 1.2rem;
+        }
+
+        .achievement-row {
+            background: var(--wall-dim);
+            border: 1px solid var(--line);
+            border-left: 4px solid var(--exeter-crimson);
+            padding: 1.1rem 1.3rem;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: transform 0.2s ease;
+        }
+
+        .achievement-row:hover {
+            transform: translateX(4px);
+        }
+
+        .achievement-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--exeter-crimson);
+            font-weight: 600;
+        }
+
+        .achievement-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.98rem;
+            color: var(--ink);
+            line-height: 1.35;
+        }
+
+        .achievement-subtext {
+            font-size: 0.85rem;
+            color: #5c5c5f;
+            word-break: keep-all;
+        }
+
+        /* 🎯 SECTION 2: US BOARDING SCHOOL NETWORK */
+        .boarding-section-header {
+            margin-top: 4.5rem;
+            border-top: 1px solid var(--line);
+            padding-top: 3rem;
+            text-align: center;
+        }
+
+        .boarding-section-header .sub-badge {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--exeter-crimson);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 700;
+            display: inline-block;
+            background: rgba(158, 27, 50, 0.06);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 0.8rem;
+        }
+
+        .boarding-section-header h3 {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.55rem;
+            color: var(--ink);
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+
+        .boarding-section-header p {
+            font-size: 0.92rem;
+            color: #5c5c5f;
+            margin-top: 0.6rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            word-break: keep-all;
+        }
+
+        .school-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 1.8rem;
+        }
+
+        .school-card {
+            background: var(--wall-dim);
+            border: 1px solid var(--line);
+            padding: 1.8rem 1.2rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            min-height: 200px;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .school-card:hover {
+            border-color: var(--exeter-crimson);
+            background: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(158, 27, 50, 0.06);
+        }
+
+        .school-logo-container {
+            height: 100px;
+            width: 100%;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        .school-logo-img {
+            max-height: 100%;
+            max-width: 95%;
+            object-fit: contain;
+            display: block;
+            mix-blend-mode: multiply;
+            filter: contrast(1.04);
+        }
+
+        .school-name {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--ink);
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+
+        /* ============ Head Coach Profile Card Styling ============ */
+        .coach-profile-card {
+            background: var(--wall-dim);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 1.8rem 1.5rem;
             margin-top: 2.2rem;
             display: flex;
             flex-direction: column;
-            gap: 1px;
-            background: var(--line);
-            border: 1px solid var(--line);
+            gap: 1.2rem;
         }
-        .proof-row {
-            background: var(--wall);
-            padding: 1rem 1.1rem;
+
+        @media (min-width: 600px) {
+            .coach-profile-card {
+                flex-direction: row;
+                align-items: center;
+                gap: 1.8rem;
+            }
+        }
+
+        /* 🎯 코치 아바타 프레임을 Exeter 로고에 최적화 */
+        .coach-avatar-container {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #ffffff;
             display: flex;
-            justify-content: space-between;
-            gap: 1rem;
-            align-items: baseline;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 3px solid var(--wall);
+            box-shadow: 0 4px 10px rgba(158, 27, 50, 0.15);
+            overflow: hidden;
+            padding: 5px; /* 로고 테두리에 미세한 안전마진 부여 */
         }
-        .proof-row .proof-name {
+
+        .coach-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .coach-info {
+            flex-grow: 1;
+        }
+
+        .coach-info h4 {
             font-family: var(--font-display);
-            font-weight: 600;
-            font-size: .95rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--ink);
+            margin-bottom: 0.2rem;
         }
-        .proof-row .proof-result {
-            font-size: .8rem;
-            color: #5c5c5f;
-            text-align: right;
+
+        .coach-info .coach-title {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--exeter-crimson);
+            font-weight: bold;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        .coach-credentials {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .coach-credentials li {
+            font-size: 0.88rem;
+            color: #4a4a4d;
+            display: flex;
+            gap: 0.5rem;
+            align-items: baseline;
             word-break: keep-all;
         }
+
+        .coach-credentials li::before {
+            content: "•";
+            color: var(--exeter-crimson);
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* 🏆 SECTION 3: WELLPERION JUNIOR SQUASH PATHWAY (FLOWCHART) */
+        .pathway-section {
+            margin-top: 4.5rem;
+            border-top: 1px solid var(--line);
+            padding-top: 3rem;
+        }
+
+        .pathway-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .pathway-header .pathway-badge {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--exeter-crimson);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 700;
+            display: inline-block;
+            background: rgba(158, 27, 50, 0.06);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 0.8rem;
+        }
+
+        .pathway-header h3 {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.55rem;
+            color: var(--ink);
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+
+        .pathway-header p {
+            font-size: 0.92rem;
+            color: #5c5c5f;
+            margin-top: 0.6rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            word-break: keep-all;
+        }
+
+        .flowchart-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-top: 2rem;
+        }
+
+        .flowchart-container::before {
+            content: '';
+            position: absolute;
+            left: 16px;
+            top: 20px;
+            bottom: 20px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--exeter-crimson) 70%, var(--line) 100%);
+            z-index: 1;
+        }
+
+        .flow-step {
+            position: relative;
+            background: var(--wall-dim);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 1.5rem 1.5rem 1.5rem 3.5rem;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2;
+        }
+
+        .flow-step:hover {
+            transform: translateY(-2px);
+            border-color: var(--exeter-crimson);
+            background: #ffffff;
+            box-shadow: 0 8px 24px rgba(158, 27, 50, 0.05);
+        }
+
+        .flow-step .step-circle {
+            position: absolute;
+            left: 0;
+            top: 1.5rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--exeter-crimson);
+            color: var(--wall);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 6px rgba(158, 27, 50, 0.2);
+            border: 2px solid var(--wall);
+        }
+
+        .flow-step:hover .step-circle {
+            transform: scale(1.1);
+        }
+
+        .flow-step .step-tag-main {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: var(--exeter-crimson);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        .flow-step h4 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--ink);
+            line-height: 1.3;
+            margin-bottom: 0.6rem;
+        }
+
+        .flow-step .step-desc {
+            font-size: 0.92rem;
+            color: #4a4a4d;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            word-break: keep-all;
+        }
+
+        .flow-step .step-details {
+            border-top: 1px dashed var(--line);
+            padding-top: 0.8rem;
+            margin-top: 0.8rem;
+        }
+
+        .flow-step .step-details-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 0.45rem;
+        }
+
+        .flow-pills-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .flow-pill-item {
+            background: rgba(158, 27, 50, 0.05);
+            border: 1px solid rgba(158, 27, 50, 0.15);
+            color: var(--exeter-crimson);
+            font-size: 0.78rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* ============ Blog & Social Conversion Banner Styling ============ */
+        .blog-promo-banner {
+            margin-top: 3.5rem;
+            background: linear-gradient(135deg, #1D3557, #111111);
+            color: var(--wall);
+            padding: 2.2rem 1.8rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(29, 53, 87, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .blog-promo-banner::after {
+            content: "SQUASH";
+            position: absolute;
+            bottom: -20px;
+            right: -10px;
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 4.5rem;
+            color: rgba(246, 244, 239, 0.03);
+            letter-spacing: -0.02em;
+            z-index: 1;
+            user-select: none;
+        }
+
+        .blog-promo-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .blog-promo-tag {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: #d1d8e0;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            display: inline-block;
+            background: rgba(246, 244, 239, 0.1);
+            padding: 4px 10px;
+            margin-bottom: 1rem;
+            border-radius: 20px;
+        }
+
+        .blog-promo-banner h4 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.3rem;
+            line-height: 1.4;
+            margin-bottom: 0.8rem;
+            word-break: keep-all;
+        }
+
+        .blog-promo-banner p {
+            font-size: 0.9rem;
+            color: #b0c0d0;
+            line-height: 1.6;
+            margin-bottom: 1.6rem;
+            word-break: keep-all;
+        }
+
+        .promo-links-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (min-width: 480px) {
+            .promo-links-group {
+                flex-direction: row;
+            }
+        }
+
+        .promo-link {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 10px 16px;
+            border-radius: 4px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .promo-link.blog-link {
+            background: var(--exeter-crimson);
+            color: var(--wall);
+        }
+
+        .promo-link.blog-link:hover {
+            background: #7d1527;
+        }
+
+        .promo-link.insta-link {
+            background: transparent;
+            border: 1px solid rgba(246, 244, 239, 0.3);
+            color: var(--wall);
+        }
+
+        .promo-link.insta-link:hover {
+            background: rgba(246, 244, 239, 0.08);
+            border-color: var(--wall);
+        }
+
         .proof-note {
             font-family: var(--font-mono);
             font-size: .68rem;
@@ -548,9 +1107,177 @@
         }
 
         #junior .cta-btn {
-            background: var(--navy);
+            background: var(--exeter-crimson);
             color: var(--wall);
             width: 100%;
+        }
+
+        /* ============ VIDEO SHOWCASE STYLING ============ */
+        .video-showcase-section {
+            margin-top: 3.5rem;
+            border-top: 1px solid var(--line);
+            padding-top: 2.5rem;
+        }
+
+        #senior .video-showcase-section {
+            border-top: 1px solid rgba(246, 244, 239, .16);
+        }
+
+        .video-showcase-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.30rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--ink);
+        }
+
+        #senior .video-showcase-title {
+            color: var(--wall);
+        }
+
+        .video-showcase-title::before {
+            content: "📹";
+            font-size: 1.2rem;
+        }
+
+        .video-showcase-subtitle {
+            font-size: 0.92rem;
+            color: #5c5c5f;
+            margin-bottom: 1.4rem;
+            word-break: keep-all;
+        }
+
+        #senior .video-showcase-subtitle {
+            color: rgba(246, 244, 239, .68);
+        }
+
+        .video-iframe-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            background: #000;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+        }
+
+        #senior .video-iframe-wrapper {
+            border: 1px solid rgba(246, 244, 239, .16);
+        }
+
+        .video-iframe-wrapper iframe,
+        .video-iframe-wrapper video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        /* Premium Cover Placeholder with Hover Play Effect */
+        .video-cover-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1c1c1e;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            transition: background 0.3s ease;
+        }
+
+        .video-cover-placeholder::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            transition: background 0.3s ease;
+        }
+
+        .video-cover-placeholder:hover::before {
+            background: rgba(0, 0, 0, 0.55);
+        }
+
+        .play-button-outer {
+            position: relative;
+            z-index: 6;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease;
+        }
+
+        .video-cover-placeholder:hover .play-button-outer {
+            transform: scale(1.1);
+            background: #ffffff;
+        }
+
+        /* Accent play button colors per tab */
+        #senior .play-button-outer {
+            background: rgba(212, 175, 55, 0.9); /* Gold for Senior */
+        }
+        #senior .video-cover-placeholder:hover .play-button-outer {
+            background: rgba(212, 175, 55, 1);
+        }
+
+        #women .play-button-outer {
+            background: rgba(230, 57, 70, 0.9); /* Crimson Red for Women */
+        }
+        #women .video-cover-placeholder:hover .play-button-outer {
+            background: rgba(230, 57, 70, 1);
+        }
+
+        #junior .play-button-outer {
+            background: rgba(158, 27, 50, 0.9); /* Exeter Crimson for Junior */
+        }
+        #junior .video-cover-placeholder:hover .play-button-outer {
+            background: rgba(158, 27, 50, 1);
+        }
+
+        .play-triangle {
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 16px solid var(--ink);
+            margin-left: 4px; /* offset visual center */
+        }
+
+        #senior .play-triangle {
+            border-left-color: var(--ink);
+        }
+
+        #women .play-triangle,
+        #junior .play-triangle {
+            border-left-color: var(--wall);
+        }
+
+        .video-placeholder-label {
+            position: relative;
+            z-index: 6;
+            color: #ffffff;
+            font-size: 0.85rem;
+            margin-top: 12px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
         /* ============ FOOTER ============ */
@@ -561,12 +1288,14 @@
             text-align: center;
             font-size: .82rem;
         }
+
         footer .foot-name {
             font-family: var(--font-display);
             font-size: 1.05rem;
             color: var(--wall);
             margin-bottom: .7rem;
         }
+
         footer .foot-line {
             margin-bottom: .25rem;
             word-break: keep-all;
@@ -575,6 +1304,9 @@
         @media (min-width: 720px) {
             .stat-grid {
                 grid-template-columns: repeat(4, 1fr);
+            }
+            .school-grid {
+                grid-template-columns: repeat(3, 1fr);
             }
         }
     </style>
@@ -587,8 +1319,7 @@
             WELLPERION
             <span class="sub">SQUASH CLUB</span>
         </div>
-        <!-- 🎯 상단 헤더 Inquiry 링크 매핑 -->
-        <a href="http://wellperion.com/ko/inquiry-form/?type=adult" class="header-cta">INQUIRE</a>
+        <a href="http://wellperion.com/ko/" class="header-cta">INQUIRE</a>
     </header>
 
     <!-- TAB NAVIGATION BAR -->
@@ -615,12 +1346,10 @@
                 <path class="steady" d="M0,100 L200,100 L220,100 L230,80 L240,120 L250,100 L260,100 L270,100 L280,30 L290,170 L300,100 L800,100" />
             </svg>
         </div>
-        
         <div class="senior-inner reveal">
             <span class="eyebrow">RECLAIM YOUR PRIME</span>
             <h2>'진짜 운동'이 어떤 느낌이었는지 <em>기억하시나요?</em></h2>
             <p class="lede">숨이 턱끝까지 차오르고, 온몸이 땀에 흠뻑 젖은 채로 묘한 성취감과 무적의 기분을 느꼈던 그때 그 시절의 맹렬했던 운동을 떠올려 보세요. 머릿속이 맑아지고 진정으로 살아있음을 느끼게 해주던 그런 짜릿한 피로감 말입니다.</p>
-            
             <div class="stat-grid">
                 <div class="stat-card">
                     <span class="stat-num">900 kcal</span>
@@ -640,10 +1369,18 @@
                 </div>
             </div>
             <div class="stat-source">Sources: British Journal of Sports Medicine (BJSM), Forbes evaluation</div>
-
             <div class="program-block">
+                <h3>1:1 및 1:2 프라이빗 맞춤형 코칭</h3>
+                <p>모든 세션은 철저하게 독립된 전용 코트에서 1:1 개인 레슨 혹은 파트너와 함께하는 1:2 예약으로만 운영됩니다. 코트 안에는 오직 담당 트레이너와 회원님만 입장하여 타인의 시선에 구애받지 않고 오롯이 나만의 플레이에 집중할 수 있는 완벽한 프라이버시가 제공됩니다.</p>
+                <div class="session-options">
+                    <span class="session-pill">1:1 PRIVATE LESSON</span>
+                    <span class="session-pill">1:2 SEMI-PRIVATE</span>
+                    <span class="session-pill">TAILORED INTENSITY</span>
+                </div>
+            </div>
+            <div class="program-block" style="margin-top: 1.5rem; border-top: none; padding-top: 0;">
                 <h3>최대의 효과, 최소의 시간</h3>
-                <p>스쿼시는 바쁜 현대인들을 위한 궁극의 운동 효율을 지니고 있습니다. 일반 유산소 운동의 두 배에 달하는 칼로리 연소와 전신 근육 활성화를 단 45분 만에 경험할 수 있습니다.</p>
+                <p>스쿼시는 바쁜 현대인들을 위한 궁극의 운동 효율을 지니고 있습니다. 일반 유산소 운동의 두 배에 달하는 칼로리 연소와 전신 근육 활성화를 단 30분 만에 경험할 수 있습니다.</p>
                 <div class="session-options">
                     <span class="session-pill">HIIT CARDIO</span>
                     <span class="session-pill">CORE WORK</span>
@@ -651,7 +1388,21 @@
                 </div>
             </div>
 
-            <!-- 🎯 성인 전용 체험 예약 링크 매핑 -->
+            <!-- TAB 1: SENIOR VIDEO SHOWCASE SECTION -->
+            <div class="video-showcase-section">
+                <h3 class="video-showcase-title">1:1 프라이빗 강습 및 전술 플레이 예시 영상</h3>
+                <p class="video-showcase-subtitle">실제 회원님이 코트 위에서 담당 코치와 1:1로 호흡을 맞추며 플레이하는 45분 프라이빗 코칭의 실제 흐름을 영상으로 확인해 보세요.</p>
+                <div class="video-iframe-wrapper">
+                    <!-- 💡 data-youtube-id 속성에 유튜브 동영상 ID (예: dQw4w9WgXcQ)를 입력하면 클릭 시 비디오가 자동으로 재생됩니다. -->
+                    <div class="video-cover-placeholder" data-youtube-id="">
+                        <div class="play-button-outer">
+                            <div class="play-triangle"></div>
+                        </div>
+                        <span class="video-placeholder-label">PLAY PREVIEW VIDEO</span>
+                    </div>
+                </div>
+            </div>
+
             <a href="http://wellperion.com/ko/inquiry-form/?type=adult" class="cta-btn">무료 체험 레슨 신청하기</a>
         </div>
     </main>
@@ -659,17 +1410,14 @@
     <!-- ==================== TAB 2: 2030 WOMEN (GROUP SESSION FOCUS) ==================== -->
     <main id="women" role="tabpanel" class="tab-panel">
         <div class="women-num-bg">30</div>
-        
         <div class="women-inner reveal">
             <span class="eyebrow">50-MINUTES Together</span>
             <h2>혼자 어렵다면 <em>같이</em> 하면 할 수 있습니다</h2>
             <p class="lede">지루하고 고독하게 헬스장에서 버티는 시간 대신, 완전히 독립되고 세련된 공간에서 마음이 맞는 크루들과 에너지를 나누는 소수정예 그룹 세션을 경험해 보세요.</p>
-            
             <div class="burn-strip">
                 <div class="burn-num">2x</div>
                 <div class="burn-label">동일 시간 대비 일반 러닝머신 및 스피닝의 2배 칼로리 버닝 효과</div>
             </div>
-
             <div class="community-block">
                 <h3>함께하는 시너지, 소수정예 그룹 세션</h3>
                 <div class="community-list">
@@ -688,9 +1436,21 @@
                 </div>
             </div>
 
-            <div class="cohort-note">오전 및 오후 비혼잡 시간대(Off-peak) 등록 시, 그룹 세션 특별 한정 프로모션 요금이 적용됩니다.</div>
+            <!-- TAB 2: WOMEN VIDEO SHOWCASE SECTION -->
+            <div class="video-showcase-section">
+                <h3 class="video-showcase-title">50분 소수정예 그룹 세션 실전 강습 영상</h3>
+                <p class="video-showcase-subtitle">지루함 없이 최고의 운동 에너지와 폭발적인 버닝 시너지를 내는 1:4 소수정예 세션 분위기를 현장 영상으로 미리 체험해 보세요.</p>
+                <div class="video-iframe-wrapper">
+                    <!-- 💡 data-youtube-id 속성에 유튜브 동영상 ID를 입력하면 클릭 시 비디오가 자동으로 재생됩니다. -->
+                    <div class="video-cover-placeholder" data-youtube-id="">
+                        <div class="play-button-outer">
+                            <div class="play-triangle"></div>
+                        </div>
+                        <span class="video-placeholder-label">PLAY SESSION VIDEO</span>
+                    </div>
+                </div>
+            </div>
 
-            <!-- 🎯 성인 전용 그룹 체험 예약 링크 매핑 -->
             <a href="http://wellperion.com/ko/inquiry-form/?type=adult" class="cta-btn">그룹 세션 체험 레슨 신청하기</a>
         </div>
     </main>
@@ -703,56 +1463,231 @@
                 <span class="plate-eyebrow">Phillips Exeter Alum Head Coach</span>
                 <div class="plate-main">미국 명문 보딩스쿨 'Phillips Exeter Academy' 출신 헤드코치가 직접 설계하고 리드하는 독보적 입시 스펙 솔루션</div>
             </div>
-
             <h2>초등기 조기 시작, <em>메이저 보딩스쿨</em> 입학의 가장 확실한 패스웨이</h2>
-            
+            <!-- 01. Why Start in Elementary? -->
             <div class="story-beat">
                 <span class="beat-tag">01. Why Start in Elementary? (초등 조기 시작의 가치)</span>
                 <p>스쿼시를 통한 미국 명문 보딩스쿨 합격의 핵심은 <strong>'시기'</strong>에 있습니다. 초등학교 시기부터 일찍 체계적인 스쿼시 훈련을 시작하면, 학업 스트레스가 본격화되기 전에 탄탄한 신체적 기초와 경기 실전 감각을 미리 완벽하게 완성할 수 있습니다. 국내외 주니어 대회 출전 및 공식 랭킹 포인트를 일찌감치 선점할 수 있어, 8-9학년 시점의 메이저 보딩스쿨 리크루팅 시기에 독보적인 합격 스펙을 확보하게 됩니다.</p>
             </div>
-
+            <!-- 02. Guided by Phillips Exeter Alum -->
             <div class="story-beat">
                 <span class="beat-tag">02. Guided by Phillips Exeter Alum</span>
-                <p>세계 최정상 명문 보딩스쿨인 <strong>Phillips Exeter Academy</strong>에서 엘리트 선수로 활동하며 입시 관문을 몸소 뚫어낸 헤드코치가 직접 학생들을 이끕니다. 보딩스쿨 운동팀 감독들이 실제로 선호하는 핵심 플레이 스타일을 전수하는 것은 물론, 아이비리그 진학까지 장기적으로 연계되는 전략적 포트폴리오를 밀착 정밀 지도합니다.</p>
+                <p>세계 최정상 명문 보딩스쿨인 <strong>Phillips Exeter Academy</strong>에서 입시 관문을 몸소 뚫어내 Brown University Squash Team에서 활동한 헤드코치가 직접 학생들을 이끕니다.</p>
             </div>
-
-            <!-- 🎯 주니어용 공식 Pathway 이미지 연동 -->
-            <img src="웰페리온_스쿼시_Pathway.png" alt="웰페리온 스쿼시 Pathway" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 30px auto; border-radius: 8px; border: 1px solid var(--line);">
-
+            <!-- Head Coach Profile Card -->
+            <div class="coach-profile-card">
+                <div class="coach-avatar-container">
+                    <img src="exeter_logo.png" alt="Phillips Exeter Academy Crest" class="coach-avatar-img">
+                </div>
+                <div class="coach-info">
+                    <h4>이상훈 헤드코치 (팀장)</h4>
+                    <span class="coach-title">Phillips Exeter & Brown Alum Coach</span>
+                    <ul class="coach-credentials">
+                        <li>미국 최고 권위 명문 보딩스쿨 <strong>Phillips Exeter Academy</strong> 졸업</li>
+                        <li>미국 아이비리그 <strong>Brown University (브라운 대학교)</strong> Squash Team</li>
+                        <li>PSA Squash Tour, 국내 실업팀 등 엘리트 스쿼시 선수 활동</li>
+                        <li>웰페리온 주니어 스쿼시 보딩스쿨/대학교 대비 입시 전략 총괄 디렉터</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 🏆 SECTION 1: JUNIOR ACHIEVEMENTS -->
+            <div class="achievement-block">
+                <h3>주요 주니어 선수 실적 및 입상 내역</h3>
+                <div class="achievement-timeline">
+                    <!-- Template 1: International Tournament / College Acceptance -->
+                    <div class="achievement-row">
+                        <div class="achievement-meta">
+                            <span>[지역대회/Local Tournaments]</span>
+                        </div>
+                        <div class="achievement-title">김ㅇㅇ(옥정초) - 2026 Wellperion Junior Open Squash Tournament Boys U10 우승</div>
+                        <div class="achievement-subtext">이외 2026 서울시 시장기 스쿼시 대회 참가자 전원 입상</div>
+                    </div>
+                    <!-- Template 2: Junior Championship / Local Tournament -->
+                    <div class="achievement-row">
+                        <div class="achievement-meta">
+                            <span>[전국대회/National Tournaments]</span>
+                        </div>
+                        <div class="achievement-title">설ㅇㅇ(Chadwick International School) - 2026년 전국소년체전 스쿼시 종목 8강</div>
+                        <div class="achievement-subtext">서울특별시 대표롤 전국소년체전 출전해 8강 진출</div>
+                    </div>
+                    <!-- Template 3: Academy Internal Tournament or Local Open -->
+                    <div class="achievement-row">
+                        <div class="achievement-meta">
+                            <span>[국제대회/International Tournaments]</span>
+                        </div>
+                        <div class="achievement-title">조ㅇㅇ(Benedem International School) - 2026 Korea Junior Open Boys U15 출전</div>
+                        <div class="achievement-subtext">웰페리온에서 스쿼시 시작 1.5년 만에 아시아 스쿼시연맹 국제 주니어 대회 출전</div>
+                    </div>
+                </div>
+            </div>
+            <!-- 🎯 SECTION 2: US BOARDING SCHOOL NETWORK -->
+            <div class="boarding-section-header">
+                <span class="sub-badge">US Boarding School Network</span>
+                <h3>미국 명문 보딩스쿨 네트워크</h3>
+                <p>웰페리온의 정밀 트레이닝 프로그램을 이수한 자랑스러운 선배 주니어 선수들이 합격 및 진출하여 활약하고 있는 명문 보딩스쿨 목록입니다.</p>
+            </div>
             <div class="reframe-block">
-                <div class="reframe-title">미국 명문 보딩스쿨 바시티(Varsity) 스쿼시팀 활약 네트워크</div>
-                <p>웰페리온의 맞춤형 전략 컨설팅과 정밀 트레이닝을 거친 선배 주니어 학생들은 현재 미국 최고의 명문 보딩스쿨 대표팀(Varsity)에서 주전 선수로 당당히 코트를 누비며 눈부신 성과를 입증하고 있습니다.</p>
+                <div class="reframe-title">미국 명문 보딩스쿨 스쿼시팀 활약 네트워크</div>
+                <p>웰페리온의 맞춤형 전략 컨설팅과 정밀 트레이닝을 거친 선배 주니어 학생들은 현재 미국 최고의 명문 보딩스쿨에서 선수로 당당히 코트를 누비며 눈부신 성과를 입증하고 있습니다.</p>
             </div>
-
-            <div class="proof-grid">
-                <div class="proof-row">
-                    <span class="proof-name">Choate Rosemary Hall</span>
-                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+            <!-- SCHOOL LOGO SLOTS GRID -->
+            <div class="school-grid">
+                <!-- 1. Phillips Exeter Academy -->
+                <div class="school-card" style="border: 2px solid var(--exeter-crimson); background: #FFF9FA;">
+                    <div class="school-logo-container">
+                        <img src="exeter_logo.png" alt="Phillips Exeter Academy" class="school-logo-img">
+                    </div>
+                    <span class="school-name">Phillips Exeter Academy</span>
+                    <span style="font-size: 0.7rem; color: var(--exeter-crimson); font-weight: bold; margin-top: 5px;">Head Coach</span>
                 </div>
-                <div class="proof-row">
-                    <span class="proof-name">Hotchkiss School</span>
-                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                <!-- 2. Choate Rosemary Hall -->
+                <div class="school-card">
+                    <div class="school-logo-container">
+                        <img src="choate_rosemary_hall_logo.png" alt="Choate Rosemary Hall" class="school-logo-img">
+                    </div>
+                    <span class="school-name">Choate Rosemary Hall</span>
                 </div>
-                <div class="proof-row">
-                    <span class="proof-name">Loomis Chaffee School</span>
-                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                <!-- 3. Hotchkiss School -->
+                <div class="school-card">
+                    <div class="school-logo-container">
+                        <img src="hotchkiss_logo.png" alt="Hotchkiss School" class="school-logo-img">
+                    </div>
+                    <span class="school-name">Hotchkiss School</span>
                 </div>
-                <div class="proof-row">
-                    <span class="proof-name">The Hill School</span>
-                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                <!-- 4. Loomis Chaffee School -->
+                <div class="school-card">
+                    <div class="school-logo-container">
+                        <img src="loomis_logo.png" alt="Loomis Chaffee School" class="school-logo-img">
+                    </div>
+                    <span class="school-name">Loomis Chaffee School</span>
                 </div>
-                <div class="proof-row">
-                    <span class="proof-name">Westminster School</span>
-                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                <!-- 5. The Hill School -->
+                <div class="school-card">
+                    <div class="school-logo-container">
+                        <img src="hill_school_logo.png" alt="The Hill School" class="school-logo-img">
+                    </div>
+                    <span class="school-name">The Hill School</span>
                 </div>
-                <div class="proof-row">
-                    <span class="proof-name">Mercersburg Academy</span>
-                    <span class="proof-result">스쿼시 바시티(Varsity) 대표팀 주전 활약 중</span>
+                <!-- 6. Westminster School -->
+                <div class="school-card">
+                    <div class="school-logo-container">
+                        <img src="westminster_logo.png" alt="Westminster School" class="school-logo-img">
+                    </div>
+                    <span class="school-name">Westminster School</span>
+                </div>
+                <!-- 7. Mercersburg Academy -->
+                <div class="school-card">
+                    <div class="school-logo-container">
+                        <img src="mercersberg_academy_logo.png" alt="Mercersburg Academy" class="school-logo-img">
+                    </div>
+                    <span class="school-name">Mercersburg Academy</span>
                 </div>
             </div>
             <div class="proof-note">* 웰페리온에서 초등·중등기부터 훈련하여 미국 주요 보딩스쿨 스포츠 프로필 리크루팅을 통해 진출한 학생들의 대표적인 실제 활약 사례입니다.</div>
+            <!-- 🎯 SECTION 3: WELLPERION JUNIOR SQUASH PATHWAY (FLOW CHART) -->
+            <div class="pathway-section">
+                <div class="pathway-header">
+                    <span class="pathway-badge">ROADMAP TO ELITE</span>
+                    <h3>웰페리온 주니어 스쿼시 Pathway</h3>
+                    <p>해외 명문 보딩스쿨 및 대학교 지원을 위한 완벽하게 체계화된 다단계 스펙 구축 프로그램</p>
+                </div>
+                <div class="flowchart-container">
+                    <!-- Step 1 -->
+                    <div class="flow-step">
+                        <div class="step-circle">01</div>
+                        <span class="step-tag-main">Phase 1 : 입문 & 흥미 유발</span>
+                        <h4>Introduction to Squash</h4>
+                        <p class="step-desc">학생들이 스쿼시라는 스포츠에 재미와 흥미를 붙이고, 폭발적인 고강도 퍼포먼스에 대처하기 위한 핵심 신체 밸런스와 기초 체력을 정밀하게 수립하는 기본 관문 프로그램입니다.</p>
+                        <div class="step-details">
+                            <div class="step-details-title">적용 프로그램 & 세션 방식</div>
+                            <div class="flow-pills-group">
+                                <span class="flow-pill-item">First Serve 스쿼시 입문 과정</span>
+                                <span class="flow-pill-item">1:1 개인레슨</span>
+                                <span class="flow-pill-item">1:2 세미-프라이빗 레슨</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="flow-step">
+                        <div class="step-circle">02</div>
+                        <span class="step-tag-main">Phase 2 : 실전 매치 플레이</span>
+                        <h4>Transition to Matchplay</h4>
+                        <p class="step-desc">단순한 자세 교정을 넘어서 본격적인 게임 규칙과 전술을 학습하는 단계입니다. 상대의 움직임을 역이용하는 법을 깨우치고 실제 경기 경험을 조기에 누적하여 응용력을 기릅니다.</p>
+                        <div class="step-details">
+                            <div class="step-details-title">적용 프로그램 & 세션 방식</div>
+                            <div class="flow-pills-group">
+                                <span class="flow-pill-item">1:4 소정예 그룹레슨</span>
+                                <span class="flow-pill-item">Sunday 주니어 집중 트레이닝</span>
+                                <span class="flow-pill-item">자체 '웰림픽 스쿼시 대회' 출전</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="flow-step">
+                        <div class="step-circle">03</div>
+                        <span class="step-tag-main">Phase 3 : 지역/로컬 대회 출격</span>
+                        <h4>Regional Competitions</h4>
+                        <p class="step-desc">검증된 실전 기량을 바탕으로 주니어 공식 대회에 첫발을 내딛는 단계입니다. 지역 대회를 적극 참가함으로써 미국 메이저 보딩스쿨 및 대학 입시에 필수 요소인 공식 대회 출전 경력과 의미 있는 입상 실적을 축적합니다.</p>
+                        <div class="step-details">
+                            <div class="step-details-title">적용 프로그램 & 세션 방식</div>
+                            <div class="flow-pills-group">
+                                <span class="flow-pill-item">Wellperion Squash Junior Open</span>
+                                <span class="flow-pill-item">서울특별시 전연령 스쿼시 대회</span>
+                                <span class="flow-pill-item">지역별 주니어 랭킹전</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Step 4 -->
+                    <div class="flow-step">
+                        <div class="step-circle">04</div>
+                        <span class="step-tag-main">Phase 4 : 글로벌 하이 레벨 경쟁</span>
+                        <h4>Higher Level Competition</h4>
+                        <p class="step-desc">전국 규모의 메이저 대회와 아시아 국제 주니어 챔피언십, 더 나아가 미국 현지 공식 US Squash 대회에 정밀 노출하는 최고 단계입니다. 보딩스쿨 입시 사정관과 대학 스포츠 바시티 감독에게 어필할 명확한 엘리트 랭킹 포인트를 확보합니다.</p>
+                        <div class="step-details">
+                            <div class="step-details-title">적용 프로그램 & 세션 방식</div>
+                            <div class="flow-pills-group">
+                                <span class="flow-pill-item">US Squash Junior Tournaments (미국 원정)</span>
+                                <span class="flow-pill-item">Korea Junior Open</span>
+                                <span class="flow-pill-item">국제 주니어 아시아 랭킹전</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            <!-- 🎯 주니어/청소년 전용 체험 상담 링크 (type=youth) 매핑 -->
+            <!-- TAB 3: JUNIOR VIDEO SHOWCASE SECTION -->
+            <div class="video-showcase-section">
+                <h3 class="video-showcase-title">주니어 엘리트 전술 드릴 및 코트 트레이닝 실전 영상</h3>
+                <p class="video-showcase-subtitle">미국 탑 보딩스쿨 Varsity 팀 선발 및 US Squash 랭킹 포인트 선점을 극대화하는 정밀 전술 훈련 모습을 영상으로 입증합니다.</p>
+                <div class="video-iframe-wrapper">
+                    <!-- 💡 data-youtube-id 속성에 유튜브 동영상 ID를 입력하면 클릭 시 비디오가 자동으로 재생됩니다. -->
+                    <div class="video-cover-placeholder" data-youtube-id="">
+                        <div class="play-button-outer">
+                            <div class="play-triangle"></div>
+                        </div>
+                        <span class="video-placeholder-label">PLAY JUNIOR DRILL VIDEO</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Naver Blog & Instagram Traffic Conversion Banner -->
+            <div class="blog-promo-banner">
+                <div class="blog-promo-content">
+                    <span class="blog-promo-tag">INSIDER KNOWLEDGE</span>
+                    <h4>스쿼시를 통한 보딩스쿨 합격 전략이 더 궁금하신가요?</h4>
+                    <p>이상훈 헤드코치가 직접 분석한 'NCAA 대학 리크루팅 타임라인 가이드' 및 브라운 대학 합격 비화 등 오직 웰페리온 공식 채널에서만 전수하는 최고 등급의 유학 입시 노하우를 확인해 보세요.</p>
+                    <div class="promo-links-group">
+                        <!-- 네이버 블로그 유입 링크 -->
+                        <a href="https://blog.naver.com/h00nster15/223154389347" class="promo-link blog-link" target="_blank">
+                            📖 블로그 칼럼 '코트에서, 브라운까지'
+                        </a>
+                        <!-- 인스타그램 유입 링크 -->
+                        <a href="https://instagram.com/glass_court" class="promo-link insta-link" target="_blank">
+                            📸 인스타그램 @glass_court 바로가기
+                        </a>
+                    </div>
+                </div>
+            </div>
             <a href="http://wellperion.com/ko/inquiry-form/?type=youth" class="cta-btn">주니어 Elite 체험 상담 신청하기</a>
         </div>
     </main>
@@ -769,12 +1704,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             const tabs = document.querySelectorAll('.tab-btn');
             const panels = document.querySelectorAll('[role="tabpanel"]');
-
+            
             // 1. Interactive Tab Switching Logic
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const targetTab = tab.getAttribute('data-tab');
-
                     // Deactivate all tabs
                     tabs.forEach(t => {
                         t.classList.remove('is-active');
@@ -782,7 +1716,6 @@
                     });
                     // Hide all panels
                     panels.forEach(p => p.classList.remove('is-active'));
-
                     // Activate selected tab & panel
                     tab.classList.add('is-active');
                     tab.setAttribute('aria-selected', 'true');
@@ -804,10 +1737,33 @@
                     }
                 });
             }, observerOptions);
-
             document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+            // 3. Premium Video Showcase Play Logic
+            const videoPlaceholders = document.querySelectorAll('.video-cover-placeholder');
+            videoPlaceholders.forEach(placeholder => {
+                placeholder.addEventListener('click', () => {
+                    const videoId = placeholder.getAttribute('data-youtube-id');
+                    const wrapper = placeholder.parentElement;
+                    placeholder.remove(); // Remove overlay placeholder
+                    
+                    if (videoId) {
+                        const iframe = document.createElement('iframe');
+                        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+                        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                        iframe.setAttribute('allowfullscreen', '');
+                        wrapper.appendChild(iframe);
+                    } else {
+                        // Check if there is an existing video element inside and play it
+                        const localVideo = wrapper.querySelector('video');
+                        if (localVideo) {
+                            localVideo.style.display = 'block';
+                            localVideo.play();
+                        }
+                    }
+                });
+            });
         });
     </script>
 </body>
 </html>
-```
