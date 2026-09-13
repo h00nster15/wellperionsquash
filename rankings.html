@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>랭킹 · WSR | Wellperion Squash</title>
+    <meta name="description" content="웰페리온 스쿼시 클럽 랭킹 — WSR (Wellperion Squash Rating). UTR 방식의 실력 레이팅: 경기 결과와 상대 레이팅으로 계산됩니다. Club ladder rated UTR-style from match results.">
+    <style>
+        :root {
+            --ink: #111111; --wall: #FAF9F5; --wall-dim: #F3F1EB; --line: #E2DFD5;
+            --navy: #1F2A6B; --glass: #7FA8D9; --red: #E63946; --muted: #6b6a66; --ok: #1f7a4d; --gold: #D4AF37;
+            --font-display: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-display); background: var(--wall); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+        a { color: inherit; }
+        .site-header { position: sticky; top: 0; z-index: 50; background: rgba(246,244,239,.96); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .brand { font-weight: 600; font-size: 15px; letter-spacing: -.01em; text-decoration: none; }
+        .brand .sub { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--muted); }
+        .header-cta { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-decoration: none; border: 1px solid var(--ink); padding: 8px 14px; border-radius: 999px; }
+        .header-cta:hover { background: var(--ink); color: var(--wall); }
+        main { max-width: 900px; margin: 0 auto; padding: 36px 20px 80px; }
+        .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+        h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; letter-spacing: -.02em; line-height: 1.15; margin: 8px 0 10px; }
+        .lede { color: var(--muted); max-width: 640px; }
+        .lede .en { display: block; font-size: .9em; margin-top: 4px; }
+        .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0 14px; }
+        .tab { font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--line); background: #fff; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+        .tab.on { background: var(--ink); color: var(--wall); border-color: var(--ink); }
+        .mover { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 14px; }
+        .mover .lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+        .board { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+        .row { display: grid; grid-template-columns: 44px 1fr 92px 96px 70px; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); cursor: pointer; }
+        .row:first-child { border-top: 0; }
+        .row:hover { background: var(--wall-dim); }
+        .row.head { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); cursor: default; background: var(--wall-dim); }
+        .rank { font-size: 20px; font-weight: 700; }
+        .rank.top { color: var(--gold); }
+        .name { font-weight: 600; }
+        .name .k { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: .08em; margin-left: 6px; }
+        .form { display: inline-flex; gap: 3px; margin-left: 8px; vertical-align: middle; }
+        .form i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+        .form i.W { background: var(--ok); } .form i.L { background: #d9a0a6; }
+        .rating { font-family: var(--font-mono); font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+        .rating.prov { color: var(--muted); font-weight: 500; }
+        .rating small { font-size: 10px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+        .rel { display: grid; gap: 3px; }
+        .rel .bar { height: 5px; background: var(--wall-dim); border-radius: 3px; overflow: hidden; }
+        .rel .bar i { display: block; height: 100%; background: var(--glass); }
+        .rel span { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+        .trend { font-family: var(--font-mono); font-size: 12px; text-align: right; }
+        .trend.up { color: var(--ok); } .trend.down { color: var(--red); } .trend.flat { color: var(--muted); }
+        .rec { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+        .detail { grid-column: 1 / -1; background: var(--wall); border-radius: 10px; padding: 12px 14px; font-size: 13px; display: grid; gap: 8px; }
+        .detail .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+        .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #fff; border: 1px solid var(--line); }
+        .detail table { border-collapse: collapse; width: 100%; font-size: 12px; }
+        .detail td, .detail th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+        .detail th { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; font-weight: 500; }
+        .mr { font-family: var(--font-mono); }
+        .empty { padding: 30px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+        .how { margin-top: 40px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; font-size: 14px; }
+        .how h2 { font-size: 16px; margin-bottom: 8px; }
+        .how ol { padding-left: 18px; display: grid; gap: 6px; }
+        .how .en { color: var(--muted); font-size: 13px; }
+        .updated { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--muted); margin-top: 10px; text-align: right; }
+        footer { border-top: 1px solid var(--line); padding: 30px 20px 40px; text-align: center; color: var(--muted); font-size: 13px; }
+        footer .foot-name { font-family: var(--font-mono); letter-spacing: .1em; font-size: 11px; color: var(--ink); margin-bottom: 6px; }
+        @media (max-width: 600px) { .row { grid-template-columns: 34px 1fr 74px 60px; } .rel { display: none; } .trend { grid-column: 4; } .rec { display: none; } .rating { font-size: 17px; } }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="./">WELLPERION <span class="sub">SQUASH CLUB · RANKINGS</span></a>
+        <div style="display:flex;gap:8px"><a href="events.html" class="header-cta" style="border-style:dashed">EVENTS</a><a href="./" class="header-cta">← PROGRAMS</a></div>
+    </header>
+
+    <main>
+        <div class="eyebrow">Club ladder · WSR — Wellperion Squash Rating</div>
+        <h1>랭킹</h1>
+        <p class="lede">경기 결과로 계산되는 실력 레이팅입니다. 이긴 횟수가 아니라 <strong>누구와, 얼마나 접전이었는지</strong>가 레이팅을 움직입니다 — 강한 상대에게 아깝게 져도 레이팅은 오를 수 있어요.
+            <span class="en">A UTR-style rating computed from match results: who you played and how close it was matter more than the win count. A tight loss to a stronger player can raise your rating.</span></p>
+
+        <div id="tabs" class="tabs"></div>
+        <div id="mover"></div>
+        <div id="board"><div class="empty">랭킹을 불러오는 중… / Loading…</div></div>
+        <div id="updated" class="updated"></div>
+
+        <section class="how" id="how">
+            <h2>WSR은 어떻게 계산되나요? · How WSR works</h2>
+            <ol>
+                <li><strong>경기 레이팅</strong> — 매 경기마다 두 선수 모두 "경기 레이팅"을 받습니다: 상대 레이팅 ± (점수 점유율 − 50%) × 3. 3-0 승리는 상대보다 약 +0.9, 3-2 접전 승리는 약 +0.2. 점수(11-8 11-9…)를 기록하면 더 정확해집니다.<div class="en">Each match gives both players a match rating: opponent's rating ± (score share − 50%) × 3.</div></li>
+                <li><strong>레이팅</strong> — 최근 12개월, 최대 30경기의 경기 레이팅을 가중 평균합니다. 최근 경기, 신뢰도 높은 상대, 대회 경기가 더 큰 비중을 가집니다. 모든 선수의 레이팅이 서로에게 영향을 주므로 여러 번 반복 계산합니다.<div class="en">Your rating is a weighted average of your last 30 match ratings within 12 months (recency, opponent reliability and tournament play weigh more), computed iteratively.</div></li>
+                <li><strong>신뢰도</strong> — 경기 수가 쌓일수록 올라갑니다 (약 8경기 = 100%). 3경기 미만은 <em>P</em>(잠정)로 표시됩니다.<div class="en">Reliability grows with matches (~8 = 100%); under 3 matches is provisional (P).</div></li>
+                <li><strong>추세</strong> — 30일 전 레이팅과의 차이. 이달의 무버는 가장 많이 오른 선수입니다.<div class="en">Trend = change vs 30 days ago; the mover is the biggest riser.</div></li>
+                <li><strong>표시</strong> — 보호자/코치가 공개에 동의한 선수만, 이름(성 제외)으로 표시됩니다.<div class="en">Only players whose coach/guardian opted in are shown, by given name.</div></li>
+            </ol>
+        </section>
+    </main>
+
+    <footer>
+        <div class="foot-name">WELLPERION SQUASH CLUB · GLASS COURT SQUASH ACADEMY AT WELLPERION</div>
+        <div>서울 한남동 웰페리온 스포츠센터 프라이빗 전용 코트 · <a href="https://instagram.com/glass_court" target="_blank" rel="noopener">@glass_court</a></div>
+        <div style="font-size:.75rem;margin-top:10px;opacity:.6;">© 2026 Wellperion Squash. All Rights Reserved.</div>
+    </footer>
+
+    <script>
+        const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwpLozjXaVuue6WA-eCsHpVjbZqI3Aen1jV2I3ZU7zCZPi3RqMDR9U2BZ8Z6lEXm2O2/exec';
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        let data = null, current = null;
+
+        function trendHtml(t) { if (Math.abs(t) < 0.05) return `<span class="trend flat">—</span>`; return `<span class="trend ${t > 0 ? 'up' : 'down'}">${t > 0 ? '▲' : '▼'} ${Math.abs(t).toFixed(2)}</span>`; }
+        function moveHtml(m) { if (m == null || m === 0) return ''; return `<span class="rec" title="30일 전 대비 순위 변동">${m > 0 ? '↑' : '↓'}${Math.abs(m)}</span>`; }
+
+        function renderTabs() {
+            const t = document.getElementById('tabs');
+            t.innerHTML = data.divisions.map((d) => `<button class="tab ${d.name === current ? 'on' : ''}" data-div="${esc(d.name)}">${esc(d.name)} <span style="opacity:.6">${d.players.length}</span></button>`).join('');
+            t.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { current = b.dataset.div; renderTabs(); renderBoard(); }; });
+        }
+
+        function renderBoard() {
+            const d = data.divisions.find((x) => x.name === current);
+            const mover = document.getElementById('mover'), board = document.getElementById('board');
+            if (!d || !d.players.length) { mover.innerHTML = ''; board.innerHTML = '<div class="empty">아직 공개된 선수가 없습니다. / No players published yet.</div>'; return; }
+            mover.innerHTML = d.mover ? `<div class="mover"><span style="font-size:22px">🚀</span><div><div class="lbl">Mover of the month · 이달의 무버</div><strong>${esc(d.mover.display)}</strong> — 30일 동안 <strong>+${d.mover.trend.toFixed(2)}</strong></div></div>` : '';
+            board.innerHTML = `<div class="board"><div class="row head"><span>#</span><span>선수 · Player</span><span>WSR</span><span>신뢰도 · Rel.</span><span style="text-align:right">30일</span></div>` +
+                d.players.map((p) => `<div class="row" data-rank="${p.rank}">
+                    <span class="rank ${p.rank <= 3 ? 'top' : ''}">${p.rank}</span>
+                    <span class="name">${esc(p.display)}${moveHtml(p.move)}<span class="form" title="최근 5경기">${p.recent.map((r) => `<i class="${r}"></i>`).join('')}</span><span class="k">${p.wins}-${p.losses}${p.streak >= 3 ? ' · 🔥' + p.streak : ''}</span></span>
+                    <span class="rating ${p.provisional ? 'prov' : ''}">${p.rating.toFixed(2)}${p.provisional ? '<small>P</small>' : ''}</span>
+                    <span class="rel"><span class="bar"><i style="width:${p.reliability}%"></i></span><span>${p.reliability}% · ${p.counted}경기</span></span>
+                    ${trendHtml(p.trend)}
+                </div>`).join('') + `</div>`;
+            board.querySelectorAll('.row[data-rank]').forEach((row) => { row.onclick = () => toggle(row, d.players.find((p) => p.rank === Number(row.dataset.rank))); });
+            document.getElementById('updated').textContent = `${data.matches} matches · updated ${new Date(data.updated).toLocaleString('ko-KR')}`;
+        }
+
+        function toggle(row, p) {
+            const open = row.querySelector('.detail');
+            if (open) { open.remove(); return; }
+            document.querySelectorAll('.detail').forEach((x) => x.remove());
+            row.insertAdjacentHTML('beforeend', `<div class="detail" onclick="event.stopPropagation()">
+                <div><strong>${esc(p.display)}</strong> · WSR ${p.rating.toFixed(2)} · 신뢰도 ${p.reliability}% · ${p.wins}승 ${p.losses}패 · 활동 포인트 ${p.points}</div>
+                ${p.badges.length ? `<div class="badges">${p.badges.map((b) => `<span class="badge">🏅 ${esc(b)}</span>`).join('')}</div>` : ''}
+                ${p.last.length ? `<table><tr><th>날짜</th><th>결과</th><th>상대</th><th>스코어</th><th>경기 레이팅</th></tr>${p.last.map((l) => `<tr><td>${esc(l.date)}</td><td>${l.result === 'W' ? '승' : '패'}</td><td>${esc(l.vs)}</td><td>${esc(l.score)}</td><td class="mr">${l.matchRating.toFixed(2)}${l.type === 'tournament' ? ' 🏆' : ''}</td></tr>`).join('')}</table>` : '<div class="rec">아직 경기 기록이 없습니다.</div>'}
+                <div class="rec">경기 레이팅 = 상대 WSR ± (점수 점유율 − 50%) × 3 · 자세한 설명은 아래 "WSR은 어떻게 계산되나요?"</div>
+            </div>`);
+        }
+
+        async function load() {
+            try {
+                const res = await fetch(EXEC_URL + '?action=rankings', { redirect: 'follow' });
+                const j = await res.json();
+                if (!j.ok) throw new Error(j.error || 'error');
+                data = j; current = (j.divisions[0] || {}).name || null;
+                if (!j.divisions.length) { document.getElementById('board').innerHTML = '<div class="empty">아직 공개된 선수가 없습니다. 첫 대회 후에 공개됩니다. / The ladder opens after the first matches are logged.</div>'; return; }
+                renderTabs(); renderBoard();
+            } catch (err) {
+                document.getElementById('board').innerHTML = `<div class="empty">랭킹을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.<br><span style="font-size:12px">Could not load the ladder — please try again later.</span></div>`;
+            }
+        }
+        load();
+    </script>
+</body>
+</html>
