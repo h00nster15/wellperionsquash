@@ -91,7 +91,7 @@
             <h2>WSR은 어떻게 계산되나요? · How WSR works</h2>
             <ol>
                 <li><strong>경기 레이팅</strong> — 매 경기마다 두 선수 모두 "경기 레이팅"을 받습니다: 상대 레이팅 ± (점수 점유율 − 50%) × 3. 3-0 승리는 상대보다 약 +0.9, 3-2 접전 승리는 약 +0.2. 점수(11-8 11-9…)를 기록하면 더 정확해집니다.<div class="en">Each match gives both players a match rating: opponent's rating ± (score share − 50%) × 3.</div></li>
-                <li><strong>레이팅</strong> — 최근 12개월, 최대 30경기의 경기 레이팅을 가중 평균합니다. 최근 경기, 신뢰도 높은 상대, 대회 경기가 더 큰 비중을 가집니다. 모든 선수의 레이팅이 서로에게 영향을 주므로 여러 번 반복 계산합니다.<div class="en">Your rating is a weighted average of your last 30 match ratings within 12 months (recency, opponent reliability and tournament play weigh more), computed iteratively.</div></li>
+                <li><strong>레이팅</strong> — 최근 12개월, 최대 30경기의 경기 레이팅을 가중 평균합니다. 최근 경기, 신뢰도 높은 상대, 대회 경기가 더 큰 비중을 가집니다. <strong>경기 형식</strong>도 반영됩니다: 5판 3선승(best-of-5) 100%, 3판 2선승 75%, 단판(한 게임) 50%. 모든 선수의 레이팅이 서로에게 영향을 주므로 여러 번 반복 계산합니다.<div class="en">Your rating is a weighted average of your last 30 match ratings within 12 months (recency, opponent reliability and tournament play weigh more; best-of-5 counts 100%, best-of-3 75%, a single game 50%), computed iteratively.</div></li>
                 <li><strong>신뢰도</strong> — 경기 수가 쌓일수록 올라갑니다 (약 8경기 = 100%). 3경기 미만은 <em>P</em>(잠정)로 표시됩니다.<div class="en">Reliability grows with matches (~8 = 100%); under 3 matches is provisional (P).</div></li>
                 <li><strong>추세</strong> — 30일 전 레이팅과의 차이. 이달의 무버는 가장 많이 오른 선수입니다.<div class="en">Trend = change vs 30 days ago; the mover is the biggest riser.</div></li>
                 <li><strong>표시</strong> — 보호자/코치가 공개에 동의한 선수만, 이름(성 제외)으로 표시됩니다.<div class="en">Only players whose coach/guardian opted in are shown, by given name.</div></li>
@@ -143,7 +143,7 @@
             row.insertAdjacentHTML('beforeend', `<div class="detail" onclick="event.stopPropagation()">
                 <div><strong>${esc(p.display)}</strong> · WSR ${p.rating.toFixed(2)} · 신뢰도 ${p.reliability}% · ${p.wins}승 ${p.losses}패 · 활동 포인트 ${p.points}</div>
                 ${p.badges.length ? `<div class="badges">${p.badges.map((b) => `<span class="badge">🏅 ${esc(b)}</span>`).join('')}</div>` : ''}
-                ${p.last.length ? `<table><tr><th>날짜</th><th>결과</th><th>상대</th><th>스코어</th><th>경기 레이팅</th></tr>${p.last.map((l) => `<tr><td>${esc(l.date)}</td><td>${l.result === 'W' ? '승' : '패'}</td><td>${esc(l.vs)}</td><td>${esc(l.score)}</td><td class="mr">${l.matchRating.toFixed(2)}${l.type === 'tournament' ? ' 🏆' : ''}</td></tr>`).join('')}</table>` : '<div class="rec">아직 경기 기록이 없습니다.</div>'}
+                ${p.last.length ? `<table><tr><th>날짜</th><th>결과</th><th>상대</th><th>스코어</th><th>경기 레이팅</th></tr>${p.last.map((l) => `<tr><td>${esc(l.date)}</td><td>${l.result === 'W' ? '승' : '패'}</td><td>${esc(l.vs)}</td><td>${esc(l.score)}</td><td class="mr">${l.matchRating.toFixed(2)}${l.type === 'tournament' ? ' 🏆' : ''} <span style="color:var(--muted);font-size:10px">${({ bo5: 'Bo5', bo3: 'Bo3', single: '단판', unknown: '' })[l.format] || ''}</span></td></tr>`).join('')}</table>` : '<div class="rec">아직 경기 기록이 없습니다.</div>'}
                 <div class="rec">경기 레이팅 = 상대 WSR ± (점수 점유율 − 50%) × 3 · 자세한 설명은 아래 "WSR은 어떻게 계산되나요?"</div>
             </div>`);
         }
