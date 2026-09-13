@@ -37,9 +37,16 @@
         .type.tournament { background: #fde8ea; color: var(--red); }
         .title { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
         .title-en { font-size: 13px; color: var(--muted); }
-        .meta { font-size: 13px; color: var(--muted); margin: 6px 0 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
-        .desc { font-size: 14px; }
-        .desc .en { color: var(--muted); font-size: 13px; }
+        .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px 18px; margin: 12px 0 14px; padding: 12px 14px; background: var(--wall); border-radius: 10px; font-size: 13px; }
+        .facts div { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; }
+        .facts b { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 1px; }
+        .desc { font-size: 14px; line-height: 1.7; }
+        .desc p { margin: 0 0 10px; }
+        .desc ul { margin: 4px 0 12px; padding-left: 4px; list-style: none; display: grid; gap: 4px; }
+        .desc ul li { padding-left: 14px; position: relative; }
+        .desc ul li::before { content: '·'; position: absolute; left: 2px; color: var(--glass); font-weight: 700; }
+        .desc .en { color: var(--muted); font-size: 13px; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 4px; }
+        .desc .en p { margin-bottom: 8px; }
         .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
         .spots { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--muted); }
         .spots.full { color: var(--red); }
@@ -103,6 +110,22 @@
         const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
         const TYPE_LABEL = { tournament: '대회 · Tournament', 'training-session': 'Training Session', 'open-day': '오픈데이 · Open day', clinic: '클리닉 · Clinic', social: '소셜 · Social', league: '리그 · League' };
 
+        // Description text from the sheet: "|" or a line break starts a new paragraph; a line
+        // with 3+ " · " parts (e.g. the side events) becomes a bullet list; "- " lines too.
+        function richText(text) {
+            const lines = String(text || '').split(/\s*\|\s*|\r?\n/).map((l) => l.trim()).filter(Boolean);
+            let html = '', list = [];
+            const flush = () => { if (list.length) { html += '<ul>' + list.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>'; list = []; } };
+            for (const line of lines) {
+                const dots = line.split(/\s+·\s+/);
+                if (/^[-•]\s+/.test(line)) { list.push(line.replace(/^[-•]\s+/, '')); continue; }
+                if (dots.length >= 3) { flush(); html += '<ul>' + dots.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>'; continue; }
+                flush(); html += '<p>' + esc(line) + '</p>';
+            }
+            flush();
+            return html;
+        }
+
         function card(e) {
             const d = new Date(e.date + 'T00:00:00');
             const full = e.capacity && e.spotsLeft === 0;
@@ -114,8 +137,14 @@
                     <span class="type ${esc(e.type)}">${esc(TYPE_LABEL[e.type] || e.type)}</span>
                     <div class="title">${esc(e.title)}</div>
                     ${e.titleEn && e.titleEn !== e.title ? `<div class="title-en">${esc(e.titleEn)}</div>` : ''}
-                    <div class="meta">${e.venue ? `<span>📍 ${esc(e.venue)}</span>` : ''}${e.audience ? `<span>👥 ${esc(e.audience)}</span>` : ''}${e.fee ? `<span>💳 ${esc(e.fee)}${/데스크|desk|입금|계좌|transfer/i.test(e.fee) ? '' : ' · 데스크 결제'}</span>` : ''}${e.deadline && !e.past ? `<span>⏱ 신청 마감 ${esc(e.deadline)}</span>` : ''}</div>
-                    ${e.description ? `<div class="desc">${esc(e.description)}${e.descriptionEn ? `<br><span class="en">${esc(e.descriptionEn)}</span>` : ''}</div>` : ''}
+                    <div class="facts">
+                        <div><span>📅</span><span><b>일시 · When</b>${esc(e.date)} (${WEEK[d.getDay()]})${e.start ? ' ' + esc(e.start) : ''}${e.end ? ' – ' + esc(e.end) : ''}</span></div>
+                        ${e.venue ? `<div><span>📍</span><span><b>장소 · Where</b>${esc(e.venue)}</span></div>` : ''}
+                        ${e.audience ? `<div><span>👥</span><span><b>대상 · Who</b>${esc(e.audience)}</span></div>` : ''}
+                        ${e.fee ? `<div><span>💳</span><span><b>참가비 · Fee</b>${richText(e.fee).replace(/<\/p>\s*<p>/g, '<br>').replace(/<\/?p>/g, '')}${/데스크|desk|입금|계좌|transfer/i.test(e.fee) ? '' : ' · 데스크 결제'}</span></div>` : ''}
+                        ${e.deadline && !e.past ? `<div><span>⏱</span><span><b>신청 마감 · Deadline</b>${esc(e.deadline)}</span></div>` : ''}
+                    </div>
+                    ${e.description ? `<div class="desc">${richText(e.description)}${e.descriptionEn ? `<div class="en">${richText(e.descriptionEn)}</div>` : ''}</div>` : ''}
                     <div class="row"><span class="spots ${full ? 'full' : ''}">${spots}</span>
                         ${closed ? '' : `<button class="btn ${full ? 'ghost' : ''}" data-open="${esc(e.id)}">${full ? '대기 신청 · JOIN WAITLIST' : '신청하기 · REGISTER'}</button>`}</div>
                 </div>
