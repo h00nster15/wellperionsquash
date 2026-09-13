@@ -28,6 +28,13 @@
         .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0 14px; }
         .tab { font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--line); background: #fff; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
         .tab.on { background: var(--ink); color: var(--wall); border-color: var(--ink); }
+        .filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: -4px 0 14px; }
+        .filters .lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; margin-right: 4px; }
+        .chip { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; border: 1px solid var(--line); background: #fff; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
+        .chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+        .filters .sep { width: 1px; height: 18px; background: var(--line); margin: 0 6px; }
+        .tagg { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; padding: 1px 6px; border-radius: 999px; background: var(--wall-dim); color: var(--muted); margin-left: 6px; vertical-align: middle; }
+        .chg.up { color: var(--ok); } .chg.down { color: var(--red); } .chg { font-family: var(--font-mono); }
         .mover { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 14px; }
         .mover .lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
         .board { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -83,6 +90,7 @@
             <span class="en">A UTR-style rating computed from match results: who you played and how close it was matter more than the win count. A tight loss to a stronger player can raise your rating.</span></p>
 
         <div id="tabs" class="tabs"></div>
+        <div id="filters" class="filters"></div>
         <div id="mover"></div>
         <div id="board"><div class="empty">랭킹을 불러오는 중… / Loading…</div></div>
         <div id="updated" class="updated"></div>
@@ -94,6 +102,7 @@
                 <li><strong>레이팅</strong> — 최근 12개월, 최대 30경기의 경기 레이팅을 가중 평균합니다. 최근 경기, 신뢰도 높은 상대, 대회 경기가 더 큰 비중을 가집니다. <strong>경기 형식</strong>도 반영됩니다: 5판 3선승(best-of-5) 100%, 3판 2선승 75%, 단판(한 게임) 50%. 모든 선수의 레이팅이 서로에게 영향을 주므로 여러 번 반복 계산합니다.<div class="en">Your rating is a weighted average of your last 30 match ratings within 12 months (recency, opponent reliability and tournament play weigh more; best-of-5 counts 100%, best-of-3 75%, a single game 50%), computed iteratively.</div></li>
                 <li><strong>신뢰도</strong> — 경기 수가 쌓일수록 올라갑니다 (약 8경기 = 100%). 3경기 미만은 <em>P</em>(잠정)로 표시됩니다.<div class="en">Reliability grows with matches (~8 = 100%); under 3 matches is provisional (P).</div></li>
                 <li><strong>추세</strong> — 30일 전 레이팅과의 차이. 이달의 무버는 가장 많이 오른 선수입니다.<div class="en">Trend = change vs 30 days ago; the mover is the biggest riser.</div></li>
+                <li><strong>연령 · 성별</strong> — 연령 그룹은 올해 만 나이 기준(U11 ≤ 10세 … U19 ≤ 18세)이며, 예: U15 필터는 U15 이하 모든 선수를 보여줍니다. 생년월일은 공개되지 않습니다.<div class="en">Age groups use the age you turn this year; a U15 filter shows everyone eligible for U15 (U15 and younger). Birth dates are never published.</div></li>
                 <li><strong>표시</strong> — 보호자/코치가 공개에 동의한 선수만, 이름(성 제외)으로 표시됩니다.<div class="en">Only players whose coach/guardian opted in are shown, by given name.</div></li>
             </ol>
         </section>
@@ -109,6 +118,18 @@
         const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwpLozjXaVuue6WA-eCsHpVjbZqI3Aen1jV2I3ZU7zCZPi3RqMDR9U2BZ8Z6lEXm2O2/exec';
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         let data = null, current = null;
+        const filter = { age: '', gender: '' };
+        const AGE_ORDER = ['U11', 'U13', 'U15', 'U17', 'U19', 'Open'];
+        const eligible = (p) => !filter.age || (p.ageGroup && AGE_ORDER.indexOf(p.ageGroup) <= AGE_ORDER.indexOf(filter.age));
+        const genderOk = (p) => !filter.gender || p.gender === filter.gender;
+        function renderFilters() {
+            const f = document.getElementById('filters');
+            const ages = (data.ageGroups || AGE_ORDER.slice(0, 5));
+            f.innerHTML = `<span class="lbl">연령 · Age</span><button class="chip ${!filter.age ? 'on' : ''}" data-age="">전체</button>${ages.map((a) => `<button class="chip ${filter.age === a ? 'on' : ''}" data-age="${a}">${a}</button>`).join('')}
+                <span class="sep"></span><span class="lbl">성별 · Gender</span><button class="chip ${!filter.gender ? 'on' : ''}" data-gender="">전체</button><button class="chip ${filter.gender === 'M' ? 'on' : ''}" data-gender="M">남 · Boys</button><button class="chip ${filter.gender === 'F' ? 'on' : ''}" data-gender="F">여 · Girls</button>`;
+            f.querySelectorAll('[data-age]').forEach((b) => { b.onclick = () => { filter.age = b.dataset.age; renderFilters(); renderBoard(); }; });
+            f.querySelectorAll('[data-gender]').forEach((b) => { b.onclick = () => { filter.gender = b.dataset.gender; renderFilters(); renderBoard(); }; });
+        }
 
         function trendHtml(t) { if (Math.abs(t) < 0.05) return `<span class="trend flat">—</span>`; return `<span class="trend ${t > 0 ? 'up' : 'down'}">${t > 0 ? '▲' : '▼'} ${Math.abs(t).toFixed(2)}</span>`; }
         function moveHtml(m) { if (m == null || m === 0) return ''; return `<span class="rec" title="30일 전 대비 순위 변동">${m > 0 ? '↑' : '↓'}${Math.abs(m)}</span>`; }
@@ -120,14 +141,19 @@
         }
 
         function renderBoard() {
-            const d = data.divisions.find((x) => x.name === current);
+            const d0 = data.divisions.find((x) => x.name === current);
             const mover = document.getElementById('mover'), board = document.getElementById('board');
-            if (!d || !d.players.length) { mover.innerHTML = ''; board.innerHTML = '<div class="empty">아직 공개된 선수가 없습니다. / No players published yet.</div>'; return; }
+            if (!d0 || !d0.players.length) { mover.innerHTML = ''; board.innerHTML = '<div class="empty">아직 공개된 선수가 없습니다. / No players published yet.</div>'; return; }
+            // Apply age / gender filters and re-rank within the view (overall rank kept as a tag).
+            const list = d0.players.filter((p) => eligible(p) && genderOk(p)).map((p, i) => Object.assign({}, p, { overall: p.rank, rank: i + 1 }));
+            const d = { name: d0.name, players: list, mover: filter.age || filter.gender ? (list.slice().sort((a, b) => b.trend - a.trend)[0] || null) : d0.mover };
+            if (d.mover && !(d.mover.trend > 0)) d.mover = null;
+            if (!list.length) { mover.innerHTML = ''; board.innerHTML = '<div class="empty">이 조건에 해당하는 선수가 없습니다. / No players match these filters.</div>'; document.getElementById('updated').textContent = ''; return; }
             mover.innerHTML = d.mover ? `<div class="mover"><span style="font-size:22px">🚀</span><div><div class="lbl">Mover of the month · 이달의 무버</div><strong>${esc(d.mover.display)}</strong> — 30일 동안 <strong>+${d.mover.trend.toFixed(2)}</strong></div></div>` : '';
             board.innerHTML = `<div class="board"><div class="row head"><span>#</span><span>선수 · Player</span><span>WSR</span><span>신뢰도 · Rel.</span><span style="text-align:right">30일</span></div>` +
                 d.players.map((p) => `<div class="row" data-rank="${p.rank}">
                     <span class="rank ${p.rank <= 3 ? 'top' : ''}">${p.rank}</span>
-                    <span class="name">${esc(p.display)}${moveHtml(p.move)}<span class="form" title="최근 5경기">${p.recent.map((r) => `<i class="${r}"></i>`).join('')}</span><span class="k">${p.wins}-${p.losses}${p.streak >= 3 ? ' · 🔥' + p.streak : ''}</span></span>
+                    <span class="name">${esc(p.display)}${p.ageGroup ? `<span class="tagg">${esc(p.ageGroup)}${p.gender ? ' · ' + (p.gender === 'M' ? '남' : '여') : ''}</span>` : ''}${(filter.age || filter.gender) && p.overall !== p.rank ? `<span class="tagg" title="전체 순위">#${p.overall}</span>` : ''}${moveHtml(p.move)}<span class="form" title="최근 5경기">${p.recent.map((r) => `<i class="${r}"></i>`).join('')}</span><span class="k">${p.wins}-${p.losses}${p.streak >= 3 ? ' · 🔥' + p.streak : ''}</span></span>
                     <span class="rating ${p.provisional ? 'prov' : ''}">${p.rating.toFixed(2)}${p.provisional ? '<small>P</small>' : ''}</span>
                     <span class="rel"><span class="bar"><i style="width:${p.reliability}%"></i></span><span>${p.reliability}% · ${p.counted}경기</span></span>
                     ${trendHtml(p.trend)}
@@ -143,7 +169,7 @@
             row.insertAdjacentHTML('beforeend', `<div class="detail" onclick="event.stopPropagation()">
                 <div><strong>${esc(p.display)}</strong> · WSR ${p.rating.toFixed(2)} · 신뢰도 ${p.reliability}% · ${p.wins}승 ${p.losses}패 · 활동 포인트 ${p.points}</div>
                 ${p.badges.length ? `<div class="badges">${p.badges.map((b) => `<span class="badge">🏅 ${esc(b)}</span>`).join('')}</div>` : ''}
-                ${p.last.length ? `<table><tr><th>날짜</th><th>결과</th><th>상대</th><th>스코어</th><th>경기 레이팅</th></tr>${p.last.map((l) => `<tr><td>${esc(l.date)}</td><td>${l.result === 'W' ? '승' : '패'}</td><td>${esc(l.vs)}</td><td>${esc(l.score)}</td><td class="mr">${l.matchRating.toFixed(2)}${l.type === 'tournament' ? ' 🏆' : ''} <span style="color:var(--muted);font-size:10px">${({ bo5: 'Bo5', bo3: 'Bo3', single: '단판', unknown: '' })[l.format] || ''}</span></td></tr>`).join('')}</table>` : '<div class="rec">아직 경기 기록이 없습니다.</div>'}
+                ${p.last.length ? `<div class="rec" style="margin-top:2px">최근 3경기 · Last 3 matches</div><table><tr><th>날짜</th><th>결과</th><th>상대</th><th>스코어</th><th>경기 레이팅</th><th>WSR 변동</th></tr>${p.last.map((l) => `<tr><td>${esc(l.date)}</td><td>${l.result === 'W' ? '승' : '패'}</td><td>${esc(l.vs)}</td><td>${esc(l.score)}</td><td class="mr">${l.matchRating.toFixed(2)}${l.type === 'tournament' ? ' 🏆' : ''} <span style="color:var(--muted);font-size:10px">${({ bo5: 'Bo5', bo3: 'Bo3', single: '단판', unknown: '' })[l.format] || ''}</span></td><td class="chg ${l.change > 0 ? 'up' : l.change < 0 ? 'down' : ''}">${l.change > 0 ? '▲ +' : l.change < 0 ? '▼ ' : ''}${l.change === 0 ? '—' : l.change.toFixed(2)} <span style="color:var(--muted);font-size:10px">→ ${l.after.toFixed(2)}</span></td></tr>`).join('')}</table>` : '<div class="rec">아직 경기 기록이 없습니다.</div>'}
                 <div class="rec">경기 레이팅 = 상대 WSR ± (점수 점유율 − 50%) × 3 · 자세한 설명은 아래 "WSR은 어떻게 계산되나요?"</div>
             </div>`);
         }
@@ -155,7 +181,7 @@
                 if (!j.ok) throw new Error(j.error || 'error');
                 data = j; current = (j.divisions[0] || {}).name || null;
                 if (!j.divisions.length) { document.getElementById('board').innerHTML = '<div class="empty">아직 공개된 선수가 없습니다. 첫 대회 후에 공개됩니다. / The ladder opens after the first matches are logged.</div>'; return; }
-                renderTabs(); renderBoard();
+                renderTabs(); renderFilters(); renderBoard();
             } catch (err) {
                 document.getElementById('board').innerHTML = `<div class="empty">랭킹을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.<br><span style="font-size:12px">Could not load the ladder — please try again later.</span></div>`;
             }
