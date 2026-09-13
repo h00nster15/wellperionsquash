@@ -71,6 +71,14 @@
         .how h2 { font-size: 16px; margin-bottom: 8px; }
         .how ol { padding-left: 18px; display: grid; gap: 6px; }
         .how .en { color: var(--muted); font-size: 13px; }
+        .gate { max-width: 420px; margin: 30px auto 0; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 22px 22px 18px; }
+        .gate h2 { font-size: 17px; margin-bottom: 6px; }
+        .gate p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+        .gate form { display: flex; gap: 8px; }
+        .gate input { flex: 1; font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+        .gate button { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; border: 1px solid var(--ink); background: var(--ink); color: var(--wall); padding: 10px 16px; border-radius: 999px; cursor: pointer; }
+        .gate .err { color: var(--red); font-size: 13px; margin-top: 10px; }
+        .signout { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--muted); cursor: pointer; text-decoration: underline; margin-left: 10px; }
         .updated { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--muted); margin-top: 10px; text-align: right; }
         footer { border-top: 1px solid var(--line); padding: 30px 20px 40px; text-align: center; color: var(--muted); font-size: 13px; }
         footer .foot-name { font-family: var(--font-mono); letter-spacing: .1em; font-size: 11px; color: var(--ink); margin-bottom: 6px; }
@@ -89,6 +97,12 @@
         <p class="lede">경기 결과로 계산되는 실력 레이팅입니다. 이긴 횟수가 아니라 <strong>누구와, 얼마나 접전이었는지</strong>가 레이팅을 움직입니다 — 강한 상대에게 아깝게 져도 레이팅은 오를 수 있어요.
             <span class="en">A UTR-style rating computed from match results: who you played and how close it was matter more than the win count. A tight loss to a stronger player can raise your rating.</span></p>
 
+        <div id="gate" class="gate" hidden>
+            <h2>클럽 비밀번호 · Club password</h2>
+            <p>랭킹은 웰페리온 스쿼시 회원과 학부모님께만 공개됩니다. 코치에게 받은 비밀번호를 입력하세요.<br>The ladder is for club members and parents — enter the password from your coach.</p>
+            <form id="gate-form"><input id="gate-key" type="password" autocomplete="current-password" placeholder="비밀번호 · Password" required><button type="submit">입장 · ENTER</button></form>
+            <div id="gate-err" class="err" hidden></div>
+        </div>
         <div id="tabs" class="tabs"></div>
         <div id="filters" class="filters"></div>
         <div id="mover"></div>
@@ -118,6 +132,17 @@
         const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwpLozjXaVuue6WA-eCsHpVjbZqI3Aen1jV2I3ZU7zCZPi3RqMDR9U2BZ8Z6lEXm2O2/exec';
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         let data = null, current = null;
+        const KEY_STORE = 'wsr.key';
+        const getKey = () => { try { return localStorage.getItem(KEY_STORE) || ''; } catch (e) { return ''; } };
+        const setKey = (k) => { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch (e) { /* private mode */ } };
+        function showGate(msg) {
+            document.getElementById('gate').hidden = false;
+            document.getElementById('board').innerHTML = '';
+            document.getElementById('tabs').innerHTML = ''; document.getElementById('filters').innerHTML = ''; document.getElementById('mover').innerHTML = '';
+            const e = document.getElementById('gate-err'); e.hidden = !msg; e.textContent = msg || '';
+            document.getElementById('gate-key').focus();
+        }
+        document.getElementById('gate-form').onsubmit = (ev) => { ev.preventDefault(); const k = document.getElementById('gate-key').value.trim(); if (!k) return; setKey(k); document.getElementById('gate').hidden = true; load(); };
         const filter = { age: '', gender: '' };
         const AGE_ORDER = ['U11', 'U13', 'U15', 'U17', 'U19', 'Open'];
         const eligible = (p) => !filter.age || (p.ageGroup && AGE_ORDER.indexOf(p.ageGroup) <= AGE_ORDER.indexOf(filter.age));
@@ -159,7 +184,8 @@
                     ${trendHtml(p.trend)}
                 </div>`).join('') + `</div>`;
             board.querySelectorAll('.row[data-rank]').forEach((row) => { row.onclick = () => toggle(row, d.players.find((p) => p.rank === Number(row.dataset.rank))); });
-            document.getElementById('updated').textContent = `${data.matches} matches · updated ${new Date(data.updated).toLocaleString('ko-KR')}`;
+            document.getElementById('updated').innerHTML = `${data.matches} matches · updated ${new Date(data.updated).toLocaleString('ko-KR')}${getKey() ? '<span class="signout" id="signout">비밀번호 지우기 · sign out</span>' : ''}`;
+            const so = document.getElementById('signout'); if (so) so.onclick = () => { setKey(''); showGate(''); };
         }
 
         function toggle(row, p) {
@@ -176,9 +202,12 @@
 
         async function load() {
             try {
-                const res = await fetch(EXEC_URL + '?action=rankings', { redirect: 'follow' });
+                document.getElementById('board').innerHTML = '<div class="empty">랭킹을 불러오는 중… / Loading…</div>';
+                const res = await fetch(EXEC_URL + '?action=rankings&key=' + encodeURIComponent(getKey()), { redirect: 'follow' });
                 const j = await res.json();
+                if (j.needKey) { const had = getKey(); setKey(''); showGate(had ? '비밀번호가 맞지 않습니다. / Wrong password.' : ''); return; }
                 if (!j.ok) throw new Error(j.error || 'error');
+                document.getElementById('gate').hidden = true;
                 data = j; current = (j.divisions[0] || {}).name || null;
                 if (!j.divisions.length) { document.getElementById('board').innerHTML = '<div class="empty">아직 공개된 선수가 없습니다. 첫 대회 후에 공개됩니다. / The ladder opens after the first matches are logged.</div>'; return; }
                 renderTabs(); renderFilters(); renderBoard();
