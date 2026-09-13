@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이벤트 & 대회 신청 | Wellperion Squash</title>
+    <meta name="description" content="웰페리온 스쿼시 클럽의 트레이닝 세션, 대회, 오픈데이 일정과 참가 신청. Training sessions, tournaments and open days at Wellperion Squash, Hannam-dong — RSVP online, pay at the desk.">
+    <style>
+        :root {
+            --ink: #111111; --wall: #FAF9F5; --wall-dim: #F3F1EB; --line: #E2DFD5;
+            --navy: #1F2A6B; --glass: #7FA8D9; --red: #E63946; --muted: #6b6a66; --ok: #1f7a4d;
+            --font-display: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-display); background: var(--wall); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+        a { color: inherit; }
+        .site-header { position: sticky; top: 0; z-index: 50; background: rgba(246,244,239,.96); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .brand { font-weight: 600; font-size: 15px; letter-spacing: -.01em; text-decoration: none; }
+        .brand .sub { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--muted); }
+        .header-cta { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-decoration: none; border: 1px solid var(--ink); padding: 8px 14px; border-radius: 999px; }
+        .header-cta:hover { background: var(--ink); color: var(--wall); }
+        main { max-width: 900px; margin: 0 auto; padding: 36px 20px 80px; }
+        .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+        h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; letter-spacing: -.02em; line-height: 1.15; margin: 8px 0 10px; }
+        .lede { color: var(--muted); max-width: 620px; }
+        .lede .en { display: block; font-size: .9em; margin-top: 4px; }
+        .note { margin: 22px 0 30px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; font-size: 13px; color: var(--muted); }
+        .events { display: grid; gap: 14px; }
+        .event { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; grid-template-columns: 92px 1fr; gap: 16px; }
+        .event.past { opacity: .55; }
+        .date { text-align: center; border-right: 1px solid var(--line); padding-right: 12px; }
+        .date .d { font-size: 30px; font-weight: 700; line-height: 1; }
+        .date .m { font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; color: var(--muted); margin-top: 4px; }
+        .date .w { font-size: 12px; color: var(--muted); }
+        .type { display: inline-block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--wall-dim); color: var(--navy); margin-bottom: 6px; }
+        .type.tournament { background: #fde8ea; color: var(--red); }
+        .title { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+        .title-en { font-size: 13px; color: var(--muted); }
+        .meta { font-size: 13px; color: var(--muted); margin: 6px 0 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+        .desc { font-size: 14px; }
+        .desc .en { color: var(--muted); font-size: 13px; }
+        .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+        .spots { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--muted); }
+        .spots.full { color: var(--red); }
+        .btn { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; border: 1px solid var(--ink); background: var(--ink); color: var(--wall); padding: 10px 16px; border-radius: 999px; cursor: pointer; }
+        .btn.ghost { background: transparent; color: var(--ink); }
+        .btn[disabled] { opacity: .45; cursor: default; }
+        form.rsvp { grid-column: 1 / -1; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        form.rsvp label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+        form.rsvp label.full, form.rsvp .actions, form.rsvp .consent { grid-column: 1 / -1; }
+        form.rsvp input, form.rsvp select, form.rsvp textarea { font: inherit; font-size: 14px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+        form.rsvp textarea { min-height: 64px; resize: vertical; }
+        form.rsvp .consent { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--muted); }
+        form.rsvp .consent input { margin-top: 3px; }
+        form.rsvp .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .hp { position: absolute; left: -9999px; }
+        .msg { grid-column: 1 / -1; padding: 12px 14px; border-radius: 10px; font-size: 14px; }
+        .msg.ok { background: #e7f5ec; color: var(--ok); }
+        .msg.wait { background: #fff4e0; color: #8a5a00; }
+        .msg.err { background: #fde8ea; color: var(--red); }
+        .empty { padding: 30px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+        .section-title { margin: 40px 0 12px; }
+        footer { border-top: 1px solid var(--line); padding: 30px 20px 40px; text-align: center; color: var(--muted); font-size: 13px; }
+        footer .foot-name { font-family: var(--font-mono); letter-spacing: .1em; font-size: 11px; color: var(--ink); margin-bottom: 6px; }
+        @media (max-width: 560px) { .event { grid-template-columns: 1fr; } .date { border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 10px; display: flex; gap: 10px; align-items: baseline; justify-content: center; } form.rsvp { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="./">WELLPERION <span class="sub">SQUASH CLUB · EVENTS</span></a>
+        <a href="./" class="header-cta">← PROGRAMS</a>
+    </header>
+
+    <main>
+        <div class="eyebrow">Events · Tournaments · Training Sessions</div>
+        <h1>이벤트 & 대회 신청</h1>
+        <p class="lede">웰페리온 스쿼시 클럽에서 열리는 트레이닝 세션, 대회, 오픈데이 일정입니다. 온라인으로 자리를 예약하고, 참가비는 당일 데스크에서 결제하세요.
+            <span class="en">Upcoming sessions, tournaments and open days at Wellperion Squash, Hannam-dong. Reserve your spot online — the fee is paid at the desk on the day.</span></p>
+        <div class="note">신청 후 확인 메일(이메일 입력 시)을 보내드립니다. 정원이 찬 경우 대기자로 등록되며 자리가 나면 연락드립니다. 변경·취소는 데스크 또는 확인 메일 회신으로 알려 주세요. / Registrations are RSVPs; waitlist when full; changes by replying to the confirmation e-mail or at the desk.</div>
+
+        <div id="events" class="events"><div class="empty">일정을 불러오는 중… / Loading events…</div></div>
+
+        <div id="past-wrap" hidden>
+            <div class="eyebrow section-title">Past events</div>
+            <div id="past" class="events"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="foot-name">WELLPERION SQUASH CLUB · GLASS COURT SQUASH ACADEMY AT WELLPERION</div>
+        <div>서울 한남동 웰페리온 스포츠센터 프라이빗 전용 코트 · <a href="https://instagram.com/glass_court" target="_blank" rel="noopener">@glass_court</a></div>
+        <div style="font-size:.75rem;margin-top:10px;opacity:.6;">© 2026 Wellperion Squash. All Rights Reserved.</div>
+    </footer>
+
+    <script>
+        // Apps Script web app bound to the club's sheet. GET ?action=events is public (published events only);
+        // POST creates an RSVP. Member data on the same endpoint stays token-protected.
+        const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwpLozjXaVuue6WA-eCsHpVjbZqI3Aen1jV2I3ZU7zCZPi3RqMDR9U2BZ8Z6lEXm2O2/exec';
+        const FALLBACK = 'http://wellperion.com/ko/inquiry-form/?type=adult';
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+        const TYPE_LABEL = { tournament: '대회 · Tournament', 'training-session': 'Training Session', 'open-day': '오픈데이 · Open day', clinic: '클리닉 · Clinic', social: '소셜 · Social', league: '리그 · League' };
+
+        function card(e) {
+            const d = new Date(e.date + 'T00:00:00');
+            const full = e.capacity && e.spotsLeft === 0;
+            const closed = e.past || !e.open;
+            const spots = e.capacity ? (full ? `정원 마감 · 대기 ${e.waitlist}명 / Full — waitlist` : `잔여 ${e.spotsLeft} / ${e.capacity}석 · ${e.spotsLeft} spots left`) : '정원 제한 없음 / Open entry';
+            return `<article class="event ${e.past ? 'past' : ''}" data-id="${esc(e.id)}">
+                <div class="date"><div class="d">${d.getDate()}</div><div class="m">${MONTHS[d.getMonth()]} ${d.getFullYear()}</div><div class="w">${WEEK[d.getDay()]}요일${e.start ? ' · ' + esc(e.start) : ''}</div></div>
+                <div>
+                    <span class="type ${esc(e.type)}">${esc(TYPE_LABEL[e.type] || e.type)}</span>
+                    <div class="title">${esc(e.title)}</div>
+                    ${e.titleEn && e.titleEn !== e.title ? `<div class="title-en">${esc(e.titleEn)}</div>` : ''}
+                    <div class="meta">${e.venue ? `<span>📍 ${esc(e.venue)}</span>` : ''}${e.audience ? `<span>👥 ${esc(e.audience)}</span>` : ''}${e.fee ? `<span>💳 ${esc(e.fee)}${/데스크|desk/i.test(e.fee) ? '' : ' · 데스크 결제'}</span>` : ''}${e.deadline && !e.past ? `<span>⏱ 신청 마감 ${esc(e.deadline)}</span>` : ''}</div>
+                    ${e.description ? `<div class="desc">${esc(e.description)}${e.descriptionEn ? `<br><span class="en">${esc(e.descriptionEn)}</span>` : ''}</div>` : ''}
+                    <div class="row"><span class="spots ${full ? 'full' : ''}">${spots}</span>
+                        ${closed ? '' : `<button class="btn ${full ? 'ghost' : ''}" data-open="${esc(e.id)}">${full ? '대기 신청 · JOIN WAITLIST' : '신청하기 · REGISTER'}</button>`}</div>
+                </div>
+            </article>`;
+        }
+
+        function formHtml(e) {
+            return `<form class="rsvp" data-id="${esc(e.id)}">
+                <label>이름 · Name*<input name="name" required maxlength="60" autocomplete="name"></label>
+                <label>구분 · Category<select name="kind"><option value="성인">성인 · Adult</option><option value="주니어">주니어 · Junior (under 19)</option></select></label>
+                <label>휴대폰 · Mobile*<input name="phone" type="tel" inputmode="tel" placeholder="010-0000-0000" autocomplete="tel"></label>
+                <label>이메일 · E-mail (확인 메일)<input name="email" type="email" autocomplete="email"></label>
+                <label class="jr" hidden>보호자 이름 · Guardian name<input name="guardianName" maxlength="60"></label>
+                <label class="jr" hidden>보호자 휴대폰 · Guardian mobile<input name="guardianPhone" type="tel" inputmode="tel" placeholder="010-0000-0000"></label>
+                <label>인원 · Party size<select name="party">${[1,2,3,4].map((n) => `<option>${n}</option>`).join('')}</select></label>
+                <label class="full">메모 · Note (레벨, 요청사항)<textarea name="note" maxlength="500"></textarea></label>
+                <label class="hp">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+                <label class="consent"><input type="checkbox" name="consent" required><span>이벤트 운영·안내를 위한 개인정보(이름, 연락처, 이메일) 수집·이용에 동의합니다. 행사 종료 후 6개월 내 파기. / I agree to the collection of my name and contact details for running this event.</span></label>
+                <div class="actions"><button class="btn" type="submit">신청 제출 · SUBMIT</button><button class="btn ghost" type="button" data-cancel>취소</button><span class="spots">참가비는 당일 데스크 결제 · Pay at the desk</span></div>
+            </form>`;
+        }
+
+        async function load() {
+            const box = document.getElementById('events');
+            try {
+                const res = await fetch(EXEC_URL + '?action=events', { redirect: 'follow' });
+                const j = await res.json();
+                if (!j.ok) throw new Error(j.error || 'error');
+                const up = j.events.filter((e) => !e.past), past = j.events.filter((e) => e.past).slice(-6).reverse();
+                box.innerHTML = up.length ? up.map(card).join('') : '<div class="empty">예정된 이벤트가 곧 공지됩니다. / New dates will be announced soon — follow <a href="https://instagram.com/glass_court" target="_blank" rel="noopener">@glass_court</a>.</div>';
+                if (past.length) { document.getElementById('past').innerHTML = past.map(card).join(''); document.getElementById('past-wrap').hidden = false; }
+                window.__events = j.events;
+            } catch (err) {
+                box.innerHTML = `<div class="empty">일정을 불러오지 못했습니다. 데스크 또는 <a href="${FALLBACK}">문의 폼</a>으로 신청해 주세요.<br><span style="font-size:12px">Could not load the events list — please use the inquiry form.</span></div>`;
+            }
+        }
+
+        document.addEventListener('click', (ev) => {
+            const open = ev.target.closest('[data-open]');
+            if (open) {
+                const art = open.closest('.event'); if (art.querySelector('form')) return;
+                const e = window.__events.find((x) => x.id === open.dataset.open);
+                art.insertAdjacentHTML('beforeend', formHtml(e));
+                const f = art.querySelector('form');
+                f.kind.onchange = () => f.querySelectorAll('.jr').forEach((l) => { l.hidden = f.kind.value !== '주니어'; });
+                f.name.focus();
+            }
+            if (ev.target.closest('[data-cancel]')) ev.target.closest('form').remove();
+        });
+
+        document.addEventListener('submit', async (ev) => {
+            const f = ev.target.closest('form.rsvp'); if (!f) return;
+            ev.preventDefault();
+            const btn = f.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = '전송 중… / SENDING';
+            const data = Object.fromEntries(new FormData(f).entries());
+            data.consent = f.consent.checked; data.eventId = f.dataset.id; data.source = 'site';
+            f.querySelectorAll('.msg').forEach((m) => m.remove());
+            try {
+                const res = await fetch(EXEC_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
+                const j = await res.json();
+                if (!j.ok) throw new Error(j.error || 'error');
+                const wait = j.status === 'waitlist';
+                f.innerHTML = `<div class="msg ${wait ? 'wait' : 'ok'}"><strong>${wait ? '대기자 등록 완료' : '신청 접수 완료'}</strong> — ${esc(j.message || '')}<br>${esc(j.event || '')}${j.date ? ` · ${esc(j.date)}${j.start ? ' ' + esc(j.start) : ''}` : ''}${j.fee ? ` · 참가비 ${esc(j.fee)} (데스크 결제)` : ''}<br><span style="font-size:12px">${wait ? "You're on the waitlist — we'll contact you if a spot opens." : 'Registered. Please pay the fee at the desk on the day.'}</span></div>`;
+                load();
+            } catch (err) {
+                f.insertAdjacentHTML('beforeend', `<div class="msg err">신청을 처리하지 못했습니다: ${esc(err.message)}<br><span style="font-size:12px">Please try again, or use the <a href="${FALLBACK}">inquiry form</a>.</span></div>`);
+                btn.disabled = false; btn.textContent = '신청 제출 · SUBMIT';
+            }
+        });
+
+        load();
+    </script>
+</body>
+</html>
