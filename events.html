@@ -114,7 +114,7 @@
                     <span class="type ${esc(e.type)}">${esc(TYPE_LABEL[e.type] || e.type)}</span>
                     <div class="title">${esc(e.title)}</div>
                     ${e.titleEn && e.titleEn !== e.title ? `<div class="title-en">${esc(e.titleEn)}</div>` : ''}
-                    <div class="meta">${e.venue ? `<span>📍 ${esc(e.venue)}</span>` : ''}${e.audience ? `<span>👥 ${esc(e.audience)}</span>` : ''}${e.fee ? `<span>💳 ${esc(e.fee)}${/데스크|desk/i.test(e.fee) ? '' : ' · 데스크 결제'}</span>` : ''}${e.deadline && !e.past ? `<span>⏱ 신청 마감 ${esc(e.deadline)}</span>` : ''}</div>
+                    <div class="meta">${e.venue ? `<span>📍 ${esc(e.venue)}</span>` : ''}${e.audience ? `<span>👥 ${esc(e.audience)}</span>` : ''}${e.fee ? `<span>💳 ${esc(e.fee)}${/데스크|desk|입금|계좌|transfer/i.test(e.fee) ? '' : ' · 데스크 결제'}</span>` : ''}${e.deadline && !e.past ? `<span>⏱ 신청 마감 ${esc(e.deadline)}</span>` : ''}</div>
                     ${e.description ? `<div class="desc">${esc(e.description)}${e.descriptionEn ? `<br><span class="en">${esc(e.descriptionEn)}</span>` : ''}</div>` : ''}
                     <div class="row"><span class="spots ${full ? 'full' : ''}">${spots}</span>
                         ${closed ? '' : `<button class="btn ${full ? 'ghost' : ''}" data-open="${esc(e.id)}">${full ? '대기 신청 · JOIN WAITLIST' : '신청하기 · REGISTER'}</button>`}</div>
@@ -134,7 +134,7 @@
                 <label class="full">메모 · Note (레벨, 요청사항)<textarea name="note" maxlength="500"></textarea></label>
                 <label class="hp">Website<input name="website" tabindex="-1" autocomplete="off"></label>
                 <label class="consent"><input type="checkbox" name="consent" required><span>이벤트 운영·안내를 위한 개인정보(이름, 연락처, 이메일) 수집·이용에 동의합니다. 행사 종료 후 6개월 내 파기. / I agree to the collection of my name and contact details for running this event.</span></label>
-                <div class="actions"><button class="btn" type="submit">신청 제출 · SUBMIT</button><button class="btn ghost" type="button" data-cancel>취소</button><span class="spots">참가비는 당일 데스크 결제 · Pay at the desk</span></div>
+                <div class="actions"><button class="btn" type="submit">신청 제출 · SUBMIT</button><button class="btn ghost" type="button" data-cancel>취소</button><span class="spots">참가비 안내는 위 내용 참고 · See fee note above</span></div>
             </form>`;
         }
 
@@ -178,7 +178,7 @@
                 const j = await res.json();
                 if (!j.ok) throw new Error(j.error || 'error');
                 const wait = j.status === 'waitlist';
-                f.innerHTML = `<div class="msg ${wait ? 'wait' : 'ok'}"><strong>${wait ? '대기자 등록 완료' : '신청 접수 완료'}</strong> — ${esc(j.message || '')}<br>${esc(j.event || '')}${j.date ? ` · ${esc(j.date)}${j.start ? ' ' + esc(j.start) : ''}` : ''}${j.fee ? ` · 참가비 ${esc(j.fee)} (데스크 결제)` : ''}<br><span style="font-size:12px">${wait ? "You're on the waitlist — we'll contact you if a spot opens." : 'Registered. Please pay the fee at the desk on the day.'}</span></div>`;
+                f.innerHTML = `<div class="msg ${wait ? 'wait' : 'ok'}"><strong>${wait ? '대기자 등록 완료' : '신청 접수 완료'}</strong> — ${esc(j.message || '')}<br>${esc(j.event || '')}${j.date ? ` · ${esc(j.date)}${j.start ? ' ' + esc(j.start) : ''}` : ''}${j.fee ? ` · 참가비 ${esc(j.fee)}` : ''}<br><span style="font-size:12px">${wait ? "You're on the waitlist — we'll contact you if a spot opens." : (/입금|계좌|transfer/i.test(j.fee || '') ? 'Registered — your place is final once the transfer is received.' : 'Registered. Please pay the fee at the desk on the day.')}</span></div>`;
                 load();
             } catch (err) {
                 f.insertAdjacentHTML('beforeend', `<div class="msg err">신청을 처리하지 못했습니다: ${esc(err.message)}<br><span style="font-size:12px">Please try again, or use the <a href="${FALLBACK}">inquiry form</a>.</span></div>`);
