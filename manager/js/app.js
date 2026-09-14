@@ -885,10 +885,9 @@
     try {
       await login($('#login-key').value.trim());
       loginDlg.close();
-      render();
-      const syncBtn = $('#btn-sync') || $('#btn-sync-leads');
+      state.view = 'customers'; location.hash = '#customers'; render(); // Members has the Sync button and shows progress
       await mapAllSources();
-      if (syncBtn) await syncFromSheet(syncBtn); else render();
+      await syncFromSheet($('#btn-sync') || { textContent: '', disabled: false });
     } catch (ex) { err.textContent = ex.message; err.hidden = false; }
     btn.disabled = false; btn.textContent = '입장 · Sign in';
   });
