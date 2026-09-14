@@ -1,8 +1,8 @@
-// Default Google Sheet sources for a fresh install (e.g. the app on GitHub Pages after
-// login). No secrets here: the data token is fetched with the admin password and the
-// column mappings are guessed from the live headers on first sync.
+// Fallback Google Sheet sources for a fresh install. Normally the Apps Script hands the
+// app its source list at login (Config.gs → appSources_), so v1/v2 differ only by the
+// /exec URL in config.js. No secrets here.
 const Defaults = (() => {
-  const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwpLozjXaVuue6WA-eCsHpVjbZqI3Aen1jV2I3ZU7zCZPi3RqMDR9U2BZ8Z6lEXm2O2/exec';
+  const EXEC_URL = (window.WS_CONFIG && window.WS_CONFIG.execUrl) || 'https://script.google.com/macros/s/AKfycbwpLozjXaVuue6WA-eCsHpVjbZqI3Aen1jV2I3ZU7zCZPi3RqMDR9U2BZ8Z6lEXm2O2/exec';
   const CLUB_DB = '12AWcAlgmmYKr2nUbWmVpa71_z3zi0BaU4ZdnOwrI_7U';
   const sources = [
     { name: '이상훈 회원 (mirror tab 1)', url: EXEC_URL, kind: 'members', coach: '이상훈' },

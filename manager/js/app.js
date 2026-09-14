@@ -853,6 +853,7 @@
   // The app holds no data until it has the sheet token. On GitHub Pages (or any fresh
   // browser) the admin password is exchanged for the token via the Apps Script.
   const hasToken = () => (Store.settings().sheet.sources || []).some((s) => s.token);
+  { const b = document.querySelector('.brand'); if (b && window.WS_CONFIG) b.title = 'backend: ' + window.WS_CONFIG.version; }
   async function login(key) {
     const u = new URL(Defaults.EXEC_URL); u.searchParams.set('action', 'app-login'); u.searchParams.set('key', key);
     const res = await fetch(u.toString(), { redirect: 'follow' });
@@ -860,8 +861,9 @@
     if (!j.ok) throw new Error(j.error || 'login failed');
     if (!j.token) throw new Error('No data token configured on the Apps Script (run setToken).');
     const existing = Store.settings().sheet.sources || [];
+    const list = Array.isArray(j.sources) && j.sources.length ? j.sources : Defaults.sources; // server-provided (Config.gs) or fallback
     const sources = existing.length ? existing.map((s) => Object.assign({}, s, { token: j.token }))
-      : Defaults.sources.map((s, i) => Object.assign({ id: Date.now().toString(36) + i, mapping: {} }, s, { token: j.token }));
+      : list.map((s, i) => Object.assign({ id: Date.now().toString(36) + i, mapping: {} }, s, { token: j.token }));
     Store.setSheetSettings({ sources, columns: Store.settings().sheet.columns || Defaults.columns });
   }
   // First sync after login: guess each source's column mapping from the live headers.
