@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Wellperion Squash — Manager</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">WS</span>
+      <span class="brand-name">Wellperion Squash</span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="customers">Members</button>
+      <button data-view="campaigns">Outreach</button>
+      <button data-view="events">Events</button>
+      <button data-view="brand">Brand</button>
+    </nav>
+    <div class="actions">
+      <button id="btn-export" title="Download all data as JSON">Export</button>
+      <label class="btn" title="Restore from a JSON export">Import<input type="file" id="file-import" accept="application/json" hidden></label>
+      <button id="btn-logout" class="ghost" title="Remove all data and the access token from this browser">로그아웃</button>
+    </div>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <!-- Login: shown until the app holds a data token (fresh browser / after logout) -->
+  <dialog id="login">
+    <form method="dialog" id="login-form" style="padding:24px 26px;min-width:320px">
+      <h2 style="margin:0 0 4px">Wellperion Squash — Manager</h2>
+      <p style="margin:0 0 16px;color:var(--muted);font-size:13px">관리자 비밀번호를 입력하세요. 데이터는 이 브라우저에만 저장되며 로그아웃 시 삭제됩니다.<br>Enter the admin password. Data stays in this browser and is removed on logout.</p>
+      <div class="fields"><label class="full">비밀번호 · Password<input type="password" id="login-key" autocomplete="current-password" required autofocus></label></div>
+      <p id="login-err" style="color:var(--bad);font-size:13px;margin:8px 0 0" hidden></p>
+      <div class="dlg-actions" style="margin-top:14px"><span class="spacer"></span><button type="submit" class="primary" id="login-btn">입장 · Sign in</button></div>
+      <p style="margin:14px 0 0;font-size:12px;color:var(--muted)">백업 파일이 있다면 로그인 후 Import로 불러올 수 있습니다.</p>
+    </form>
+  </dialog>
+  <dialog id="dlg">
+    <form method="dialog" id="dlg-form">
+      <h2 id="dlg-title"></h2>
+      <div id="dlg-fields" class="fields"></div>
+      <div class="dlg-actions">
+        <button type="button" id="dlg-delete" class="danger" hidden>Delete</button>
+        <span class="spacer"></span>
+        <button type="button" id="dlg-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/defaults.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
