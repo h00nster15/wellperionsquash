@@ -270,7 +270,7 @@
   // matching column filter (click again to clear). Counts are over all customers.
   // Counts are PERSONS: names that differ only by digits or a bracketed suffix
   // ("Augustus1", "김무건(단체)") are one person here, while the list keeps every record.
-  const personOf = (c) => { const ph = String(c.phone || '').replace(/D+/g, ''); return ph.length >= 7 ? 'p:' + ph.slice(-9) : (Sheets.personKey(labelOf('customers', c)) || c.id); };
+  const personOf = (c) => { const ph = String(c.phone || '').replace(/\D+/g, ''); return ph.length >= 7 ? 'p:' + ph.slice(-9) : (Sheets.personKey(labelOf('customers', c)) || c.id); };
   const persons = (list) => new Set(list.map(personOf)).size;
   function customerStats(all) {
     const count = (fn) => persons(all.filter(fn));
@@ -557,8 +557,15 @@
       const callsThisMonth = calls.filter((c) => c.date && c.date.slice(0, 7) === t.slice(0, 7));
       const booked = callsThisMonth.filter((c) => c.outcome === 'booked').length;
       const card = (n, l) => `<div class="card"><div class="num">${n}</div><div class="label">${l}</div></div>`;
-      // Members whose 잔여 세션 has reached 0 (or below): the 재등록 call list.
-      const out = cs.filter((c) => c.sheetSyncedAt && typeof c.sessionsLeft === 'number' && c.sessionsLeft <= 0)
+      // Members whose 잔여 세션 has reached 0 (or below): the 재등록 call list. A person who
+      // re-upped shows up as a second row ("김민준1") with sessions left → not a target.
+      // Same person = same name ignoring digits/brackets, unless both rows carry different phones.
+      const synced = cs.filter((c) => c.sheetSyncedAt && typeof c.sessionsLeft === 'number');
+      const digits = (c) => String(c.phone || '').replace(/\D+/g, '').slice(-9);
+      const samePerson = (a, b) => Sheets.personKey(labelOf('customers', a)) === Sheets.personKey(labelOf('customers', b))
+        && !(digits(a).length >= 7 && digits(b).length >= 7 && digits(a) !== digits(b));
+      const active = synced.filter((c) => c.sessionsLeft > 0);
+      const out = synced.filter((c) => c.sessionsLeft <= 0 && !active.some((a) => samePerson(a, c)))
         .sort((a, b) => (a.coach || '').localeCompare(b.coach || '', 'ko') || (a.validUntil || '').localeCompare(b.validUntil || '') || labelOf('customers', a).localeCompare(labelOf('customers', b), 'ko'));
       return head('Dashboard') + `
         <div class="cards">
