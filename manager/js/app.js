@@ -558,13 +558,14 @@
       const booked = callsThisMonth.filter((c) => c.outcome === 'booked').length;
       const card = (n, l) => `<div class="card"><div class="num">${n}</div><div class="label">${l}</div></div>`;
       // Members whose 잔여 세션 has reached 0 (or below): the 재등록 call list. A person who
-      // re-upped shows up as a second row ("김민준1") with sessions left → not a target.
+      // re-upped shows up as a second row ("김민준1") with sessions left AND a 등록일자 → not a
+      // target. A numbered row without 등록일자 is not a re-registration (owner's rule).
       // Same person = same name ignoring digits/brackets, unless both rows carry different phones.
       const synced = cs.filter((c) => c.sheetSyncedAt && typeof c.sessionsLeft === 'number');
       const digits = (c) => String(c.phone || '').replace(/\D+/g, '').slice(-9);
       const samePerson = (a, b) => Sheets.personKey(labelOf('customers', a)) === Sheets.personKey(labelOf('customers', b))
         && !(digits(a).length >= 7 && digits(b).length >= 7 && digits(a) !== digits(b));
-      const active = synced.filter((c) => c.sessionsLeft > 0);
+      const active = synced.filter((c) => c.sessionsLeft > 0 && c.joined);
       const out = synced.filter((c) => c.sessionsLeft <= 0 && !active.some((a) => samePerson(a, c)))
         .sort((a, b) => (a.coach || '').localeCompare(b.coach || '', 'ko') || (a.validUntil || '').localeCompare(b.validUntil || '') || labelOf('customers', a).localeCompare(labelOf('customers', b), 'ko'));
       return head('Dashboard') + `
