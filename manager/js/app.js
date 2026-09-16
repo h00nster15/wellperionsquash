@@ -128,10 +128,24 @@
       if (f.type === 'checkbox') return `<label class="${cls}"><span>${esc(f.label)}</span><input type="checkbox" name="${f.k}" ${val ? 'checked' : ''}></label>`;
       return `<label class="${cls}">${esc(f.label)}<input type="${f.type || 'text'}" name="${f.k}" value="${esc(val)}" placeholder="${esc(f.placeholder || '')}" ${req}></label>`;
     }).join('');
+    // 웰페리온 회원 DB rows: the squash follow-up block. What is typed here is also sent to
+    // the Apps Script (스쿼시 접촉 tab of the mirror) so every computer sees it after Sync.
+    if (col === 'customers' && rec.clubSyncedAt) {
+      $('#dlg-title').textContent = '클럽 회원 · ' + labelOf('customers', rec);
+      dlgFields.innerHTML = `
+        <div class="full" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><strong>스쿼시 접촉 · 웰페리온 회원 DB</strong><span style="font-size:12px;color:var(--muted)">${[rec.memberNo && '회원번호 ' + rec.memberNo, rec.clubType, rec.clubPlan, rec.phone].filter(Boolean).map(esc).join(' · ')}</span></div>
+        <label>스쿼시 담당자<input name="squashCoach" value="${esc(rec.squashCoach || '')}" placeholder="예: 이상훈"></label>
+        <label>회원권${typeof rec.clubDaysLeft === 'number' ? ` (${rec.clubDaysLeft < 0 ? '만료 ' + Math.abs(rec.clubDaysLeft) + '일' : rec.clubDaysLeft + '일 남음'})` : ''}<input value="${esc([rec.clubStart, rec.clubEnd].filter(Boolean).join(' ~ ') || '—')}" disabled></label>
+        <div class="full" style="font-size:12px;color:var(--muted)">지금까지의 스쿼시 Contact 기록${contactLog(rec.squashContact)}</div>
+        <label class="full">새 접촉 기록 — 저장하면 오늘 날짜(${today()})로 위 기록에 추가되고 시트 "스쿼시 접촉" 탭에 기록됩니다<textarea name="clubEntry" placeholder="예: 전화 부재중, 문자 남김 / 체험 레슨 9/25 예약"></textarea></label>
+        <div class="full" id="club-note-status" style="font-size:12px;color:var(--bad)" hidden></div>
+        <div class="full" style="border-top:1px solid var(--line);margin:6px 0 0"></div>
+        <div class="full" style="font-size:12px;color:var(--muted)">앱 내부 정보 (시트에는 저장되지 않음)</div>` + dlgFields.innerHTML;
+    }
     dlg.showModal();
   }
 
-  dlgForm.addEventListener('submit', (e) => {
+  dlgForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (dlgState.onSave) { if (dlgState.onSave() !== false) { dlg.close(); render(); } return; }
     const { col, rec } = dlgState;
@@ -142,11 +156,47 @@
       else if (f.type === 'number') rec[f.k] = el.value === '' ? null : Number(el.value);
       else rec[f.k] = el.value.trim();
     }
+    // Club member: push 담당자 / new contact entry to the sheet first; keep the dialog
+    // open with the error if Google cannot be reached, so nothing typed is lost.
+    if (col === 'customers' && rec.clubSyncedAt && dlgForm.elements.clubEntry) {
+      const coach = dlgForm.elements.squashCoach.value.trim();
+      const entry = dlgForm.elements.clubEntry.value.trim();
+      if (entry || coach !== (rec.squashCoach || '')) {
+        const status = $('#club-note-status'), saveBtn = dlgForm.querySelector('button[type=submit]');
+        status.hidden = true; saveBtn.disabled = true; saveBtn.textContent = '시트에 저장 중…';
+        try {
+          await saveClubNote(rec, coach, entry);
+        } catch (err) {
+          status.textContent = '⚠ 시트에 저장하지 못했습니다: ' + err.message + ' — 다시 시도하거나 취소하세요.';
+          status.hidden = false; saveBtn.disabled = false; saveBtn.textContent = 'Save';
+          return;
+        }
+        saveBtn.disabled = false; saveBtn.textContent = 'Save';
+        rec.squashCoach = coach;
+        if (entry) rec.squashContact = [rec.squashContact || '', `${today()} ${entry}`].filter(Boolean).join('\n');
+      }
+    }
     Store.upsert(col, rec);
     if (col === 'calls') syncCustomerFromCall(rec);
     dlg.close();
     render();
   });
+  // POST { action: 'club-note' } to the Apps Script behind the 웰페리온 회원 DB source
+  // (same /exec URL + token as the reads; a text/plain body avoids a CORS preflight).
+  async function saveClubNote(rec, coach, entry) {
+    const srcs = Store.settings().sheet.sources || [];
+    const src = srcs.find((x) => x.kind === 'clubdb' && /script\.google\.com\/macros\//.test(x.url || '')) || srcs.find((x) => x.token);
+    if (!src) throw new Error('Apps Script 소스가 없습니다 (Google Sheet 설정 확인).');
+    const exec = src.url.split('?')[0];
+    const body = { action: 'club-note', token: tokenFor(src.url, src.token), memberNo: rec.memberNo || '', name: labelOf('customers', rec), phone: rec.phone || '', squashCoach: coach, entry };
+    let res;
+    try { res = await fetch(exec, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' }); }
+    catch (err) { throw new Error('Google에 연결할 수 없습니다 (' + err.message + ')'); }
+    const text = await res.text();
+    let j; try { j = JSON.parse(text); } catch (err) { throw new Error(/doPost/.test(text) ? 'Apps Script에 doPost가 없습니다 — Code.gs / ClubNotes.gs를 최신으로 배포하세요.' : 'Apps Script 응답을 읽을 수 없습니다 (' + res.status + ')'); }
+    if (!j.ok) throw new Error(j.error || 'unknown error');
+    return j;
+  }
   $('#dlg-cancel').onclick = () => dlg.close();
   $('#dlg-delete').onclick = () => {
     if (dlgState.onDelete) { if (dlgState.onDelete() !== false) { dlg.close(); render(); } return; }
@@ -412,6 +462,18 @@
     const s = Store.settings().sheet;
     const sources = (s.sources || []).filter((x) => x.url);
     if (!sources.length) return openSheetSettings();
+    // A source whose mapping never got guessed (its first fetch after login failed):
+    // try again now from the live headers before giving up.
+    for (const src of sources) {
+      if (hasIdentity(src.mapping)) continue;
+      try {
+        const { headers } = Sheets.toTable(await Sheets.fetchCSV(src.url, tokenFor(src.url, src.token)));
+        const m = Sheets.guessMapping(headers);
+        if (src.kind === 'leads' || src.kind === 'clubdb') delete m.segment;
+        if (src.kind === 'clubdb') delete m.coach;
+        if (hasIdentity(m)) { src.mapping = m; Store.setSheetSettings({ sources: (s.sources || []).map((x) => (x.id === src.id ? Object.assign({}, x, { mapping: m }) : x)) }); }
+      } catch (e) { console.warn('mapping failed for', src.name, e.message); }
+    }
     const bad = sources.findIndex((x) => !hasIdentity(x.mapping));
     if (bad >= 0) { alert(`"${sources[bad].name}": map at least a name, email or phone column first (Load columns).`); return openSheetSettings(bad); }
     // Contact-only sources must not count as "every source succeeded" for pruning unless they ran too — they do run; nothing to change here.
