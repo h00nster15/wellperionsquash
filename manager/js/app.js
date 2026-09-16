@@ -181,6 +181,28 @@
     dlg.close();
     render();
   });
+  // One-off: send each club member's local Notes text to the sheet as a 스쿼시 Contact
+  // entry, then clear the local Notes so it is not moved twice.
+  async function moveClubNotes(btn) {
+    const pending = Store.list('customers').filter((c) => c.clubSyncedAt && (c.notes || '').trim());
+    if (!pending.length) return;
+    if (!confirm(`${pending.length}명의 Notes 메모를 스쿼시 Contact 기록으로 옮기고 시트 "스쿼시 접촉" 탭에 저장합니다.\n(옮긴 뒤 Notes 칸은 비워집니다.) 진행할까요?`)) return;
+    const label = btn.textContent; btn.disabled = true;
+    let done = 0; const errors = [];
+    for (const c of pending) {
+      btn.textContent = `저장 중… ${done + 1}/${pending.length}`;
+      const entry = c.notes.trim();
+      try {
+        await saveClubNote(c, c.squashCoach || '', entry);
+        c.squashContact = [c.squashContact || '', /^(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2})(\s|$)/.test(entry) ? entry : `${today()} ${entry}`].filter(Boolean).join('\n');
+        c.notes = '';
+        Store.upsert('customers', c); done++;
+      } catch (err) { errors.push(`${labelOf('customers', c)}: ${err.message}`); if (/doPost|배포/.test(err.message)) break; }
+    }
+    btn.disabled = false; btn.textContent = label;
+    alert(`${done}건 옮김${errors.length ? `\n\n실패:\n${errors.join('\n')}` : ''}`);
+    render();
+  }
   // POST { action: 'club-note' } to the Apps Script behind the 웰페리온 회원 DB source
   // (same /exec URL + token as the reads; a text/plain body avoids a CORS preflight).
   async function saveClubNote(rec, coach, entry) {
@@ -736,7 +758,10 @@
           <div class="stat-group"><div class="stat-title">회원권 상태</div><div class="chips">${cchip('유효', valid, 'clubDaysLeft', 'valid')}${cchip('만료', expired, 'clubDaysLeft', 'expired')}</div></div>
           <div class="stat-group"><div class="stat-title">회원 구분</div><div class="chips">${ctally((c) => c.clubType).slice(0, 6).map(([v, n]) => cchip(v, n, 'clubType', v)).join('')}</div></div>
         </div>` : '';
-      const clubBlock = head('웰페리온 회원 DB · Club members', `${cnf ? `<button class="ghost" id="btn-clear-club-filters">필터 해제 (${cnf})</button>` : ''}<span style="font-size:12px;color:var(--muted)">웰페리온 멤버십 DB 시트 (read-only) · 스쿼시 담당자가 있는 회원 = 스쿼시 리드 풀</span>`)
+      // Notes typed into the generic Notes field of club members (before the 스쿼시 접촉
+      // block existed) live only in this browser: offer to move them into the sheet.
+      const clubNotesPending = clubAll.filter((c) => (c.notes || '').trim());
+      const clubBlock = head('웰페리온 회원 DB · Club members', `${cnf ? `<button class="ghost" id="btn-clear-club-filters">필터 해제 (${cnf})</button>` : ''}<span style="font-size:12px;color:var(--muted)">웰페리온 멤버십 DB 시트 (read-only) · 스쿼시 담당자가 있는 회원 = 스쿼시 리드 풀 · 행 클릭 = 스쿼시 접촉 기록</span>${clubNotesPending.length ? `<button class="ghost" id="btn-move-club-notes" title="이 브라우저에만 저장된 Notes 메모를 스쿼시 Contact 기록으로 옮기고 시트 '스쿼시 접촉' 탭에 기록합니다">메모 ${clubNotesPending.length}건 → 스쿼시 Contact</button>` : ''}`)
         + clubStats
         + table(ccols, club.slice(0, cts.limit), (id) => openDialog('customers', Store.get('customers', id)), clubAll.length ? '조건에 맞는 회원이 없습니다.' : '아직 회원 DB가 연결되지 않았습니다. Members → Google Sheet → 시트 종류 "웰페리온 회원 DB"로 추가 후 Sync.', { tbl: 'club', sort: cts.sort, filterRow: filterRow(ccols, clubAll, cts), footer: `${pageFooter(cts, Math.min(cts.limit, club.length), club.length, 'club', '명')}${club.length !== clubAll.length ? ` (전체 ${clubAll.length}명 중 필터 적용)` : ''}` });
       return head('Outreach', `<span style="font-size:12px;color:var(--muted)">문의 · 웰페리온 회원 DB · 캠페인 · 통화 기록</span>`)
@@ -859,6 +884,8 @@
     });
     const clearClub = $('#btn-clear-club-filters');
     if (clearClub) clearClub.onclick = () => { tbl('club').colFilters = {}; render(); };
+    const moveNotes = $('#btn-move-club-notes');
+    if (moveNotes) moveNotes.onclick = () => moveClubNotes(moveNotes);
     const clearLeads = $('#btn-clear-lead-filters');
     if (clearLeads) clearLeads.onclick = () => { tbl('leads').colFilters = {}; render(); };
 
