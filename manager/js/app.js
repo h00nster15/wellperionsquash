@@ -952,6 +952,128 @@
     e.target.value = '';
   };
 
+  // ---------- Cloud copy of the app data (APP_STATE tab, AppState.gs) ----------
+  // Every real write to the store schedules an upload of the whole dataset (gzip+base64,
+  // tokens stripped) ~20 s later; login into an empty browser downloads it first. The
+  // sheet keeps one version; `known` = the version this browser last saw, so two
+  // computers cannot silently overwrite each other (conflict → the indicator offers to load).
+  const CLOUD_KEY = 'wellperion-squash.cloud';
+  const cloudMeta = (() => { try { return JSON.parse(localStorage.getItem(CLOUD_KEY) || '{}') || {}; } catch (e) { return {}; } })();
+  const setCloudMeta = (patch) => { Object.assign(cloudMeta, patch); try { localStorage.setItem(CLOUD_KEY, JSON.stringify(cloudMeta)); } catch (e) { /* ignore */ } };
+  const cloud = { timer: null, busy: false, pending: false, quiet: false, onClick: null };
+  const hhmm = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  function cloudStatus(text, kind, onClick) {
+    const el = $('#cloud-status'); if (!el) return;
+    cloud.onClick = onClick || null;
+    el.textContent = text ? '☁ ' + text : ''; el.className = 'cloud ' + (kind || ''); el.style.cursor = onClick ? 'pointer' : 'default';
+    el.title = onClick ? '클릭' : '앱 데이터는 시트(APP_STATE 탭)에도 자동 저장되어 다른 컴퓨터에서 로그인하면 그대로 이어집니다';
+  }
+  { const el = $('#cloud-status'); if (el) el.onclick = () => { if (cloud.onClick) cloud.onClick(); }; }
+  function cloudSource() {
+    const srcs = Store.settings().sheet.sources || [];
+    return srcs.find((x) => x.token && /script\.google\.com\/macros\//.test(x.url || '')) || null;
+  }
+  const b64 = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+  async function packState() {
+    const data = JSON.parse(Store.exportJSON(true));
+    for (const s of (data.settings && data.settings.sheet && data.settings.sheet.sources) || []) delete s.token; // never store the token in the sheet
+    const json = JSON.stringify(data);
+    if (!window.CompressionStream) return 'json:' + json;
+    const cs = new CompressionStream('gzip'); const w = cs.writable.getWriter(); w.write(new TextEncoder().encode(json)); w.close();
+    return 'gz64:' + b64(new Uint8Array(await new Response(cs.readable).arrayBuffer()));
+  }
+  async function unpackState(str) {
+    if (str.startsWith('json:')) return JSON.parse(str.slice(5));
+    if (!str.startsWith('gz64:')) throw new Error('알 수 없는 스냅샷 형식');
+    const bytes = Uint8Array.from(atob(str.slice(5)), (c) => c.charCodeAt(0));
+    const ds = new DecompressionStream('gzip'); const w = ds.writable.getWriter(); w.write(bytes); w.close();
+    return JSON.parse(await new Response(ds.readable).text());
+  }
+  function scheduleCloudSave() {
+    if (cloud.quiet || !cloudSource()) return;
+    clearTimeout(cloud.timer);
+    cloudStatus('변경됨 · 20초 후 저장', 'dim');
+    cloud.timer = setTimeout(() => cloudSave(), 20000);
+  }
+  async function cloudSave(force) {
+    const src = cloudSource(); if (!src) return;
+    if (cloud.busy) { cloud.pending = true; return; }
+    cloud.busy = true; cloudStatus('저장 중…', 'dim');
+    try {
+      const data = await packState();
+      const updatedAt = new Date().toISOString();
+      const j = await cloudPost({ action: 'app-state', data, updatedAt, known: cloudMeta.updatedAt || '', force: !!force });
+      if (j.conflict) {
+        cloudStatus(`다른 컴퓨터의 데이터가 더 최신 (${hhmm(j.updatedAt)}) — 클릭해서 처리`, 'warn', () => cloudConflict(j.updatedAt));
+      } else {
+        setCloudMeta({ updatedAt: j.updatedAt, savedAt: updatedAt });
+        cloudStatus(`저장됨 ${hhmm(updatedAt)}`, 'ok');
+      }
+    } catch (err) {
+      console.warn('cloud save failed', err);
+      cloudStatus('저장 실패 — 클릭해서 다시 시도', 'warn', () => cloudSave());
+    } finally {
+      cloud.busy = false;
+      if (cloud.pending) { cloud.pending = false; scheduleCloudSave(); }
+    }
+  }
+  function cloudConflict(serverAt) {
+    const load = confirm(`시트에 다른 컴퓨터에서 저장한 더 최신 앱 데이터가 있습니다 (${hhmm(serverAt)}).\n\n확인 = 그 데이터를 불러옵니다 (이 브라우저의 변경은 사라짐)\n취소 = 이 브라우저의 데이터로 시트를 덮어씁니다`);
+    if (load) cloudLoad({ replace: true }); else cloudSave(true);
+  }
+  async function cloudGet(params) {
+    const src = cloudSource(); if (!src) throw new Error('no source');
+    const u = new URL(src.url.split('?')[0]); u.searchParams.set('token', tokenFor(src.url, src.token));
+    for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+    const res = await fetch(u.toString(), { redirect: 'follow' });
+    const j = JSON.parse(await res.text());
+    if (j.ok === false || j.error) throw new Error(j.error || 'unknown error');
+    return j;
+  }
+  async function cloudPost(body) {
+    const src = cloudSource(); if (!src) throw new Error('no source');
+    body.token = tokenFor(src.url, src.token);
+    const res = await fetch(src.url.split('?')[0], { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' });
+    const text = await res.text();
+    let j; try { j = JSON.parse(text); } catch (e) { throw new Error(/doPost/.test(text) ? 'Apps Script에 doPost가 없습니다 (Code.gs / AppState.gs 배포 필요)' : `응답 오류 (${res.status})`); }
+    if (!j.ok && !j.conflict) throw new Error(j.error || 'unknown error');
+    return j;
+  }
+  // Download the sheet's snapshot into this browser. Returns true when data was loaded.
+  async function cloudLoad(opts = {}) {
+    if (!cloudSource()) return false;
+    cloud.quiet = true; cloudStatus('불러오는 중…', 'dim');
+    try {
+      const j = await cloudGet({ action: 'app-state' });
+      if (j.empty || !j.data) { cloudStatus('', ''); return false; }
+      const data = await unpackState(j.data);
+      // Keep this browser's tokens (they are not in the snapshot).
+      const tokens = new Map((Store.settings().sheet.sources || []).map((s) => [String(s.url || '').split('?')[0], s.token]).filter(([, t]) => t));
+      const anyToken = Array.from(tokens.values())[0] || '';
+      for (const s of (data.settings && data.settings.sheet && data.settings.sheet.sources) || []) if (!s.token) s.token = tokens.get(String(s.url || '').split('?')[0]) || anyToken;
+      Store.importJSON(data, { silent: true });
+      setCloudMeta({ updatedAt: j.updatedAt, loadedAt: new Date().toISOString() });
+      cloudStatus(`불러옴 ${hhmm(j.updatedAt)}`, 'ok');
+      if (opts.replace) render();
+      return true;
+    } catch (err) {
+      console.warn('cloud load failed', err);
+      cloudStatus('불러오기 실패 — 클릭해서 다시 시도', 'warn', () => cloudLoad(opts));
+      return false;
+    } finally { cloud.quiet = false; }
+  }
+  // Returning browser: is there a newer snapshot from another computer?
+  async function cloudCheck() {
+    if (!cloudSource()) return;
+    try {
+      const j = await cloudGet({ action: 'app-state', meta: '1' });
+      if (j.empty) { if (Store.list('customers').length) scheduleCloudSave(); return; } // first computer with this version: seed the sheet
+      if (j.updatedAt && j.updatedAt !== cloudMeta.updatedAt) cloudStatus(`다른 컴퓨터의 데이터 (${hhmm(j.updatedAt)}) — 클릭해서 처리`, 'warn', () => cloudConflict(j.updatedAt));
+      else cloudStatus(cloudMeta.savedAt ? `저장됨 ${hhmm(cloudMeta.savedAt)}` : `동기화됨 ${hhmm(j.updatedAt)}`, 'ok');
+    } catch (err) { console.warn('cloud check failed', err); }
+  }
+  Store.onChange(scheduleCloudSave);
+
   // ---------- Login / logout ----------
   // The app holds no data until it has the sheet token. On GitHub Pages (or any fresh
   // browser) the admin password is exchanged for the token via the Apps Script.
@@ -988,17 +1110,21 @@
     e.preventDefault();
     const btn = $('#login-btn'), err = $('#login-err'); btn.disabled = true; btn.textContent = '확인 중…'; err.hidden = true;
     try {
-      await login($('#login-key').value.trim());
+      const fresh = !Store.list('customers').length;
+      cloud.quiet = true; // the login write must not upload an empty dataset
+      try { await login($('#login-key').value.trim()); } finally { cloud.quiet = false; }
       loginDlg.close();
       state.view = 'customers'; location.hash = '#customers'; render(); // Members has the Sync button and shows progress
-      await mapAllSources();
+      const restored = fresh && await cloudLoad({ replace: true }); // settings + data from the sheet
+      if (!restored) await mapAllSources();
       await syncFromSheet($('#btn-sync') || { textContent: '', disabled: false });
     } catch (ex) { err.textContent = ex.message; err.hidden = false; }
     btn.disabled = false; btn.textContent = '입장 · Sign in';
   });
   $('#btn-logout').onclick = () => {
     if (!confirm('이 브라우저의 모든 데이터와 접근 토큰을 삭제하고 로그아웃할까요?\nThis removes all data and the access token from this browser.')) return;
-    try { localStorage.removeItem('wellperion-squash.v1'); } catch (e) { /* ignore */ }
+    clearTimeout(cloud.timer); cloud.quiet = true;
+    try { localStorage.removeItem('wellperion-squash.v1'); localStorage.removeItem(CLOUD_KEY); } catch (e) { /* ignore */ }
     location.reload();
   };
 
@@ -1007,4 +1133,5 @@
   if (views[h]) state.view = h;
   render();
   if (!hasToken()) { loginDlg.showModal(); setTimeout(() => $('#login-key').focus(), 50); }
+  else cloudCheck();
 })();

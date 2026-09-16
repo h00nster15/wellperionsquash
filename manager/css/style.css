@@ -33,7 +33,11 @@ button, .btn, input, select, textarea { font: inherit; }
 }
 .tabs button:hover { background: rgba(255,255,255,.1); color: #fff; }
 .tabs button.active { background: rgba(255,255,255,.18); color: #fff; font-weight: 600; }
-.actions { display: flex; gap: 8px; }
+.actions { display: flex; gap: 8px; align-items: center; }
+.cloud { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.cloud.ok { color: var(--ok); }
+.cloud.warn { color: var(--warn); text-decoration: underline; }
+.cloud.dim { opacity: .7; }
 .actions button, .actions .btn {
   background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3);
   padding: 6px 12px; border-radius: 8px; cursor: pointer;

@@ -60,10 +60,12 @@ const Store = (() => {
   // Batched saving: inside Store.batch(fn) writes are deferred and localStorage is
   // written once at the end (a Sync upserts hundreds of records).
   let deferred = 0, dirty = false;
+  const listeners = []; // called after each real write (the cloud copy hooks in here)
   function save() {
     if (deferred > 0) { dirty = true; return; }
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (e) { alert('Could not save data: ' + e.message); }
+    listeners.forEach((fn) => { try { fn(); } catch (e) { console.warn(e); } });
   }
   async function batch(fn) {
     deferred++;
@@ -91,12 +93,14 @@ const Store = (() => {
     setBrand(brand) { data.brand = Object.assign(data.brand, brand); save(); },
     settings: () => data.settings,
     setSheetSettings(patch) { Object.assign(data.settings.sheet, patch); save(); },
-    exportJSON: () => JSON.stringify(data, null, 2),
-    importJSON(text) {
-      const parsed = JSON.parse(text);
+    onChange: (fn) => listeners.push(fn),
+    exportJSON: (compact) => (compact ? JSON.stringify(data) : JSON.stringify(data, null, 2)),
+    importJSON(text, opts) {
+      const parsed = typeof text === 'string' ? JSON.parse(text) : text;
       if (!parsed || typeof parsed !== 'object') throw new Error('Not a valid export file');
       localStorage.setItem(KEY, JSON.stringify(parsed));
       data = load();
+      if (!(opts && opts.silent)) listeners.forEach((fn) => { try { fn(); } catch (e) { console.warn(e); } });
     },
     reset() { data = empty(); save(); },
   };
