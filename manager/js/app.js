@@ -1017,7 +1017,7 @@
         return head('Social', '<button class="primary" id="btn-new">+ Post</button>')
           + '<div class="panel"><h2>소셜 플랜</h2>'
           + '<p style="color:var(--muted);margin:0 0 12px">인스타그램 @glass_court와 네이버 블로그 계획을 여기서 관리합니다. 규칙과 템플릿은 <code>marketing/social-media/</code>에 있고, 이 탭은 <strong>무엇이 언제 나가는지, 지금 무엇이 막혀 있는지</strong>를 봅니다.</p>'
-          + '<button class="primary" id="btn-seed-social">10월 계획 불러오기 · ' + SOCIAL_PLAN.length + '건 (10/1 → 10/31)</button></div>';
+          + '<button class="primary" id="btn-seed-social">10–11월 계획 불러오기 · ' + SOCIAL_PLAN.length + '건 (10/1 → 11/28)</button></div>';
       }
 
       // What is holding posts up, most-blocking first.
@@ -1061,8 +1061,8 @@
         + '<span class="n">' + p.n + '건 · ' + p.pct + '% <span style="opacity:.6">(목표 ' + p.share + '%)</span></span></div>').join('');
       const bars = mix.map((p) => '<span style="width:' + p.pct + '%;background:' + p.color + '" title="' + esc(p.label) + ' ' + p.pct + '%"></span>').join('');
 
-      const hasOctober = posts.some((p) => (p.date || '') >= '2026-10-01');
-      return head('Social', (hasOctober ? '' : '<button class="ghost" id="btn-seed-social">10월 계획 불러오기</button> ') + '<button class="primary" id="btn-new">+ Post</button>')
+      const hasOctober = posts.some((p) => (p.date || '') >= '2026-11-01');
+      return head('Social', (hasOctober ? '' : '<button class="ghost" id="btn-seed-social">10–11월 계획 불러오기</button> ') + '<button class="primary" id="btn-new">+ Post</button>')
         + '<div class="cards">'
         + card(late.length, '밀린 게시물') + card(soon.length, '이번 주 (7일)') + card(ready.length, '원고 · 예약 완료')
         + card(postedThisMonth.length, t.slice(0, 7) + ' 게시 완료') + card(crossPosts.length, '@wellperion_squash')
@@ -1143,10 +1143,23 @@
     { date: '2026-10-14', channel: 'Naver blog', pillar: 'junior', status: 'draft', wellperion: false, title: '미국 주니어 스쿼시 Part 2 — 레이팅', titleEn: 'US junior squash, Part 2: ratings', format: '긴 글 + 캐러셀', cta: '진학 1:1 상담', blocker: '', notes: '사실 확인 완료 — 보딩스쿨 문단만 추가하면 발행' },
     { date: '2026-10-20', channel: 'Instagram @glass_court', pillar: 'tactics', status: 'idea', wellperion: false, title: '릴스 #2 — 주제 미정', titleEn: 'Reel #2 — topic to be decided', format: '릴스 30–45초', cta: '저장 → 다음 연습에서 확인', blocker: '릴스 주제', notes: '릴스 #1과 같은 시리즈로 이어갈지, 다른 포맷으로 갈지는 #1 반응을 보고 결정' },
     { date: '2026-10-21', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '부상 없이 오래 치는 법: 웜업에 15분을 쓰는 이유', titleEn: 'Why we spend 15 minutes on the warm-up', format: '긴 글 + 웜업 5동작 (사진 각 1장)', cta: '성인 프라이빗 레슨 상담', blocker: '', notes: '웜업 5동작 사진은 레슨 날 한 번에' },
-    { date: '2026-10-24', channel: 'Instagram @wellperion_squash', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 — 11월 개최', titleEn: 'Wellympic Squash Cup, this November', format: '카드뉴스 4장 (일정 · 대상 · 방식 · 신청)', cta: '참가 신청 → 데스크 / 프로필 링크', blocker: '웰림픽 날짜 · 참가 방식', notes: '양 계정 (웰페리온에서 열리는 행사). 날짜가 정해지면 11월 계획을 이 대회 중심으로 짭니다' },
+    { date: '2026-10-24', channel: 'Instagram @wellperion_squash', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 — 11월 8일 (일)', titleEn: 'Wellympic Squash Cup — Sunday 8 November', format: '카드뉴스 4장 (날짜 · 대상 · 방식 · 신청)', cta: '참가 신청 → 데스크 / 프로필 링크', blocker: '참가 방식 · 신청 마감일', notes: '양 계정 (웰페리온에서 열리는 행사). 날짜 확정 2026-09-25. 히어로 숫자는 11.8' },
     { date: '2026-10-27', channel: 'Instagram @glass_court', pillar: 'science', status: 'idea', wellperion: false, title: '뇌는 공보다 먼저 움직인다 — 의사결정 속도', titleEn: 'The brain moves before the ball', format: '카드뉴스 7장 — 이미 렌더된 How We Decide 카드', cta: '전체 시리즈 → 블로그', blocker: '', notes: 'blog/cards/how-we-decide-01~07.png 그대로 사용. 제작 시간 0' },
     { date: '2026-10-28', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '《How We Decide》 총정리 — 코트 위의 의사결정', titleEn: 'How We Decide: the court version', format: '긴 글 (시리즈 5부)', cta: '레슨 상담', blocker: 'Part 3 링크', notes: '초안 있음 (blog/how-we-decide-part5-summary.md)' },
     { date: '2026-10-31', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '10월의 코트: 한 달의 순간들', titleEn: 'October on court', format: '카드뉴스 6장', cta: '체험 문의', blocker: '', notes: '10월 촬영본 정리. 주니어 얼굴은 서면 동의된 경우만' },
+
+    // November — 웰림픽 스쿼시컵 (2026-11-08, 일). Three weeks of build-up, the day
+    // itself, and two weeks of reusing what the day produced.
+    { date: '2026-11-03', channel: 'Instagram @glass_court', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 D-5 — 대회 주간에 하면 좋은 준비', titleEn: 'Five days out: how to arrive ready', format: '릴스 45초', cta: '참가 신청 마감 임박 → 데스크', blocker: '참가 방식 · 신청 마감일', notes: '대회 전 주 훈련·워밍업·컨디션. 참가자에게도 유용하고 비참가자에게는 대회 존재를 알림' },
+    { date: '2026-11-04', channel: 'Naver blog', pillar: 'event', status: 'idea', wellperion: false, title: '웰림픽 스쿼시컵 안내 — 부문 · 규정 · 타임테이블', titleEn: 'Wellympic Squash Cup: format, rules, schedule', format: '안내 글 + 대진 방식 그림', cta: '참가 신청 → 데스크', blocker: '부문 · 정원 · 타임테이블', notes: '검색으로 들어오는 사람을 위한 공식 안내. 대회 당일까지 계속 갱신' },
+    { date: '2026-11-08', channel: 'Instagram @wellperion_squash', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 현장', titleEn: 'Wellympic Squash Cup, live', format: '스토리 5장 (라이브) + 저녁 리캡 1건', cta: '다음 대회 알림 받기', blocker: '', notes: '대회 당일. 스토리는 경기 중, 리캡은 당일 저녁 19–21시. 촬영 담당을 미리 정해 둘 것' },
+    { date: '2026-11-10', channel: 'Instagram @glass_court', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 결과', titleEn: 'Wellympic Squash Cup results', format: '카드뉴스 5장 (부문별 결과 · 이니셜)', cta: '다음 대회 사전 등록', blocker: '대회 결과', notes: '미성년자는 이니셜만. instagram-card-news-template.md Example B 구조' },
+    { date: '2026-11-11', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '웰림픽 리뷰 — 결승에서 반복된 세 장면', titleEn: 'Three patterns that decided the final', format: '긴 글 + 사진 · 클립', cta: '레슨 상담', blocker: '대회 결과', notes: '대회를 Science of Squash 소재로 재사용. 이름 대신 장면으로 설명' },
+    { date: '2026-11-17', channel: 'Instagram @glass_court', pillar: 'tactics', status: 'idea', wellperion: false, title: '대회에서 가장 많이 나온 실수', titleEn: 'The mistake we saw most at the tournament', format: '릴스 45초', cta: '저장 → 다음 연습에서', blocker: '', notes: '11/8 촬영본 재사용. 대회 참가자들이 자기 경기를 떠올리게 되는 자리' },
+    { date: '2026-11-18', channel: 'Naver blog', pillar: 'tactics', status: 'idea', wellperion: false, title: '대회가 끝나고: 다음 대회까지 4주 훈련 계획', titleEn: 'Four weeks to the next tournament', format: '긴 글 + 주차별 표', cta: '성인 프라이빗 레슨 상담', blocker: '', notes: '대회 직후 동기가 가장 높은 시점의 전환 글' },
+    { date: '2026-11-24', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '첫 대회에 나간 회원 이야기', titleEn: 'A member\'s first tournament', format: '단일 사진 + 3줄 인용', cta: '댓글 · 체험 문의', blocker: '서면 동의', notes: '웰림픽 참가자 중 한 명. 이니셜 또는 성만' },
+    { date: '2026-11-25', channel: 'Naver blog', pillar: 'junior', status: 'idea', wellperion: false, title: '겨울 시즌 주니어 대회 캘린더와 준비법', titleEn: 'The winter junior calendar', format: '긴 글 + 일정 표', cta: '주니어 상담 → 데스크', blocker: '겨울 대회 일정', notes: '국내 겨울 대회 + 미국 시즌을 함께 보는 글이면 웰페리온 계정에도 교차 가능' },
+    { date: '2026-11-28', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '11월의 코트: 웰림픽이 남긴 것', titleEn: 'November on court', format: '카드뉴스 6장', cta: '체험 문의', blocker: '', notes: '대회 사진 중심. 동의된 얼굴만' },
   ];
 
   /** Load the October plan: close what September never posted, add what is missing. */
