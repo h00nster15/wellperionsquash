@@ -1163,6 +1163,18 @@
   ];
 
   /** Load the October plan: close what September never posted, add what is missing. */
+  // The one event the plan hangs on. Only the date is settled (owner, 2026-09-25);
+  // 부문 · 정원 · 신청 방식 are still open, so the record carries the date and says so.
+  const WELLYMPIC = {
+    name: '웰림픽 스쿼시컵',
+    type: 'tournament',
+    status: 'planned',
+    date: '2026-11-08',
+    venue: '웰페리온 스포츠센터 스쿼시코트 (한남동)',
+    owner: '이상훈',
+    notes: '일정만 확정 (2026-09-25). 미정: 부문 · 정원 · 신청 방식 · 신청 마감일 · 타임테이블.\n소셜: 10/24 예고 → 11/3 D-5 → 11/8 현장 → 11/10 결과 (Social 탭).',
+  };
+
   function seedSocialPlan() {
     const have = new Set(Store.list('posts').map((p) => p.date + '|' + p.title));
     let added = 0, closed = 0;
@@ -1178,6 +1190,9 @@
         Store.upsert('posts', Object.assign({}, p));
         added++;
       }
+      // The tournament itself goes on the Events tab, date only.
+      const known = Store.list('events').find((e) => e.name === WELLYMPIC.name && e.date === WELLYMPIC.date);
+      if (!known) Store.upsert('events', Object.assign({}, WELLYMPIC));
     });
     render();
     if (closed) alert(`10월 계획 ${added}건을 불러왔습니다.\n9월 계획 중 발행되지 않은 ${closed}건은 dropped로 닫았습니다 (기록은 남습니다).`);
