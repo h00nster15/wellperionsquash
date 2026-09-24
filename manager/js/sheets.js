@@ -85,7 +85,7 @@ const Sheets = (() => {
     const target = toFetchUrl(url, token);
     if (!target) throw new Error('No sheet URL configured.');
     let res;
-    try { res = await fetch(target, { redirect: 'follow' }); }
+    try { res = await fetch(target, { redirect: 'follow', cache: 'no-store' }); }
     catch (e) { throw new Error('Could not reach Google. If the sheet is private, share it (Anyone with the link → Viewer) or use the Apps Script URL. Details: ' + e.message); }
     const text = await res.text();
     if (!res.ok || /^\s*</.test(text)) {
@@ -295,13 +295,16 @@ const Sheets = (() => {
     // 1) Collapse duplicates inside the sheet. Later rows are renewals, so the
     //    latest row wins (validity, sessions, payment…) except that the first
     //    registration date is kept as "joined" and notes are accumulated.
+    //    Inquiry tabs are written newest-first (Inquiries.gs), so there the row
+    //    with the later 접수일 wins regardless of position.
     const seen = makeIndex(); const unique = [];
     let collapsed = 0;
     for (const c of mapped) {
       const hit = seen.find(c);
       if (hit) {
         const { joined, notes } = hit;
-        fill(hit, c, true);
+        const older = c.inqDate && hit.inqDate && c.inqDate < hit.inqDate;
+        fill(hit, c, !older); // an older inquiry only fills blanks
         hit.joined = [joined, c.joined].filter(Boolean).sort()[0] || ''; // earliest registration wins
         if (notes && c.notes && !notes.includes(c.notes)) hit.notes = `${notes} / ${c.notes}`;
         collapsed++;

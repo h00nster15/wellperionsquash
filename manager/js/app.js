@@ -13,6 +13,22 @@
   const EVENT_TYPES = ['league', 'tournament', 'open-day', 'social', 'corporate', 'coaching-clinic'];
   const EVENT_STATUS = ['idea', 'planned', 'open', 'full', 'done', 'cancelled'];
   const ASSET_TYPES = ['logo', 'font', 'template', 'photo', 'video', 'document', 'other'];
+  // Social plan (Social tab). Pillars and their target share come from
+  // marketing/social-media/content-calendar.md, the wording rules from
+  // platform-playbook.md. Social speaks as "Glass Court Squash Academy at
+  // Wellperion"; the operational side (SMS, calls) stays 웰페리온 스쿼시.
+  const POST_STATUS = ['idea', 'draft', 'scheduled', 'posted', 'dropped'];
+  const POST_CHANNELS = ['Instagram', 'Naver blog', 'YouTube Shorts'];
+  const PILLARS = [
+    { k: 'science', label: 'Science of Squash', share: 25, color: '#1f2a6b', job: '근거로 설명하는 프로 — 권위' },
+    { k: 'tactics', label: '기본 전술', share: 20, color: '#3f57a8', job: '저장되는 짧은 릴스 — 도달' },
+    { k: 'junior', label: '주니어 프로그램', share: 20, color: '#7fa8d9', job: 'WSC 학부모 · 미국 진학 — 성장' },
+    { k: 'sessions', label: '세션 · 토너먼트', share: 20, color: '#a9c6e8', job: '신청으로 이어지는 자리 — 전환' },
+    { k: 'member', label: '회원 이야기', share: 10, color: '#c8102e', job: '재등록의 이유 — 신뢰 (서면 동의)' },
+    { k: 'facility', label: '웰페리온 시설', share: 5, color: '#8c94a3', job: '한남동 2,900평 — 신뢰도' },
+  ];
+  const PILLAR_KEYS = PILLARS.map((p) => p.k);
+  const pillarOf = (k) => PILLARS.find((p) => p.k === k) || { label: k || '—', color: '#8c94a3', job: '' };
 
   const schemas = {
     customers: {
@@ -87,6 +103,21 @@
         { k: 'price', label: 'Price', type: 'number' },
         { k: 'campaignId', label: 'Campaign', type: 'select', optionsFrom: 'campaigns', allowEmpty: true },
         { k: 'notes', label: 'Notes / checklist', type: 'textarea', full: true },
+      ],
+    },
+    posts: {
+      title: 'Post',
+      fields: [
+        { k: 'date', label: 'Date (게시 예정일)', type: 'date', def: today, required: true },
+        { k: 'channel', label: 'Channel', type: 'select', options: POST_CHANNELS, def: 'Instagram' },
+        { k: 'pillar', label: 'Pillar (콘텐츠 필러)', type: 'select', options: PILLAR_KEYS, def: 'science' },
+        { k: 'status', label: 'Status', type: 'select', options: POST_STATUS, def: 'idea' },
+        { k: 'title', label: 'Title KR (한국어 제목)', required: true, full: true },
+        { k: 'titleEn', label: 'Title EN', full: true },
+        { k: 'format', label: 'Format (릴스 30초 / 카드뉴스 7장 …)', full: true },
+        { k: 'cta', label: 'CTA (가격은 쓰지 않습니다)' },
+        { k: 'blocker', label: 'Blocked by (없으면 비워 둠)', placeholder: '세션 #2 날짜' },
+        { k: 'notes', label: 'Notes — 원고 · 촬영 · 디자인 상태', type: 'textarea', full: true },
       ],
     },
     assets: {
@@ -543,8 +574,9 @@
       const j = await res.json();
       if (!j.ok) throw new Error(j.error || 'unknown error');
       const tabs = (j.sourceTabs || []).map((t) => `${t.name}: ${t.rows}행`).join(', ');
+      const skipped = (j.skippedTabs || []).map((t) => `${t.name}: ${t.rows}행 (열 이름 불일치: ${(t.headers || []).join(' · ')})`).join('\n');
       btn.textContent = label; btn.disabled = false;
-      alert(`문의 DB 가져오기 완료\n문의-주니어 ${j.juniors}건 · 문의-시니어 ${j.seniors}건 (총 ${j.inquiries}건, 수기 입력 ${j.kept}칸 유지)\n원본 탭: ${tabs || '-'}\n\n이제 Sync를 실행합니다.`);
+      alert(`문의 DB 가져오기 완료\n문의-주니어 ${j.juniors}건 · 문의-시니어 ${j.seniors}건 (총 ${j.inquiries}건, 수기 입력 ${j.kept}칸 유지)\n원본 탭: ${tabs || '-'}${skipped ? `\n⚠ 읽지 못한 탭 (문의 열 이름이 달라 건너뜀):\n${skipped}` : ''}\n\n이제 Sync를 실행합니다.`);
       const syncBtn = $('#btn-sync-leads') || $('#btn-sync');
       if (syncBtn) await syncFromSheet(syncBtn);
     } catch (err) {
@@ -592,7 +624,8 @@
   const nameOf = (col, id) => { const r = id && Store.get(col, id); return r ? labelOf(col, r) : '—'; };
 
   const pillClass = (v) => ({
-    active: 'ok', booked: 'ok', live: 'ok', open: 'ok', done: '',
+    active: 'ok', booked: 'ok', live: 'ok', open: 'ok', done: '', posted: 'ok',
+    draft: 'warn', scheduled: 'info', dropped: 'bad',
     'at-risk': 'warn', callback: 'warn', paused: 'warn', full: 'warn', planned: 'info', 'trial-booked': 'info',
     lapsed: 'bad', 'opted-out': 'bad', 'opt-out': 'bad', 'not-interested': 'bad', cancelled: 'bad',
   }[v] || '');
@@ -620,8 +653,156 @@
     return `<div class="view-head"><h1>${esc(title)}</h1>${extra}</div>`;
   }
 
+  // ---------- Member trend (Dashboard) ----------
+  // Monthly series built from the sheet's own dates: a member counts as active in a month
+  // when 등록일자 <= that month's end and 유효기간 [종료일자] >= its start (no 유효기간 = still
+  // running). Renewals are collapsed into one record (earliest 등록일자, latest 유효기간), so
+  // this is the trend of member records, not of every registration — and members deleted
+  // from the sheet are gone from it, so months far back read low. Both caveats sit in the
+  // note under the charts.
+  const CHART_ACTIVE = '#0891b2', CHART_NEW = '#e36414'; // validated against the white panel (dataviz six checks)
+  const ymAdd = (ym, n) => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7); };
+  // Ticks every `step` months; the year rides the first one and every change of year.
+  function monthTicks(points, step) {
+    const out = [];
+    let year = '';
+    points.forEach((p, i) => {
+      const last = i === points.length - 1;
+      if (!(i % step === 0 || last)) return;
+      if (last && out.length && i - out[out.length - 1].i < step / 2) out.pop(); // no collision at the right edge
+      const y = p.m.slice(0, 4), m = p.m.slice(5);
+      out.push({ i, text: y === year ? `${+m}월` : `${y}.${m}` });
+      year = y;
+    });
+    return out;
+  }
+  function niceMax(v) {
+    if (!(v > 0)) return 1;
+    const mag = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const s of [1, 1.5, 2, 2.5, 3, 4, 5, 7.5]) if (v <= s * mag) return s * mag;
+    return 10 * mag;
+  }
+  function memberTrend(members, months) {
+    const rows = members.filter((c) => c.joined);
+    const now = today().slice(0, 7);
+    const earliest = rows.map((c) => c.joined.slice(0, 7)).sort()[0] || now;
+    let first = months === 'all' ? earliest : ymAdd(now, -(months - 1));
+    if (first < earliest) first = earliest;
+    if (first > now) first = now;
+    const out = [];
+    for (let m = first; m <= now && out.length < 240; m = ymAdd(m, 1)) {
+      const start = m + '-01', end = m + '-31';
+      out.push({
+        m,
+        active: rows.filter((c) => c.joined <= end && (!c.validUntil || c.validUntil >= start)).length,
+        added: rows.filter((c) => c.joined.slice(0, 7) === m).length,
+      });
+    }
+    return { points: out, dated: rows.length, undated: members.length - rows.length };
+  }
+
+  // Line + area, one series: the level — how many members there are.
+  function lineChart(points, key, color, label) {
+    const W = 1500, H = 250, L = 56, R = 34, T = 16, B = 34; // wide viewBox: the SVG scales to the panel width, so a tall box would render huge
+    const iw = W - L - R, ih = H - T - B, n = points.length;
+    const max = niceMax(Math.max(...points.map((p) => p[key]), 1));
+    const x = (i) => n === 1 ? L + iw / 2 : L + (iw * i) / (n - 1);
+    const y = (v) => T + ih - (ih * v) / max;
+    const band = n === 1 ? iw : iw / (n - 1);
+    const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ');
+    const area = `${line} L${x(n - 1).toFixed(1)},${(T + ih).toFixed(1)} L${x(0).toFixed(1)},${(T + ih).toFixed(1)} Z`;
+    const step = Math.ceil(n / 12);
+    const last = points[n - 1];
+    return `<figure class="chart">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${[0, 0.5, 1].map((f) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="tick" x="${L - 8}" y="${(y(max * f) + 4).toFixed(1)}" text-anchor="end">${Math.round(max * f)}</text>`).join('')}
+        <path d="${area}" fill="${color}" fill-opacity=".1"/>
+        <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${monthTicks(points, step).map((t) => `<text class="tick" x="${x(t.i).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(t.text)}</text>`).join('')}
+        <line class="crosshair" x1="0" x2="0" y1="${T}" y2="${T + ih}" style="display:none"/>
+        <circle class="focus-dot" r="4.5" fill="${color}" stroke="#fff" stroke-width="2" style="display:none"/>
+        <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last[key]).toFixed(1)}" r="4.5" fill="${color}" stroke="#fff" stroke-width="2"/>
+        <text class="end-label" x="${(x(n - 1) - 8).toFixed(1)}" y="${(y(last[key]) - 12).toFixed(1)}" text-anchor="end">${last[key]}</text>
+        ${points.map((p, i) => `<rect class="hit" tabindex="0" data-x="${x(i).toFixed(1)}" data-y="${y(p[key]).toFixed(1)}" data-label="${esc(p.m)}" data-v="${p[key]}" x="${(x(i) - band / 2).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ih}" fill="transparent"/>`).join('')}
+      </svg>
+      <div class="chart-tip" hidden></div>
+    </figure>`;
+  }
+
+  // Columns, one series: the flow — how many joined that month.
+  function barChart(points, key, color, label) {
+    const W = 1500, H = 190, L = 56, R = 34, T = 16, B = 34;
+    const iw = W - L - R, ih = H - T - B, n = points.length;
+    const max = niceMax(Math.max(...points.map((p) => p[key]), 1));
+    const band = iw / n, bw = Math.min(24, Math.max(3, band - 2)); // <=24px thick, 2px of surface between neighbours
+    const y = (v) => T + ih - (ih * v) / max;
+    const step = Math.ceil(n / 12);
+    const bar = (p, i) => {
+      const h = (ih * p[key]) / max, bx = L + band * i + (band - bw) / 2, by = T + ih - h;
+      if (!h) return '';
+      const r = Math.min(4, bw / 2, h);
+      return `<path d="M${bx.toFixed(1)},${(by + r).toFixed(1)} a${r},${r} 0 0 1 ${r},${-r} h${(bw - 2 * r).toFixed(1)} a${r},${r} 0 0 1 ${r},${r} V${(T + ih).toFixed(1)} H${bx.toFixed(1)} Z" fill="${color}"/>`;
+    };
+    return `<figure class="chart">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${[0, 1].map((f) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="tick" x="${L - 8}" y="${(y(max * f) + 4).toFixed(1)}" text-anchor="end">${Math.round(max * f)}</text>`).join('')}
+        ${points.map(bar).join('')}
+        ${monthTicks(points, step).map((t) => `<text class="tick" x="${(L + band * t.i + band / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(t.text)}</text>`).join('')}
+        ${points.map((p, i) => `<rect class="hit" tabindex="0" data-x="${(L + band * i + band / 2).toFixed(1)}" data-y="${y(p[key]).toFixed(1)}" data-label="${esc(p.m)}" data-v="${p[key]}" x="${(L + band * i).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ih}" fill="transparent"/>`).join('')}
+      </svg>
+      <div class="chart-tip" hidden></div>
+    </figure>`;
+  }
+
+  // Hover/focus layer: the hit rects carry the values, so the tooltip needs no lookup table.
+  // Labels go in with textContent — they come from the sheet.
+  function wireChart(fig) {
+    const svg = fig.querySelector('svg'), tip = fig.querySelector('.chart-tip');
+    const cross = fig.querySelector('.crosshair'), dot = fig.querySelector('.focus-dot');
+    const hide = () => { tip.hidden = true; if (cross) cross.style.display = 'none'; if (dot) dot.style.display = 'none'; };
+    const show = (r) => {
+      const vb = svg.viewBox.baseVal, box = svg.getBoundingClientRect();
+      const cx = +r.dataset.x, cy = +r.dataset.y, sx = box.width / vb.width, sy = box.height / vb.height;
+      if (cross) { cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.style.display = ''; }
+      if (dot) { dot.setAttribute('cx', cx); dot.setAttribute('cy', cy); dot.style.display = ''; }
+      tip.textContent = '';
+      const v = document.createElement('strong'); v.textContent = `${r.dataset.v}명`;
+      const l = document.createElement('span'); l.textContent = r.dataset.label;
+      tip.append(v, l);
+      tip.hidden = false;
+      tip.style.left = `${Math.max(0, Math.min(box.width - tip.offsetWidth, cx * sx - tip.offsetWidth / 2))}px`;
+      tip.style.top = `${Math.max(0, cy * sy - tip.offsetHeight - 10)}px`;
+    };
+    fig.querySelectorAll('rect.hit').forEach((r) => { r.onpointerenter = () => show(r); r.onfocus = () => show(r); r.onblur = hide; });
+    fig.onpointerleave = hide;
+  }
+
+  function trendPanel(members) {
+    const { points, dated, undated } = memberTrend(members, state.trendMonths);
+    if (!points.length) return '';
+    const n = points.length, last = points[n - 1], prev = points[n - 2];
+    const delta = prev ? last.active - prev.active : 0;
+    const rangeBtn = (v, l) => `<button class="chip ${state.trendMonths === v ? 'on' : ''}" data-trend="${v}">${l}</button>`;
+    const sum = points.reduce((a, p) => a + p.added, 0);
+    return `<div class="panel chart-panel">
+      <div class="chart-head">
+        <h2>회원 추이 <span class="muted-note">활동 회원 ${last.active}명${prev ? ` · 전월 대비 ${delta > 0 ? '+' : ''}${delta}명` : ''}</span></h2>
+        <div class="chips">${rangeBtn(12, '12개월')}${rangeBtn(24, '24개월')}${rangeBtn('all', '전체')}</div>
+      </div>
+      <h3 class="chart-title">활동 회원 수 <span>월말 기준 · 유효기간이 남아 있는 회원</span></h3>
+      ${lineChart(points, 'active', CHART_ACTIVE, '월별 활동 회원 수')}
+      <h3 class="chart-title">신규 등록 <span>등록일자가 그 달인 회원 · 기간 합계 ${sum}명</span></h3>
+      ${barChart(points, 'added', CHART_NEW, '월별 신규 등록 수')}
+      <p class="chart-note">등록일자가 있는 ${dated}명으로 계산${undated ? ` (날짜 없는 ${undated}명 제외)` : ''}. 재등록은 한 회원으로 합쳐지고 시트에서 지워진 회원은 빠지므로, 과거 달일수록 실제보다 적게 보일 수 있습니다.</p>
+      <details class="chart-table"><summary>표로 보기</summary>
+        <div class="table-wrap"><table><thead><tr><th>월</th><th>활동 회원</th><th>신규 등록</th></tr></thead>
+        <tbody>${points.slice().reverse().map((p) => `<tr><td>${esc(p.m)}</td><td>${p.active}</td><td>${p.added}</td></tr>`).join('')}</tbody></table></div>
+      </details>
+    </div>`;
+  }
+
   // ---------- Views ----------
-  const state = { view: 'dashboard', q: '', filter: '', tables: {
+  const state = { view: 'dashboard', q: '', filter: '', trendMonths: 12, tables: {
     members: { sort: { k: 'name', dir: 1 }, colFilters: {}, initial: 20, limit: 20 },
     leads: { sort: { k: 'inqDate', dir: -1 }, colFilters: {}, initial: 10, limit: 10 },
   } };
@@ -667,6 +848,7 @@
           ${card(callsThisMonth.length ? Math.round(100 * booked / callsThisMonth.length) + '%' : '—', 'Call → booking rate')}
           ${card(upcoming.length, 'Upcoming events')}
         </div>
+        ${trendPanel(cs.filter((c) => !isLead(c) && !isClub(c)))}
         <div class="two-col">
           <div class="panel"><h2>Upcoming events</h2>${upcoming.length ? `<ul>${upcoming.map((e) => `<li><strong>${fmtDate(e.date)}</strong> — ${esc(e.name)} ${pill(e.status)} <span class="pill">${e.registered || 0}/${e.capacity || '∞'}</span></li>`).join('')}</ul>` : '<p class="empty">No upcoming events. Add one under Events.</p>'}</div>
           <div class="panel"><h2>잔여 세션 0 — 재등록 대상 <span class="pill bad">${out.length}명</span></h2>${out.length ? `<ul>${out.map((c) => `<li><strong>${esc(labelOf('customers', c))}</strong> — ${esc(c.coach) || '—'} · ${esc(c.segmentLabel || c.segment || '')}${c.validUntil ? ` · 유효기간 ${fmtDate(c.validUntil)}` : ''}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}</li>`).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-out-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : '<p class="empty">잔여 세션이 0인 회원이 없습니다. (Sync 후 갱신됩니다)</p>'}</div>
@@ -798,6 +980,98 @@
         + table(cols, rows, (id) => openDialog('events', Store.get('events', id)), 'No events yet.');
     },
 
+    // The social plan: what goes out, when, and what is holding each piece up.
+    // The rules and templates live in marketing/social-media/; this tab is the
+    // status, so it travels with the rest of the app data.
+    social() {
+      const posts = Store.list('posts').slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      const t = today();
+      const weekOut = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+      const live = (p) => p.status !== 'posted' && p.status !== 'dropped';
+      const late = posts.filter((p) => live(p) && p.date && p.date < t);
+      const soon = posts.filter((p) => live(p) && p.date >= t && p.date <= weekOut);
+      const ready = posts.filter((p) => live(p) && (p.status === 'draft' || p.status === 'scheduled'));
+      const postedThisMonth = posts.filter((p) => p.status === 'posted' && (p.date || '').slice(0, 7) === t.slice(0, 7));
+
+      if (!posts.length) {
+        return head('Social', '<button class="primary" id="btn-new">+ Post</button>')
+          + '<div class="panel"><h2>소셜 플랜</h2>'
+          + '<p style="color:var(--muted);margin:0 0 12px">인스타그램 @glass_court와 네이버 블로그 계획을 여기서 관리합니다. 규칙과 템플릿은 <code>marketing/social-media/</code>에 있고, 이 탭은 <strong>무엇이 언제 나가는지, 지금 무엇이 막혀 있는지</strong>를 봅니다.</p>'
+          + '<button class="primary" id="btn-seed-social">4주 계획 불러오기 · ' + SOCIAL_PLAN.length + '건 (9/15 → 10/14)</button></div>';
+      }
+
+      // What is holding posts up, most-blocking first.
+      const blockers = new Map();
+      for (const p of posts.filter((x) => live(x) && x.blocker)) blockers.set(p.blocker, (blockers.get(p.blocker) || []).concat([p]));
+      const blocked = [...blockers.entries()].sort((a, b) => b[1].length - a[1].length);
+
+      // Planned share per pillar against the target mix.
+      const plannedTotal = posts.filter(live).length || 1;
+      const mix = PILLARS.map((p) => {
+        const n = posts.filter((x) => x.pillar === p.k && live(x)).length;
+        return Object.assign({}, p, { n, pct: Math.round((n / plannedTotal) * 100) });
+      });
+
+      const dday = (d) => {
+        if (!d) return '';
+        const days = Math.round((new Date(d) - new Date(t)) / 864e5);
+        return days === 0 ? '오늘' : days > 0 ? 'D-' + days : -days + '일 지남';
+      };
+      const mark = (p) => (live(p) && p.date && p.date < t ? ' style="border-left:3px solid var(--bad);padding-left:6px"' : '');
+      const sub = (s) => (s ? '<div class="sub">' + esc(s) + '</div>' : '');
+      const cols = [
+        { h: 'Date', f: (p) => '<strong' + mark(p) + '>' + fmtDate(p.date) + '</strong>' + sub(dday(p.date)) },
+        { h: 'Channel', f: (p) => esc(p.channel) || '—' },
+        { h: 'Pillar', f: (p) => '<span class="pill" style="background:' + pillarOf(p.pillar).color + ';color:#fff">' + esc(pillarOf(p.pillar).label) + '</span>' },
+        { h: 'Post', f: (p) => '<strong>' + esc(p.title) + '</strong>' + sub(p.titleEn) + sub(p.notes), wrap: true },
+        { h: 'Format', f: (p) => esc(p.format) || '—' },
+        { h: 'CTA', f: (p) => esc(p.cta) || '—' },
+        { h: '막는 것', f: (p) => (p.blocker && live(p) ? '<span class="blocker">' + esc(p.blocker) + '</span>' : '—') },
+        { h: 'Status', f: (p) => pill(p.status) },
+      ];
+
+      const card = (n, l) => '<div class="card"><div class="num">' + n + '</div><div class="label">' + l + '</div></div>';
+      const blockList = blocked.map(([b, list]) =>
+        '<li><strong>' + esc(b) + '</strong> — ' + list.length + '건: '
+        + list.map((p) => fmtDate(p.date) + ' ' + esc(p.title.slice(0, 20))).join(' · ') + '</li>').join('');
+      const legend = mix.map((p) =>
+        '<div><i style="background:' + p.color + '"></i><span><strong>' + esc(p.label) + '</strong> · ' + esc(p.job) + '</span>'
+        + '<span class="n">' + p.n + '건 · ' + p.pct + '% <span style="opacity:.6">(목표 ' + p.share + '%)</span></span></div>').join('');
+      const bars = mix.map((p) => '<span style="width:' + p.pct + '%;background:' + p.color + '" title="' + esc(p.label) + ' ' + p.pct + '%"></span>').join('');
+
+      return head('Social', '<button class="primary" id="btn-new">+ Post</button>')
+        + '<div class="cards">'
+        + card(late.length, '밀린 게시물') + card(soon.length, '이번 주 (7일)') + card(ready.length, '원고 · 예약 완료')
+        + card(postedThisMonth.length, t.slice(0, 7) + ' 게시 완료') + card(blocked.length, '막고 있는 결정')
+        + '</div>'
+        + (blocked.length
+          ? '<div class="panel" style="margin-bottom:16px"><h2>막고 있는 결정 ' + blocked.length + '가지</h2><ul>' + blockList + '</ul>'
+            + '<p style="color:var(--muted);font-size:12px;margin:10px 0 0">각 게시물의 "Blocked by" 칸에서 모은 것입니다. 결정이 나면 그 칸을 비우세요.</p></div>'
+          : '')
+        + table(cols, posts, (id) => openDialog('posts', Store.get('posts', id)), 'No posts yet.', { tbl: 'social' })
+        + '<div class="two-col" style="margin-top:16px">'
+        + '<div class="panel"><h2>주간 리듬</h2><div class="rhythm">'
+        + '<div><b>화</b><span>릴스 30–60초 — Science of Squash / 기본 전술 · 07:30–08:30 또는 20:30–21:30</span></div>'
+        + '<div><b>수</b><span>네이버 블로그 1,000–1,500자 · 07:00 발행</span></div>'
+        + '<div><b>목</b><span>스토리 1–2장 — 블로그 링크 아웃</span></div>'
+        + '<div><b>금</b><span>카드뉴스 5–7장 — 주니어 / 회원 이야기 / 시설</span></div>'
+        + '<div><b>일</b><span>세션 현장 스토리 3–5장 + 저녁 리캡 · 19:00–21:00</span></div>'
+        + '<div><b>월</b><span>20분 점검 — 지난주 숫자, 이번 주 촬영 목록, 동의서</span></div>'
+        + '</div><p style="color:var(--muted);font-size:12px;margin:12px 0 0">시간이 없는 주의 최소선: 화요일 릴스 + 일요일 세션 스토리. 일요일 세션 커버리지는 거르지 않습니다 — 전환이 일어나는 자리입니다.</p></div>'
+        + '<div class="panel"><h2>콘텐츠 믹스 <span class="muted-note">남은 ' + plannedTotal + '건 기준</span></h2>'
+        + '<div class="mix">' + bars + '</div><div class="mix-legend">' + legend + '</div></div>'
+        + '</div>'
+        + '<div class="two-col" style="margin-top:16px">'
+        + '<div class="panel"><h2>캡션 패턴</h2><pre class="caption-pattern">{한국어 헤드라인 — 인사이트, 25자 이하}\n\n{한국어 본문 3–6줄: 주장 → 근거 → 코트에서 할 것}\n\n{부드러운 CTA — 신청 / 저장 / 블로그 / 문의}\n\n—\n{영어 2–3문장 — 번역이 아니라 원문처럼}\n\nGlass Court Squash Academy at Wellperion · Coach 이상훈\n\n{해시태그 10–15개: 코어 + 필러 1세트}</pre>'
+        + '<p style="color:var(--muted);font-size:12px;margin:10px 0 0">한국어 먼저. 인사이트는 하나만. 숫자는 집계만 (미성년자 실명 금지). 가격은 쓰지 않습니다 — 가격은 웰페리온 데스크의 일입니다.</p></div>'
+        + '<div class="panel"><h2>해시태그</h2>'
+        + '<p style="margin:0 0 6px"><strong>코어 (매 게시물)</strong><br><span style="color:var(--muted);font-size:12.5px">#GlassCourt #GCSquash #GlassCourtSquashAcademy #웰페리온 #웰페리온스쿼시 #스쿼시 #squash #한남동스쿼시 #squashseoul #squashkorea</span></p>'
+        + '<p style="margin:10px 0 6px"><strong>필러 1세트만 추가</strong><br><span style="color:var(--muted);font-size:12.5px">Science → #ScienceOfSquash #스쿼시훈련 · 기본 전술 → #기본스쿼시전술 #squashtactics · 주니어 → #주니어스쿼시 #collegesquash · 세션 → #GlassCourtTrainingSessions #스쿼시대회</span></p>'
+        + '<p style="margin:10px 0 0;color:var(--bad);font-size:12.5px"><strong>절대 쓰지 않음</strong> — #헬스 #다이어트 #할인 #이벤트특가 #맞팔 #선팔</p>'
+        + '<p style="color:var(--muted);font-size:12px;margin:12px 0 0">전체 규칙: <code>platform-playbook.md</code> · 캡션 8종: <code>post-templates.md</code> · 제작: <code>instagram-reel-template.md</code>, <code>instagram-card-news-template.md</code></p></div>'
+        + '</div>';
+    },
+
     brand() {
       const b = Store.all().brand;
       const assets = Store.list('assets');
@@ -828,6 +1102,35 @@
     },
   };
 
+  // The 4-week calendar as written in marketing/social-media/content-calendar.md
+  // (2026-09-15 → 10-14). Loaded once from the empty Social tab; after that the
+  // app's copy is the working one — the file stays the source for the rules and
+  // the templates, not for the day-to-day status.
+  const SOCIAL_PLAN = [
+    { date: '2026-09-15', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: 'Training Sessions가 돌아옵니다 — #1 Drop That Shot', titleEn: 'Training Sessions are back', format: '릴스 30초', cta: '세션 신청 → 프로필 링크', blocker: '프로필 링크 (신청 폼)', notes: '세션 #1(9/20)이 지났으므로 #2 예고로 고쳐 쓰거나 현장 리캡으로 대체' },
+    { date: '2026-09-16', channel: 'Naver blog', pillar: 'science', status: 'draft', title: '드롭샷은 손목이 아니라 발이 먼저입니다', titleEn: 'Drop shots start with the feet, not the wrist', format: '1,200자 + 클립 2 + 다이어그램', cta: '세션에서 몸으로 확인', blocker: '드롭샷 클립 2개', notes: '본문·다이어그램 완성 (blog/2026-09-16-drop-shot-feet-first.md). 클립 ① 발이 먼저 들어가는 드롭 ② 손목만 쓴 드롭(틴)' },
+    { date: '2026-09-17', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: '세션 #1, 7장으로', titleEn: 'Session #1 in seven slides', format: '카드뉴스 7장', cta: '세션 신청', blocker: '', notes: 'instagram-card-news-template.md Example A' },
+    { date: '2026-09-18', channel: 'Instagram', pillar: 'facility', status: 'idea', title: '우리가 훈련하는 곳: 웰페리온 한남 글라스코트', titleEn: 'Where we train: the glass courts at Wellperion', format: '카드뉴스 6장', cta: '견학·체험 문의 → DM / 데스크', blocker: '', notes: 'post-templates.md #6 · 코트 수 확인 필요' },
+    { date: '2026-09-20', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: '세션 #1 현장 — Drop That Shot', titleEn: 'Session #1, live from the court', format: '스토리 5장 + 저녁 리캡', cta: '#2 대기 명단', blocker: '', notes: '세션을 진행했다면 촬영본으로 지금 리캡 게시 가능 — 전환이 일어나는 자리' },
+    { date: '2026-09-22', channel: 'Instagram', pillar: 'tactics', status: 'idea', title: '기본 전술 #1: 티(T)로 돌아가는 습관', titleEn: 'Basic tactics #1: get back to the T', format: '릴스 45초 (코트 위 화살표)', cta: '저장 → 블로그 시리즈', blocker: '', notes: '촬영만 하면 가장 빨리 나오는 콘텐츠' },
+    { date: '2026-09-23', channel: 'Naver blog', pillar: 'junior', status: 'draft', title: '미국 주니어 스쿼시 Part 1 — 랭킹과 대회 출전', titleEn: 'US junior squash, Part 1: rankings', format: '긴 글 + 카드 3장', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '카드 이미지 3장', notes: '본문 완성 · 사실 확인 완료. 인스타 카드뉴스도 같은 원고에서 나옵니다' },
+    { date: '2026-09-25', channel: 'Instagram', pillar: 'member', status: 'idea', title: '추석에도 코트에 서는 이유 — 정회원 이야기', titleEn: 'Why we still turn up over Chuseok', format: '단일 사진 + 3줄 인용', cta: '댓글 유도 (soft)', blocker: '서면 촬영 동의', notes: '이름은 이니셜 또는 성만' },
+    { date: '2026-09-29', channel: 'Instagram', pillar: 'science', status: 'idea', title: '뇌는 공보다 먼저 움직인다 — 의사결정 속도', titleEn: 'The brain moves before the ball', format: '릴스 60초 (슬로우 랠리)', cta: '전체 글 → 블로그', blocker: '', notes: 'How We Decide 시리즈와 이어짐' },
+    { date: '2026-09-30', channel: 'Naver blog', pillar: 'sessions', status: 'idea', title: '세션 #1 리뷰 & #2 프리뷰', titleEn: 'Session #1 review, what #2 trains', format: '리캡 + 배운 점 3가지', cta: '세션 #2 신청', blocker: '세션 #2 날짜·주제', notes: '' },
+    { date: '2026-10-02', channel: 'Instagram', pillar: 'junior', status: 'idea', title: '주니어 학부모가 가장 자주 묻는 5가지', titleEn: 'The 5 questions junior parents ask us most', format: '카드뉴스 7장 (진학 슬라이드)', cta: '학부모 설명회 신청', blocker: '학부모 설명회 날짜', notes: 'post-templates.md #4' },
+    { date: '2026-10-04', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: '세션 #2 현장', titleEn: 'Session #2 on court', format: '스토리 + 리캡', cta: '#3 대기 명단', blocker: '세션 #2 날짜·주제', notes: '' },
+    { date: '2026-10-06', channel: 'Instagram', pillar: 'tactics', status: 'idea', title: '기본 전술 #2: 크로스코트는 언제 치는가', titleEn: 'Basic tactics #2: when to go crosscourt', format: '릴스 45초', cta: '저장 → 시리즈', blocker: '', notes: '' },
+    { date: '2026-10-07', channel: 'Naver blog', pillar: 'junior', status: 'draft', title: '미국 주니어 스쿼시 Part 2 — 레이팅', titleEn: 'US junior squash, Part 2: ratings', format: '긴 글 + 캐러셀', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '', notes: '사실 확인 완료 — 보딩스쿨 문단만 추가하면 발행' },
+    { date: '2026-10-09', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: 'Tournament Series #2 — Save the date', titleEn: 'Tournament Series #2 is coming', format: '카드뉴스 4장', cta: '사전 등록 → 프로필 링크', blocker: 'Tournament Series #2 날짜·드로 규모', notes: '' },
+    { date: '2026-10-11', channel: 'Instagram', pillar: 'member', status: 'idea', title: '10월의 코트: 한 달의 순간들', titleEn: 'October on court', format: '카드뉴스 8장', cta: '체험 문의', blocker: '', notes: '세션 #1–#3 · 주니어 · 성인' },
+    { date: '2026-10-14', channel: 'Naver blog', pillar: 'science', status: 'idea', title: '부상 없이 오래 치는 법: 웜업에 15분을 쓰는 이유', titleEn: 'Why we spend 15 minutes on the warm-up', format: '긴 글 + 웜업 5동작', cta: '성인 프라이빗 레슨 상담', blocker: '', notes: '' },
+  ];
+
+  function seedSocialPlan() {
+    Store.batch(() => { for (const p of SOCIAL_PLAN) Store.upsert('posts', Object.assign({}, p)); });
+    render();
+  }
+
   // ---------- Render & wiring ----------
   const viewEl = $('#view');
   function render() {
@@ -842,7 +1145,9 @@
     });
 
     const newBtn = $('#btn-new');
-    if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', brand: 'assets' }[state.view]);
+    if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', brand: 'assets', social: 'posts' }[state.view]);
+    const seedBtn = $('#btn-seed-social');
+    if (seedBtn) seedBtn.onclick = () => seedSocialPlan();
     const newCall = $('#btn-new-call');
     if (newCall) newCall.onclick = () => openDialog('calls');
 
@@ -880,6 +1185,10 @@
         render();
       };
     });
+    viewEl.querySelectorAll('[data-trend]').forEach((el) => {
+      el.onclick = () => { state.trendMonths = el.dataset.trend === 'all' ? 'all' : +el.dataset.trend; render(); };
+    });
+    viewEl.querySelectorAll('figure.chart').forEach(wireChart);
     const outBtn = $('#btn-out-customers');
     if (outBtn) outBtn.onclick = () => { tbl('members').colFilters = { sessionsLeft: { min: '', max: '0' } }; tbl('members').sort = { k: 'sessionsLeft', dir: 1 }; state.view = 'customers'; location.hash = '#customers'; render(); };
     const clearBtn = $('#btn-clear-filters');
@@ -1095,9 +1404,10 @@
   async function mapAllSources() {
     const sources = (Store.settings().sheet.sources || []).slice();
     for (const src of sources) {
-      if (src.mapping && Object.keys(src.mapping).length) continue;
+      // Re-guess when the saved mapping cannot identify a person; Sync refuses such a source.
+      if (hasIdentity(src.mapping)) continue;
       try {
-        const { headers } = Sheets.toTable(await Sheets.fetchCSV(src.url, src.token));
+        const { headers } = Sheets.toTable(await Sheets.fetchCSV(src.url, tokenFor(src.url, src.token)));
         src.mapping = Sheets.guessMapping(headers);
         if (src.kind === 'leads' || src.kind === 'clubdb') delete src.mapping.segment;
         if (src.kind === 'clubdb') delete src.mapping.coach;

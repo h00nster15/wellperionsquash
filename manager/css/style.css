@@ -63,6 +63,33 @@ button.danger { background: #fff; color: var(--bad); border: 1px solid var(--bad
 .panel ul { margin: 0; padding-left: 18px; }
 .panel li { margin: 4px 0; }
 
+/* Member trend charts (Dashboard) — inline SVG, no library. Series colours are validated
+   against the white panel; text always wears the ink/muted tokens, never the series hue. */
+.chart-panel { margin-bottom: 16px; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.chart-head h2 { margin: 0; }
+.muted-note { font-weight: 400; font-size: 13px; color: var(--muted); }
+.chart-title { font-size: 13px; font-weight: 600; margin: 16px 0 2px; }
+.chart-title span { font-weight: 400; color: var(--muted); }
+.chart { position: relative; margin: 0; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .tick { font-size: 12px; fill: var(--muted); }
+.chart .end-label { font-size: 13px; font-weight: 700; fill: var(--ink); }
+.chart .crosshair { stroke: var(--muted); stroke-width: 1; opacity: .45; }
+.chart .hit { cursor: crosshair; outline: none; }
+.chart-tip {
+  position: absolute; z-index: 2; pointer-events: none; display: flex; gap: 6px; align-items: baseline;
+  padding: 4px 8px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 12px; white-space: nowrap;
+}
+.chart-tip[hidden] { display: none; } /* [hidden] loses to display:flex without this */
+.chart-tip strong { font-size: 14px; }
+.chart-tip span { opacity: .75; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+.chart-table { margin-top: 8px; }
+.chart-table summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.chart-table .table-wrap { margin-top: 8px; max-height: 320px; overflow: auto; }
+
 .table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -117,6 +144,24 @@ tr.filters .range input { min-width: 56px; width: 50%; }
 tr.filters .range:has(input[type="date"]) { flex-direction: column; }
 tr.filters input[type="date"] { min-width: 0; width: 100%; padding: 2px 4px; }
 .empty { padding: 30px; text-align: center; color: var(--muted); }
+
+/* --- Social plan --- */
+.table-wrap[data-tbl="social"] td { vertical-align: top; }
+.table-wrap[data-tbl="social"] td.wrap { white-space: normal; min-width: 240px; max-width: 420px; }
+.table-wrap[data-tbl="social"] .sub { font-size: 11px; color: var(--muted); white-space: normal; margin-top: 2px; line-height: 1.35; }
+.table-wrap[data-tbl="social"] .blocker { color: var(--bad); font-size: 12px; white-space: normal; }
+.table-wrap[data-tbl="social"] .pill { white-space: nowrap; }
+.mix { display: flex; height: 10px; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+.mix span { display: block; }
+.mix-legend { display: grid; gap: 7px; margin-top: 12px; font-size: 13px; }
+.mix-legend div { display: flex; align-items: baseline; gap: 8px; }
+.mix-legend i { width: 9px; height: 9px; border-radius: 3px; flex: none; transform: translateY(1px); }
+.mix-legend .n { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.rhythm { display: grid; gap: 6px; }
+.rhythm div { display: flex; gap: 10px; align-items: baseline; }
+.rhythm b { min-width: 30px; color: var(--primary); }
+.rhythm span { color: var(--muted); font-size: 12.5px; }
+.caption-pattern { margin: 0; background: #f6f7f8; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; line-height: 1.7; white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; overflow-x: auto; }
 
 .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eef1f4; color: var(--ink); }
 .pill.ok { background: #dcfce7; color: var(--ok); }
