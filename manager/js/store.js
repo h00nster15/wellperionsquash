@@ -2,7 +2,7 @@
 // export/import is a single JSON blob.
 const Store = (() => {
   const KEY = 'wellperion-squash.v1';
-  const COLLECTIONS = ['customers', 'campaigns', 'calls', 'events', 'assets', 'posts'];
+  const COLLECTIONS = ['customers', 'campaigns', 'calls', 'events', 'assets', 'posts', 'kpi'];
 
   const empty = () => ({
     version: 1,
@@ -12,6 +12,7 @@ const Store = (() => {
     events: [],
     assets: [],
     posts: [], // the social plan (Social tab)
+    kpi: [],   // one row per month: followers, reach, saves, bookings (Social tab)
     brand: {
       tagline: '',
       colors: [

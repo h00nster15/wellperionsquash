@@ -13,22 +13,26 @@
   const EVENT_TYPES = ['league', 'tournament', 'open-day', 'social', 'corporate', 'coaching-clinic'];
   const EVENT_STATUS = ['idea', 'planned', 'open', 'full', 'done', 'cancelled'];
   const ASSET_TYPES = ['logo', 'font', 'template', 'photo', 'video', 'document', 'other'];
-  // Social plan (Social tab). Pillars and their target share come from
-  // marketing/social-media/content-calendar.md, the wording rules from
-  // platform-playbook.md. Social speaks as "Glass Court Squash Academy at
-  // Wellperion"; the operational side (SMS, calls) stays 웰페리온 스쿼시.
+  // Social plan (Social tab). Two accounts, two scopes (owner's rule, 2026-09-25):
+  //   @glass_court + 네이버 블로그 — everything.
+  //   @wellperion_squash — US squash, and events held at Wellperion. Nothing else.
+  // A row with 웰페리온 교차 게시 ticked goes to both; the tab counts them.
+  // Training Sessions and the Tournament Series were cancelled (2026-09-25); the
+  // only event on the books is 웰림픽 스쿼시컵 in November.
   const POST_STATUS = ['idea', 'draft', 'scheduled', 'posted', 'dropped'];
-  const POST_CHANNELS = ['Instagram', 'Naver blog', 'YouTube Shorts'];
+  const POST_CHANNELS = ['Instagram @glass_court', 'Instagram @wellperion_squash', 'Naver blog', 'YouTube Shorts'];
   const PILLARS = [
-    { k: 'science', label: 'Science of Squash', share: 25, color: '#1f2a6b', job: '근거로 설명하는 프로 — 권위' },
+    { k: 'science', label: 'Science of Squash', share: 30, color: '#1f2a6b', job: '근거로 설명하는 프로 — 권위' },
+    { k: 'junior', label: '주니어 · 미국 진학', share: 25, color: '#7fa8d9', job: 'WSC 학부모 · 미국 스쿼시 — 성장 (웰페리온 계정 교차)' },
     { k: 'tactics', label: '기본 전술', share: 20, color: '#3f57a8', job: '저장되는 짧은 릴스 — 도달' },
-    { k: 'junior', label: '주니어 프로그램', share: 20, color: '#7fa8d9', job: 'WSC 학부모 · 미국 진학 — 성장' },
-    { k: 'sessions', label: '세션 · 토너먼트', share: 20, color: '#a9c6e8', job: '신청으로 이어지는 자리 — 전환' },
+    { k: 'event', label: '웰페리온 행사', share: 10, color: '#a9c6e8', job: '웰림픽 스쿼시컵 (11월) — 전환 (웰페리온 계정 교차)' },
     { k: 'member', label: '회원 이야기', share: 10, color: '#c8102e', job: '재등록의 이유 — 신뢰 (서면 동의)' },
     { k: 'facility', label: '웰페리온 시설', share: 5, color: '#8c94a3', job: '한남동 2,900평 — 신뢰도' },
   ];
   const PILLAR_KEYS = PILLARS.map((p) => p.k);
   const pillarOf = (k) => PILLARS.find((p) => p.k === k) || { label: k || '—', color: '#8c94a3', job: '' };
+  /** Only these belong on @wellperion_squash: US squash, and events at Wellperion. */
+  const WELLPERION_OK = new Set(['junior', 'event']);
 
   const schemas = {
     customers: {
@@ -105,6 +109,20 @@
         { k: 'notes', label: 'Notes / checklist', type: 'textarea', full: true },
       ],
     },
+    kpi: {
+      title: '월간 지표',
+      fields: [
+        { k: 'month', label: 'Month (YYYY-MM)', required: true, def: () => today().slice(0, 7), placeholder: '2026-09' },
+        { k: 'igFollowers', label: '인스타 팔로워', type: 'number' },
+        { k: 'igReach', label: '인스타 도달 (30일)', type: 'number' },
+        { k: 'igSaves', label: '저장 수', type: 'number' },
+        { k: 'igProfile', label: '프로필 조회', type: 'number' },
+        { k: 'igDms', label: 'DM · 문의', type: 'number' },
+        { k: 'blogVisits', label: '블로그 방문 (30일) — 네이버는 API가 없어 직접 입력', type: 'number' },
+        { k: 'bookings', label: '세션 · 체험 예약 (인스타/블로그發)', type: 'number' },
+        { k: 'notes', label: 'Notes', type: 'textarea', full: true },
+      ],
+    },
     posts: {
       title: 'Post',
       fields: [
@@ -116,6 +134,7 @@
         { k: 'titleEn', label: 'Title EN', full: true },
         { k: 'format', label: 'Format (릴스 30초 / 카드뉴스 7장 …)', full: true },
         { k: 'cta', label: 'CTA (가격은 쓰지 않습니다)' },
+        { k: 'wellperion', label: '@wellperion_squash 에도 게시 (미국 스쿼시 · 웰페리온 행사만)', type: 'checkbox', full: true },
         { k: 'blocker', label: 'Blocked by (없으면 비워 둠)', placeholder: '세션 #2 날짜' },
         { k: 'notes', label: 'Notes — 원고 · 촬영 · 디자인 상태', type: 'textarea', full: true },
       ],
@@ -988,6 +1007,7 @@
       const t = today();
       const weekOut = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
       const live = (p) => p.status !== 'posted' && p.status !== 'dropped';
+      const crossPosts = posts.filter((p) => live(p) && (p.wellperion || /wellperion/i.test(p.channel || '')));
       const late = posts.filter((p) => live(p) && p.date && p.date < t);
       const soon = posts.filter((p) => live(p) && p.date >= t && p.date <= weekOut);
       const ready = posts.filter((p) => live(p) && (p.status === 'draft' || p.status === 'scheduled'));
@@ -997,7 +1017,7 @@
         return head('Social', '<button class="primary" id="btn-new">+ Post</button>')
           + '<div class="panel"><h2>소셜 플랜</h2>'
           + '<p style="color:var(--muted);margin:0 0 12px">인스타그램 @glass_court와 네이버 블로그 계획을 여기서 관리합니다. 규칙과 템플릿은 <code>marketing/social-media/</code>에 있고, 이 탭은 <strong>무엇이 언제 나가는지, 지금 무엇이 막혀 있는지</strong>를 봅니다.</p>'
-          + '<button class="primary" id="btn-seed-social">4주 계획 불러오기 · ' + SOCIAL_PLAN.length + '건 (9/15 → 10/14)</button></div>';
+          + '<button class="primary" id="btn-seed-social">10월 계획 불러오기 · ' + SOCIAL_PLAN.length + '건 (10/1 → 10/31)</button></div>';
       }
 
       // What is holding posts up, most-blocking first.
@@ -1021,7 +1041,9 @@
       const sub = (s) => (s ? '<div class="sub">' + esc(s) + '</div>' : '');
       const cols = [
         { h: 'Date', f: (p) => '<strong' + mark(p) + '>' + fmtDate(p.date) + '</strong>' + sub(dday(p.date)) },
-        { h: 'Channel', f: (p) => esc(p.channel) || '—' },
+        { h: 'Channel', f: (p) => (esc(p.channel) || '—')
+          + (p.wellperion && !/wellperion/i.test(p.channel || '') ? '<div class="sub">+ @wellperion_squash</div>' : '')
+          + (p.wellperion && !WELLPERION_OK.has(p.pillar) ? '<div class="blocker">미국 스쿼시 · 웰페리온 행사만 교차 게시</div>' : '') },
         { h: 'Pillar', f: (p) => '<span class="pill" style="background:' + pillarOf(p.pillar).color + ';color:#fff">' + esc(pillarOf(p.pillar).label) + '</span>' },
         { h: 'Post', f: (p) => '<strong>' + esc(p.title) + '</strong>' + sub(p.titleEn) + sub(p.notes), wrap: true },
         { h: 'Format', f: (p) => esc(p.format) || '—' },
@@ -1039,11 +1061,13 @@
         + '<span class="n">' + p.n + '건 · ' + p.pct + '% <span style="opacity:.6">(목표 ' + p.share + '%)</span></span></div>').join('');
       const bars = mix.map((p) => '<span style="width:' + p.pct + '%;background:' + p.color + '" title="' + esc(p.label) + ' ' + p.pct + '%"></span>').join('');
 
-      return head('Social', '<button class="primary" id="btn-new">+ Post</button>')
+      const hasOctober = posts.some((p) => (p.date || '') >= '2026-10-01');
+      return head('Social', (hasOctober ? '' : '<button class="ghost" id="btn-seed-social">10월 계획 불러오기</button> ') + '<button class="primary" id="btn-new">+ Post</button>')
         + '<div class="cards">'
         + card(late.length, '밀린 게시물') + card(soon.length, '이번 주 (7일)') + card(ready.length, '원고 · 예약 완료')
-        + card(postedThisMonth.length, t.slice(0, 7) + ' 게시 완료') + card(blocked.length, '막고 있는 결정')
+        + card(postedThisMonth.length, t.slice(0, 7) + ' 게시 완료') + card(crossPosts.length, '@wellperion_squash')
         + '</div>'
+        + '<p style="color:var(--muted);font-size:12px;margin:-4px 0 14px">@glass_court와 블로그는 모든 내용, <strong>@wellperion_squash는 미국 스쿼시와 웰페리온에서 열리는 행사만</strong>. 교차 게시할 글은 게시물의 체크박스로 표시합니다.</p>'
         + (blocked.length
           ? '<div class="panel" style="margin-bottom:16px"><h2>막고 있는 결정 ' + blocked.length + '가지</h2><ul>' + blockList + '</ul>'
             + '<p style="color:var(--muted);font-size:12px;margin:10px 0 0">각 게시물의 "Blocked by" 칸에서 모은 것입니다. 결정이 나면 그 칸을 비우세요.</p></div>'
@@ -1069,7 +1093,8 @@
         + '<p style="margin:10px 0 6px"><strong>필러 1세트만 추가</strong><br><span style="color:var(--muted);font-size:12.5px">Science → #ScienceOfSquash #스쿼시훈련 · 기본 전술 → #기본스쿼시전술 #squashtactics · 주니어 → #주니어스쿼시 #collegesquash · 세션 → #GlassCourtTrainingSessions #스쿼시대회</span></p>'
         + '<p style="margin:10px 0 0;color:var(--bad);font-size:12.5px"><strong>절대 쓰지 않음</strong> — #헬스 #다이어트 #할인 #이벤트특가 #맞팔 #선팔</p>'
         + '<p style="color:var(--muted);font-size:12px;margin:12px 0 0">전체 규칙: <code>platform-playbook.md</code> · 캡션 8종: <code>post-templates.md</code> · 제작: <code>instagram-reel-template.md</code>, <code>instagram-card-news-template.md</code></p></div>'
-        + '</div>';
+        + '</div>'
+        + socialMetricsHtml();
     },
 
     brand() {
@@ -1102,33 +1127,199 @@
     },
   };
 
-  // The 4-week calendar as written in marketing/social-media/content-calendar.md
-  // (2026-09-15 → 10-14). Loaded once from the empty Social tab; after that the
-  // app's copy is the working one — the file stays the source for the rules and
-  // the templates, not for the day-to-day status.
+  // October 2026, written after the September calendar ran to zero posts in two
+  // weeks: two pieces a week, and the first three weeks spend what is already
+  // written (the drop-shot post, US junior Parts 1 and 2, the seven rendered
+  // How We Decide cards), so the work is filming and rendering, not writing. One
+  // shoot feeds that week's Reel and that week's blog post. No events in October —
+  // Training Sessions and the Tournament Series were cancelled; 웰림픽 스쿼시컵 runs
+  // in November, so its announcement sits in late October.
   const SOCIAL_PLAN = [
-    { date: '2026-09-15', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: 'Training Sessions가 돌아옵니다 — #1 Drop That Shot', titleEn: 'Training Sessions are back', format: '릴스 30초', cta: '세션 신청 → 프로필 링크', blocker: '프로필 링크 (신청 폼)', notes: '세션 #1(9/20)이 지났으므로 #2 예고로 고쳐 쓰거나 현장 리캡으로 대체' },
-    { date: '2026-09-16', channel: 'Naver blog', pillar: 'science', status: 'draft', title: '드롭샷은 손목이 아니라 발이 먼저입니다', titleEn: 'Drop shots start with the feet, not the wrist', format: '1,200자 + 클립 2 + 다이어그램', cta: '세션에서 몸으로 확인', blocker: '드롭샷 클립 2개', notes: '본문·다이어그램 완성 (blog/2026-09-16-drop-shot-feet-first.md). 클립 ① 발이 먼저 들어가는 드롭 ② 손목만 쓴 드롭(틴)' },
-    { date: '2026-09-17', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: '세션 #1, 7장으로', titleEn: 'Session #1 in seven slides', format: '카드뉴스 7장', cta: '세션 신청', blocker: '', notes: 'instagram-card-news-template.md Example A' },
-    { date: '2026-09-18', channel: 'Instagram', pillar: 'facility', status: 'idea', title: '우리가 훈련하는 곳: 웰페리온 한남 글라스코트', titleEn: 'Where we train: the glass courts at Wellperion', format: '카드뉴스 6장', cta: '견학·체험 문의 → DM / 데스크', blocker: '', notes: 'post-templates.md #6 · 코트 수 확인 필요' },
-    { date: '2026-09-20', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: '세션 #1 현장 — Drop That Shot', titleEn: 'Session #1, live from the court', format: '스토리 5장 + 저녁 리캡', cta: '#2 대기 명단', blocker: '', notes: '세션을 진행했다면 촬영본으로 지금 리캡 게시 가능 — 전환이 일어나는 자리' },
-    { date: '2026-09-22', channel: 'Instagram', pillar: 'tactics', status: 'idea', title: '기본 전술 #1: 티(T)로 돌아가는 습관', titleEn: 'Basic tactics #1: get back to the T', format: '릴스 45초 (코트 위 화살표)', cta: '저장 → 블로그 시리즈', blocker: '', notes: '촬영만 하면 가장 빨리 나오는 콘텐츠' },
-    { date: '2026-09-23', channel: 'Naver blog', pillar: 'junior', status: 'draft', title: '미국 주니어 스쿼시 Part 1 — 랭킹과 대회 출전', titleEn: 'US junior squash, Part 1: rankings', format: '긴 글 + 카드 3장', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '카드 이미지 3장', notes: '본문 완성 · 사실 확인 완료. 인스타 카드뉴스도 같은 원고에서 나옵니다' },
-    { date: '2026-09-25', channel: 'Instagram', pillar: 'member', status: 'idea', title: '추석에도 코트에 서는 이유 — 정회원 이야기', titleEn: 'Why we still turn up over Chuseok', format: '단일 사진 + 3줄 인용', cta: '댓글 유도 (soft)', blocker: '서면 촬영 동의', notes: '이름은 이니셜 또는 성만' },
-    { date: '2026-09-29', channel: 'Instagram', pillar: 'science', status: 'idea', title: '뇌는 공보다 먼저 움직인다 — 의사결정 속도', titleEn: 'The brain moves before the ball', format: '릴스 60초 (슬로우 랠리)', cta: '전체 글 → 블로그', blocker: '', notes: 'How We Decide 시리즈와 이어짐' },
-    { date: '2026-09-30', channel: 'Naver blog', pillar: 'sessions', status: 'idea', title: '세션 #1 리뷰 & #2 프리뷰', titleEn: 'Session #1 review, what #2 trains', format: '리캡 + 배운 점 3가지', cta: '세션 #2 신청', blocker: '세션 #2 날짜·주제', notes: '' },
-    { date: '2026-10-02', channel: 'Instagram', pillar: 'junior', status: 'idea', title: '주니어 학부모가 가장 자주 묻는 5가지', titleEn: 'The 5 questions junior parents ask us most', format: '카드뉴스 7장 (진학 슬라이드)', cta: '학부모 설명회 신청', blocker: '학부모 설명회 날짜', notes: 'post-templates.md #4' },
-    { date: '2026-10-04', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: '세션 #2 현장', titleEn: 'Session #2 on court', format: '스토리 + 리캡', cta: '#3 대기 명단', blocker: '세션 #2 날짜·주제', notes: '' },
-    { date: '2026-10-06', channel: 'Instagram', pillar: 'tactics', status: 'idea', title: '기본 전술 #2: 크로스코트는 언제 치는가', titleEn: 'Basic tactics #2: when to go crosscourt', format: '릴스 45초', cta: '저장 → 시리즈', blocker: '', notes: '' },
-    { date: '2026-10-07', channel: 'Naver blog', pillar: 'junior', status: 'draft', title: '미국 주니어 스쿼시 Part 2 — 레이팅', titleEn: 'US junior squash, Part 2: ratings', format: '긴 글 + 캐러셀', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '', notes: '사실 확인 완료 — 보딩스쿨 문단만 추가하면 발행' },
-    { date: '2026-10-09', channel: 'Instagram', pillar: 'sessions', status: 'idea', title: 'Tournament Series #2 — Save the date', titleEn: 'Tournament Series #2 is coming', format: '카드뉴스 4장', cta: '사전 등록 → 프로필 링크', blocker: 'Tournament Series #2 날짜·드로 규모', notes: '' },
-    { date: '2026-10-11', channel: 'Instagram', pillar: 'member', status: 'idea', title: '10월의 코트: 한 달의 순간들', titleEn: 'October on court', format: '카드뉴스 8장', cta: '체험 문의', blocker: '', notes: '세션 #1–#3 · 주니어 · 성인' },
-    { date: '2026-10-14', channel: 'Naver blog', pillar: 'science', status: 'idea', title: '부상 없이 오래 치는 법: 웜업에 15분을 쓰는 이유', titleEn: 'Why we spend 15 minutes on the warm-up', format: '긴 글 + 웜업 5동작', cta: '성인 프라이빗 레슨 상담', blocker: '', notes: '' },
+    { date: '2026-10-01', channel: 'Instagram @glass_court', pillar: 'science', status: 'idea', wellperion: false, title: '드롭샷은 손목이 아니라 발이 먼저', titleEn: 'Drop shots start with the feet', format: '릴스 40초 — 블로그와 같은 촬영본', cta: '전체 글 → 블로그', blocker: '드롭샷 클립 2개', notes: '아시안게임 주간 직후 첫 게시물. 촬영 ① 발이 먼저 들어가는 드롭 ② 손목만 쓴 드롭이 틴에 걸리는 것' },
+    { date: '2026-10-02', channel: 'Naver blog', pillar: 'science', status: 'draft', wellperion: false, title: '드롭샷은 손목이 아니라 발이 먼저입니다', titleEn: 'Drop shots start with the feet, not the wrist', format: '1,200자 + 클립 2 + 다이어그램', cta: '레슨 상담 → 데스크', blocker: '드롭샷 클립 2개', notes: '본문·다이어그램 완성 (blog/2026-09-16-drop-shot-feet-first.md). 클립만 붙이면 발행' },
+    { date: '2026-10-06', channel: 'Instagram @glass_court', pillar: 'junior', status: 'idea', wellperion: true, title: '미국 주니어 스쿼시, 랭킹은 이렇게 매겨집니다', titleEn: 'How US junior squash rankings actually work', format: '카드뉴스 3장 — 블로그 Part 1에서 추출', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '카드 이미지 3장', notes: '웰페리온 계정에도 (미국 스쿼시). 카드는 렌더만 하면 됨' },
+    { date: '2026-10-07', channel: 'Naver blog', pillar: 'junior', status: 'draft', wellperion: false, title: '미국 주니어 스쿼시 Part 1 — 랭킹과 대회 출전', titleEn: 'US junior squash, Part 1: rankings', format: '긴 글 + 카드 3장', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '', notes: '본문 완성 · 사실 확인 완료. 카드가 늦으면 글만 먼저 발행 가능' },
+    { date: '2026-10-13', channel: 'Instagram @glass_court', pillar: 'junior', status: 'idea', wellperion: true, title: '랭킹보다 레이팅 — 미국 대학 코치가 보는 숫자', titleEn: 'Coaches read the rating, not the ranking', format: '카드뉴스 4장 — 블로그 Part 2에서 추출', cta: '진학 상담', blocker: '', notes: '웰페리온 계정에도 (미국 스쿼시)' },
+    { date: '2026-10-14', channel: 'Naver blog', pillar: 'junior', status: 'draft', wellperion: false, title: '미국 주니어 스쿼시 Part 2 — 레이팅', titleEn: 'US junior squash, Part 2: ratings', format: '긴 글 + 캐러셀', cta: '진학 1:1 상담', blocker: '', notes: '사실 확인 완료 — 보딩스쿨 문단만 추가하면 발행' },
+    { date: '2026-10-20', channel: 'Instagram @glass_court', pillar: 'tactics', status: 'idea', wellperion: false, title: '기본 전술 #1: 티(T)로 돌아가는 습관', titleEn: 'Basic tactics #1: get back to the T', format: '릴스 45초 (코트 위 화살표)', cta: '저장 → 다음 연습에서 확인', blocker: '', notes: '아시안게임에서 본 랠리를 동호인 언어로. 촬영만 하면 나옴' },
+    { date: '2026-10-21', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '부상 없이 오래 치는 법: 웜업에 15분을 쓰는 이유', titleEn: 'Why we spend 15 minutes on the warm-up', format: '긴 글 + 웜업 5동작 (사진 각 1장)', cta: '성인 프라이빗 레슨 상담', blocker: '', notes: '웜업 5동작 사진은 레슨 날 한 번에' },
+    { date: '2026-10-24', channel: 'Instagram @wellperion_squash', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 — 11월 개최', titleEn: 'Wellympic Squash Cup, this November', format: '카드뉴스 4장 (일정 · 대상 · 방식 · 신청)', cta: '참가 신청 → 데스크 / 프로필 링크', blocker: '웰림픽 날짜 · 참가 방식', notes: '양 계정 (웰페리온에서 열리는 행사). 날짜가 정해지면 11월 계획을 이 대회 중심으로 짭니다' },
+    { date: '2026-10-27', channel: 'Instagram @glass_court', pillar: 'science', status: 'idea', wellperion: false, title: '뇌는 공보다 먼저 움직인다 — 의사결정 속도', titleEn: 'The brain moves before the ball', format: '카드뉴스 7장 — 이미 렌더된 How We Decide 카드', cta: '전체 시리즈 → 블로그', blocker: '', notes: 'blog/cards/how-we-decide-01~07.png 그대로 사용. 제작 시간 0' },
+    { date: '2026-10-28', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '《How We Decide》 총정리 — 코트 위의 의사결정', titleEn: 'How We Decide: the court version', format: '긴 글 (시리즈 5부)', cta: '레슨 상담', blocker: 'Part 3 링크', notes: '초안 있음 (blog/how-we-decide-part5-summary.md)' },
+    { date: '2026-10-31', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '10월의 코트: 한 달의 순간들', titleEn: 'October on court', format: '카드뉴스 6장', cta: '체험 문의', blocker: '', notes: '10월 촬영본 정리. 주니어 얼굴은 서면 동의된 경우만' },
   ];
 
+  /** Load the October plan: close what September never posted, add what is missing. */
   function seedSocialPlan() {
-    Store.batch(() => { for (const p of SOCIAL_PLAN) Store.upsert('posts', Object.assign({}, p)); });
+    const have = new Set(Store.list('posts').map((p) => p.date + '|' + p.title));
+    let added = 0, closed = 0;
+    Store.batch(() => {
+      for (const p of Store.list('posts')) {
+        if (p.date < '2026-10-01' && p.status !== 'posted' && p.status !== 'dropped') {
+          Store.upsert('posts', Object.assign({}, p, { status: 'dropped', notes: (p.notes ? p.notes + ' · ' : '') + '9월 계획 종료 (2026-09-25)' }));
+          closed++;
+        }
+      }
+      for (const p of SOCIAL_PLAN) {
+        if (have.has(p.date + '|' + p.title)) continue;
+        Store.upsert('posts', Object.assign({}, p));
+        added++;
+      }
+    });
     render();
+    if (closed) alert(`10월 계획 ${added}건을 불러왔습니다.\n9월 계획 중 발행되지 않은 ${closed}건은 dropped로 닫았습니다 (기록은 남습니다).`);
+  }
+
+
+  // ---------- Social: numbers that fill themselves in ----------
+  // Naver has no API for blog visitors (the old unofficial endpoint answers 204 since
+  // 2026), so those are typed in monthly. Everything else comes from apps-script/Social.gs:
+  // the blog's RSS says which posts are really published, the Naver search API says where
+  // they rank, and Instagram insights (professional account only) give reach and saves.
+  const scriptSource = () => (Store.settings().sheet.sources || []).find((x) => /script\.google\.com/.test(x.url || ''));
+  async function socialCall(action, params) {
+    const src = scriptSource();
+    if (!src) throw new Error('Google Sheet 소스가 없습니다 (Members → Google Sheet).');
+    const u = new URL(src.url);
+    u.search = '';
+    u.searchParams.set('action', action);
+    u.searchParams.set('token', tokenFor(src.url, src.token));
+    for (const [k, v] of Object.entries(params || {})) u.searchParams.set(k, v);
+    const res = await fetch(u.toString(), { redirect: 'follow' });
+    const j = await res.json();
+    if (j.ok === false) throw new Error(j.error || 'unknown error');
+    return j;
+  }
+
+  /** Mark blog rows posted when the post actually shows up in the blog's RSS feed. */
+  async function checkBlogPosts(btn) {
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = '블로그 확인 중…';
+    try {
+      const feed = await socialCall('blog-rss');
+      const items = feed.items || [];
+      const norm = (s) => String(s || '').replace(/[\s·—–\-:,.!?()[\]"']/g, '').toLowerCase();
+      const matched = [];
+      Store.batch(() => {
+        for (const p of Store.list('posts')) {
+          if (p.channel !== 'Naver blog' || p.status === 'posted' || p.status === 'dropped') continue;
+          const key = norm(p.title).slice(0, 12);
+          const hit = items.find((it) => key && norm(it.title).includes(key))
+            || items.find((it) => it.date === p.date);
+          if (!hit) continue;
+          Store.upsert('posts', Object.assign({}, p, { status: 'posted', postedAt: hit.date, url: hit.link }));
+          matched.push(`${hit.date} ${p.title}`);
+        }
+      });
+      state.blogFeed = { at: new Date().toISOString(), count: items.length, newest: items[0] ? items[0].date : '' };
+      render();
+      alert(matched.length
+        ? `블로그 ${feed.blog}: 발행 확인 ${matched.length}건\n\n` + matched.join('\n')
+        : `블로그 ${feed.blog}: RSS ${items.length}건, 새로 발행된 계획 글은 없습니다.` + (items[0] ? `\n가장 최근 글: ${items[0].date} ${items[0].title}` : ''));
+    } catch (err) {
+      alert('블로그 발행 확인 실패: ' + err.message + '\n\napps-script/Social.gs를 배포하고 Script property BLOG_ID를 설정했는지 확인하세요.');
+    }
+    btn.disabled = false; btn.textContent = label;
+  }
+
+  /** Instagram numbers + keyword ranks, as collected by the Apps Script triggers. */
+  async function loadSocialStats(btn) {
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = '불러오는 중…';
+    try {
+      state.socialStats = await socialCall('social-stats');
+      state.socialStats.at = new Date().toISOString();
+      render();
+    } catch (err) {
+      alert('지표를 불러오지 못했습니다: ' + err.message + '\n\n아직 설정 전이라면 apps-script/README.md → "노출 지표"를 보세요.');
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+
+  /** The bottom half of the Social tab: what the numbers say, and the monthly log. */
+  function socialMetricsHtml() {
+    const s = state.socialStats;
+    const stats = (s && s.stats) || [];
+    const media = (s && s.media) || [];
+    const ranks = (s && s.ranks) || [];
+    const last = stats[stats.length - 1];
+    const num = (v) => (v === '' || v == null ? '—' : Number(v).toLocaleString('ko-KR'));
+
+    // Keyword ranks: the newest check per keyword.
+    const latestRank = new Map();
+    for (const r of ranks) latestRank.set(r['키워드'], r);
+    const rankRows = [...latestRank.values()].sort((a, b) => (Number(a['순위']) || 99) - (Number(b['순위']) || 99));
+
+    const kpis = Store.list('kpi').slice().sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+    const kpiCols = [
+      { h: '월', f: (r) => `<strong>${esc(r.month)}</strong>` },
+      { h: '팔로워', f: (r) => num(r.igFollowers) },
+      { h: '도달 30일', f: (r) => num(r.igReach) },
+      { h: '저장', f: (r) => num(r.igSaves) },
+      { h: '프로필 조회', f: (r) => num(r.igProfile) },
+      { h: 'DM · 문의', f: (r) => num(r.igDms) },
+      { h: '블로그 방문', f: (r) => num(r.blogVisits) },
+      { h: '예약', f: (r) => num(r.bookings) },
+      { h: 'Notes', f: (r) => esc(r.notes || ''), wrap: true },
+    ];
+
+    const noRow = () => {}; // these tables are read-only
+    const mediaRows = media.slice(0, 8).map((m, i) => Object.assign({ id: 'm' + i }, m));
+    const mediaCols = [
+      { h: '게시일', f: (m) => esc(m['게시일']) },
+      { h: '형식', f: (m) => esc(m['형식']) },
+      { h: '첫 줄', f: (m) => `<a href="${esc(m['링크'])}" target="_blank" rel="noopener">${esc(m['첫 줄'])}</a>`, wrap: true },
+      { h: '도달', f: (m) => num(m['reach']) },
+      { h: '저장', f: (m) => num(m['saved']) },
+      { h: '공유', f: (m) => num(m['shares']) },
+      { h: '좋아요', f: (m) => num(m['likes']) },
+    ];
+    const rankCols = [
+      { h: '키워드', f: (r) => `<strong>${esc(r['키워드'])}</strong>` },
+      { h: '순위', f: (r) => (Number(r['순위']) ? `<span class="pill ${Number(r['순위']) <= 10 ? 'ok' : 'warn'}">${esc(r['순위'])}위</span>` : '<span class="pill">30위 밖</span>') },
+      { h: '확인일', f: (r) => esc(r['날짜']) },
+      { h: '전체 검색결과', f: (r) => num(r['전체 검색결과']) },
+      { h: '링크', f: (r) => (r['링크'] ? `<a href="${esc(r['링크'])}" target="_blank" rel="noopener">글 보기</a>` : '—') },
+    ];
+
+    let metrics = '';
+    if (!s) {
+      metrics = '<p style="color:var(--muted);margin:0">인스타그램 도달 · 저장과 네이버 검색 노출 순위는 Apps Script가 모아 둡니다. '
+        + '설정 전이라면 <code>apps-script/README.md</code> → “노출 지표”를 보세요. 인스타그램은 <strong>프로페셔널(비즈니스/크리에이터) 계정</strong>이어야 인사이트가 존재합니다.</p>';
+    } else if (!last && !rankRows.length) {
+      metrics = '<p style="color:var(--muted);margin:0">시트에 아직 기록이 없습니다. Apps Script에서 <code>socialStatus()</code>로 설정 상태를 확인하고, <code>installSocialTriggers()</code>로 수집을 켜세요.</p>';
+    } else {
+      const card = (n, l) => '<div class="card"><div class="num">' + n + '</div><div class="label">' + l + '</div></div>';
+      metrics = (last
+        ? '<div class="cards" style="margin-bottom:12px">'
+          + card(num(last['팔로워']), '팔로워 · ' + esc(last['계정'] || ''))
+          + card(num(last['reach']), '도달 (' + esc(last['날짜']) + ')')
+          + card(num(last['views']), '조회')
+          + card(num(last['profile_views']), '프로필 조회')
+          + '</div>'
+        : '')
+        + (mediaRows.length
+          ? '<h3 style="font-size:13px;margin:12px 0 6px;color:var(--muted)">최근 게시물</h3>'
+            + table(mediaCols, mediaRows, noRow, '아직 없습니다.', { tbl: 'igmedia' })
+          : '')
+        + (rankRows.length
+          ? '<h3 style="font-size:13px;margin:16px 0 6px;color:var(--muted)">네이버 검색 노출 (키워드별 최신)</h3>'
+            + table(rankCols, rankRows.map((r, i) => Object.assign({ id: 'r' + i }, r)), noRow, '아직 없습니다.', { tbl: 'igrank' })
+          : '');
+    }
+
+    return '<div class="two-col" style="margin-top:16px">'
+      + '<div class="panel"><div class="panel-head" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">'
+      + '<h2 style="margin:0">노출 지표</h2>'
+      + '<span style="display:flex;gap:6px"><button class="ghost" id="btn-blog-check">블로그 발행 확인</button>'
+      + '<button class="ghost" id="btn-social-stats">' + (s ? '새로고침' : '지표 불러오기') + '</button></span></div>'
+      + (state.blogFeed ? `<p style="color:var(--muted);font-size:12px;margin:0 0 10px">블로그 RSS ${state.blogFeed.count}건 · 최근 글 ${esc(state.blogFeed.newest)}</p>` : '<div style="height:6px"></div>')
+      + metrics + '</div>'
+      + '<div class="panel"><div class="panel-head" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">'
+      + '<h2 style="margin:0">월간 지표</h2><button class="primary" id="btn-new-kpi">+ 이번 달</button></div>'
+      + table(kpiCols, kpis, (id) => openDialog('kpi', Store.get('kpi', id)), '아직 기록이 없습니다. 월 첫 월요일에 인스타 인사이트 · 블로그 통계 · 앱 예약 수를 한 줄로 남기세요.', { tbl: 'kpi' })
+      + '<p style="color:var(--muted);font-size:12px;margin:10px 0 0">첫 4주 목표: 팔로워 +60 · 저장 40 이상 · DM 10건 이상 · 인스타/블로그發 예약 4건 이상 (기준 2026-09-12: 팔로워 884, 블로그 누적 13,000+ 방문).</p>'
+      + '</div></div>';
   }
 
   // ---------- Render & wiring ----------
@@ -1148,6 +1339,12 @@
     if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', brand: 'assets', social: 'posts' }[state.view]);
     const seedBtn = $('#btn-seed-social');
     if (seedBtn) seedBtn.onclick = () => seedSocialPlan();
+    const kpiBtn = $('#btn-new-kpi');
+    if (kpiBtn) kpiBtn.onclick = () => openDialog('kpi', Store.list('kpi').find((r) => r.month === today().slice(0, 7)));
+    const blogBtn = $('#btn-blog-check');
+    if (blogBtn) blogBtn.onclick = () => checkBlogPosts(blogBtn);
+    const statsBtn = $('#btn-social-stats');
+    if (statsBtn) statsBtn.onclick = () => loadSocialStats(statsBtn);
     const newCall = $('#btn-new-call');
     if (newCall) newCall.onclick = () => openDialog('calls');
 
