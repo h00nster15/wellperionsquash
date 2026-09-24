@@ -1061,8 +1061,12 @@
         + '<span class="n">' + p.n + '건 · ' + p.pct + '% <span style="opacity:.6">(목표 ' + p.share + '%)</span></span></div>').join('');
       const bars = mix.map((p) => '<span style="width:' + p.pct + '%;background:' + p.color + '" title="' + esc(p.label) + ' ' + p.pct + '%"></span>').join('');
 
-      const hasOctober = posts.some((p) => (p.date || '') >= '2026-11-01');
-      return head('Social', (hasOctober ? '' : '<button class="ghost" id="btn-seed-social">10–11월 계획 불러오기</button> ') + '<button class="primary" id="btn-new">+ Post</button>')
+      const hasPlan = posts.some((p) => (p.date || '') >= '2026-11-01');
+      const oldRows = posts.filter((p) => (p.date || '') < '2026-10-01');
+      return head('Social',
+        (oldRows.length ? '<button class="ghost" id="btn-purge-old">이전 계획 정리 · ' + oldRows.length + '건 삭제</button> ' : '')
+        + (hasPlan ? '' : '<button class="ghost" id="btn-seed-social">10–11월 계획 불러오기</button> ')
+        + '<button class="primary" id="btn-new">+ Post</button>')
         + '<div class="cards">'
         + card(late.length, '밀린 게시물') + card(soon.length, '이번 주 (7일)') + card(ready.length, '원고 · 예약 완료')
         + card(postedThisMonth.length, t.slice(0, 7) + ' 게시 완료') + card(crossPosts.length, '@wellperion_squash')
@@ -1173,6 +1177,19 @@
     owner: '이상훈',
     notes: '일정만 확정 (2026-09-25). 미정: 부문 · 정원 · 신청 방식 · 신청 마감일 · 타임테이블.\n소셜: 10/24 예고 → 11/3 D-5 → 11/8 현장 → 11/10 결과 (Social 탭).',
   };
+
+  /** Rows from a calendar that is over: removed on request, whatever their status. */
+  function purgeOldPosts() {
+    const old = Store.list('posts').filter((p) => (p.date || '') < '2026-10-01');
+    if (!old.length) return;
+    const posted = old.filter((p) => p.status === 'posted').length;
+    const msg = `10월 이전 게시물 ${old.length}건을 삭제합니다.`
+      + (posted ? `\n(게시 완료로 표시된 ${posted}건도 함께 삭제됩니다.)` : '')
+      + '\n계속할까요?';
+    if (!confirm(msg)) return;
+    Store.batch(() => { for (const p of old) Store.remove('posts', p.id); });
+    render();
+  }
 
   function seedSocialPlan() {
     const have = new Set(Store.list('posts').map((p) => p.date + '|' + p.title));
@@ -1365,6 +1382,8 @@
     if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', brand: 'assets', social: 'posts' }[state.view]);
     const seedBtn = $('#btn-seed-social');
     if (seedBtn) seedBtn.onclick = () => seedSocialPlan();
+    const purgeBtn = $('#btn-purge-old');
+    if (purgeBtn) purgeBtn.onclick = () => purgeOldPosts();
     const kpiBtn = $('#btn-new-kpi');
     if (kpiBtn) kpiBtn.onclick = () => openDialog('kpi', Store.list('kpi').find((r) => r.month === today().slice(0, 7)));
     const blogBtn = $('#btn-blog-check');
