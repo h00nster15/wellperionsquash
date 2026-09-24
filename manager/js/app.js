@@ -1127,9 +1127,8 @@
     },
   };
 
-  // October 2026, written after the September calendar ran to zero posts in two
-  // weeks: two pieces a week, and the first three weeks spend what is already
-  // written (the drop-shot post, US junior Parts 1 and 2, the seven rendered
+  // Two pieces a week — what fits around full-time coaching. The first three weeks
+  // spend what is already made (the drop-shot post, US junior Parts 1 and 2, the seven rendered
   // How We Decide cards), so the work is filming and rendering, not writing. One
   // shoot feeds that week's Reel and that week's blog post. No events in October —
   // Training Sessions and the Tournament Series were cancelled; 웰림픽 스쿼시컵 runs
@@ -1162,7 +1161,7 @@
     { date: '2026-11-28', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '11월의 코트: 웰림픽이 남긴 것', titleEn: 'November on court', format: '카드뉴스 6장', cta: '체험 문의', blocker: '', notes: '대회 사진 중심. 동의된 얼굴만' },
   ];
 
-  /** Load the October plan: close what September never posted, add what is missing. */
+  /** Load the plan: drop anything left over from before October, add what is missing. */
   // The one event the plan hangs on. Only the date is settled (owner, 2026-09-25);
   // 부문 · 정원 · 신청 방식 are still open, so the record carries the date and says so.
   const WELLYMPIC = {
@@ -1179,11 +1178,10 @@
     const have = new Set(Store.list('posts').map((p) => p.date + '|' + p.title));
     let added = 0, closed = 0;
     Store.batch(() => {
+      // Anything before October that never went out is removed, not archived:
+      // the tab is the current plan, and a list of things that did not happen is noise.
       for (const p of Store.list('posts')) {
-        if (p.date < '2026-10-01' && p.status !== 'posted' && p.status !== 'dropped') {
-          Store.upsert('posts', Object.assign({}, p, { status: 'dropped', notes: (p.notes ? p.notes + ' · ' : '') + '9월 계획 종료 (2026-09-25)' }));
-          closed++;
-        }
+        if (p.date < '2026-10-01' && p.status !== 'posted') { Store.remove('posts', p.id); closed++; }
       }
       for (const p of SOCIAL_PLAN) {
         if (have.has(p.date + '|' + p.title)) continue;
@@ -1195,7 +1193,7 @@
       if (!known) Store.upsert('events', Object.assign({}, WELLYMPIC));
     });
     render();
-    if (closed) alert(`10월 계획 ${added}건을 불러왔습니다.\n9월 계획 중 발행되지 않은 ${closed}건은 dropped로 닫았습니다 (기록은 남습니다).`);
+    if (closed) alert(`10–11월 계획 ${added}건을 불러왔습니다.\n10월 이전의 미발행 항목 ${closed}건은 삭제했습니다 (게시된 것은 그대로 둡니다).`);
   }
 
 
