@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Wellperion Squash — Manager</title>
+  <!-- Display serif + body sans. Offline, the stacks in style.css fall back to Georgia / system fonts. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Serif+KR:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -15,6 +20,7 @@
     </div>
     <nav class="tabs" id="tabs">
       <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="revenue">Revenue</button>
       <button data-view="customers">Members</button>
       <button data-view="campaigns">Outreach</button>
       <button data-view="events">Events</button>
