@@ -12,7 +12,6 @@
   const CALL_OUTCOMES = ['booked', 'callback', 'info-sent', 'not-interested', 'opt-out', 'no-answer'];
   const EVENT_TYPES = ['league', 'tournament', 'open-day', 'social', 'corporate', 'coaching-clinic'];
   const EVENT_STATUS = ['idea', 'planned', 'open', 'full', 'done', 'cancelled'];
-  const ASSET_TYPES = ['logo', 'font', 'template', 'photo', 'video', 'document', 'other'];
   // Social plan (Social tab). Two accounts, two scopes (owner's rule, 2026-09-25):
   //   @glass_court + 네이버 블로그 — everything.
   //   @wellperion_squash — US squash, and events held at Wellperion. Nothing else.
@@ -137,16 +136,6 @@
         { k: 'wellperion', label: '@wellperion_squash 에도 게시 (미국 스쿼시 · 웰페리온 행사만)', type: 'checkbox', full: true },
         { k: 'blocker', label: 'Blocked by (없으면 비워 둠)', placeholder: '세션 #2 날짜' },
         { k: 'notes', label: 'Notes — 원고 · 촬영 · 디자인 상태', type: 'textarea', full: true },
-      ],
-    },
-    assets: {
-      title: 'Brand asset',
-      fields: [
-        { k: 'name', label: 'Name', required: true, full: true },
-        { k: 'type', label: 'Type', type: 'select', options: ASSET_TYPES, def: 'template' },
-        { k: 'version', label: 'Version', placeholder: 'v1' },
-        { k: 'location', label: 'File path or link', full: true, placeholder: 'brand/assets/logos/… or https://…' },
-        { k: 'usage', label: 'Usage notes', type: 'textarea', full: true },
       ],
     },
   };
@@ -1720,35 +1709,6 @@
         + '</div>'
         + socialMetricsHtml();
     },
-
-    brand() {
-      const b = Store.all().brand;
-      const assets = Store.list('assets');
-      const cols = [
-        { h: 'Asset', f: (a) => `<strong>${esc(a.name)}</strong>` },
-        { h: 'Type', f: (a) => pill(a.type) },
-        { h: 'Version', f: (a) => esc(a.version) || '—' },
-        { h: 'Location', f: (a) => /^https?:/.test(a.location || '') ? `<a href="${esc(a.location)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(a.location)}</a>` : esc(a.location) || '—', wrap: true },
-        { h: 'Usage', f: (a) => esc(a.usage), wrap: true },
-      ];
-      return head('Brand') + `
-        <div class="two-col" style="margin-bottom:16px">
-          <div class="panel"><h2>Identity</h2>
-            <form id="brand-form" class="fields">
-              <label class="full">Tagline<input name="tagline" value="${esc(b.tagline)}" placeholder="TBD"></label>
-              <label>Heading font<input name="heading" value="${esc(b.fonts.heading)}"></label>
-              <label>Body font<input name="body" value="${esc(b.fonts.body)}"></label>
-              <label class="full"><span></span><button class="primary" type="submit">Save identity</button></label>
-            </form>
-            <p style="color:var(--muted);font-size:12px;margin:10px 0 0">Full guidelines live in <code>brand/brand-guidelines.md</code>.</p>
-          </div>
-          <div class="panel"><h2>Palette</h2>
-            <div class="swatches">${b.colors.map((c, i) => `<div class="swatch"><div class="color" style="background:${esc(c.hex)}"></div><div class="meta"><input type="color" data-i="${i}" value="${esc(c.hex)}" style="width:100%;height:24px;border:0;padding:0;background:none"><div>${esc(c.role)}</div><code>${esc(c.hex)}</code></div></div>`).join('')}</div>
-          </div>
-        </div>`
-        + head('Asset library', `<button class="primary" id="btn-new">+ Asset</button>`)
-        + table(cols, assets, (id) => openDialog('assets', Store.get('assets', id)), 'No assets registered. Add logos, templates and photos with their file paths or links.');
-    },
   };
 
   // Two pieces a week — what fits around full-time coaching. The first three weeks
@@ -1999,7 +1959,7 @@
     });
 
     const newBtn = $('#btn-new');
-    if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', brand: 'assets', social: 'posts' }[state.view]);
+    if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', social: 'posts' }[state.view]);
     const seedBtn = $('#btn-seed-social');
     if (seedBtn) seedBtn.onclick = () => seedSocialPlan();
     const purgeBtn = $('#btn-purge-old');
@@ -2097,18 +2057,6 @@
     if (importBtn) importBtn.onclick = () => importInquiries(importBtn);
     const smsBtn = $('#btn-smslog');
     if (smsBtn) smsBtn.onclick = () => showSmsLog(smsBtn);
-
-    const bf = $('#brand-form');
-    if (bf) {
-      bf.onsubmit = (e) => {
-        e.preventDefault();
-        Store.setBrand({ tagline: bf.tagline.value.trim(), fonts: { heading: bf.heading.value.trim(), body: bf.body.value.trim() } });
-        render();
-      };
-      viewEl.querySelectorAll('input[type=color]').forEach((inp) => {
-        inp.onchange = () => { const b = Store.all().brand; b.colors[+inp.dataset.i].hex = inp.value; Store.setBrand(b); render(); };
-      });
-    }
   }
 
   $('#tabs').addEventListener('click', (e) => {
