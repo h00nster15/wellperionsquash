@@ -1455,6 +1455,13 @@
   const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return ymd(d); };
   const mondayOf = (iso) => { const d = new Date(iso + 'T00:00:00'); return addDays(iso, -((d.getDay() + 6) % 7)); };
   const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
+  // '9월 3주' for the week starting that Monday. The month is the one holding the week's
+  // Thursday, so a week straddling two months counts in the month most of it falls in, and
+  // the ordinal is that Thursday's place in the month (1st–7th = 1주, 8th–14th = 2주, …).
+  function weekLabel(monday) {
+    const thu = addDays(monday, 3);
+    return `${Number(thu.slice(5, 7))}월 ${Math.ceil(Number(thu.slice(8, 10)) / 7)}주`;
+  }
   // The cache stamps itself in UTC (toISOString); show it in the reader's own clock.
   const localStamp = (iso) => {
     const d = new Date(iso);
@@ -1495,7 +1502,7 @@
   function schedScope() {
     const weekStart = state.weekStart || (state.weekStart = mondayOf(today()));
     if (state.schedRange === 'week') {
-      return { from: weekStart, to: addDays(weekStart, 6), months: [weekStart.slice(0, 7), addDays(weekStart, 6).slice(0, 7)], weeks: 1, label: `${weekStart.replace(/-/g, '.')} ~ ${addDays(weekStart, 6).replace(/-/g, '.')}` };
+      return { from: weekStart, to: addDays(weekStart, 6), months: [weekStart.slice(0, 7), addDays(weekStart, 6).slice(0, 7)], weeks: 1, label: `${weekLabel(weekStart)} (${weekStart.replace(/-/g, '.')} ~ ${addDays(weekStart, 6).replace(/-/g, '.')})` };
     }
     if (state.schedRange === 'all') {
       const dates = schedBookings().map((b) => b.date).sort();
@@ -1682,7 +1689,8 @@
       const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0] || ['', 0];
       return {
         key,
-        label: unit === 'month' ? key.replace('-', '.') : `${key.slice(5).replace('-', '.')}~${addDays(key, 6).slice(5).replace('-', '.')}`,
+        label: unit === 'month' ? key.replace('-', '.') : weekLabel(key),
+        sub: unit === 'month' ? '' : `${key.slice(5).replace('-', '.')}~${addDays(key, 6).slice(5).replace('-', '.')}`,
         count: inB.length, people: new Set(inB.map((b) => Sheets.personKey(b.name))).size,
         pd, topTime: top(times), topDay: top(days),
       };
@@ -1695,7 +1703,7 @@
         <th>일 평균 <span style="font-weight:400;color:var(--muted)">예약 · 인원</span></th>
         <th>최다 시간</th><th>최다 요일</th></tr></thead><tbody>
       ${rows.map((r) => `<tr>
-        <td><strong>${esc(r.label)}</strong></td>
+        <td><strong>${esc(r.label)}</strong>${r.sub ? `<div style="font-size:11px;color:var(--muted)">${esc(r.sub)}</div>` : ''}</td>
         <td style="color:var(--muted);font-size:12px">${r.pd.days}일</td>
         <td style="background:rgba(31,42,107,${(0.05 + 0.45 * (r.count / max)).toFixed(3)})"><strong>${r.count}</strong>회</td>
         <td>${r.people}명</td>
@@ -1819,6 +1827,52 @@
     });
   }
 
+  /**
+   * A member's own calendar: every month of the range they booked in, the booked days
+   * marked with the times. Opened by clicking a row of the 회원별 table.
+   */
+  function openBookingCalendar(row) {
+    const mine = scopedBookings()
+      .filter((b) => row.spellings.has(b.name) && row.coaches.has(b.coach))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    const byDate = new Map();
+    for (const b of mine) (byDate.get(b.date) || byDate.set(b.date, []).get(b.date)).push(b);
+
+    const months = Array.from(new Set(mine.map((b) => b.date.slice(0, 7)))).sort();
+    const times = {};
+    mine.forEach((b) => { times[b.time] = (times[b.time] || 0) + 1; });
+    const topTimes = Object.entries(times).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
+    const t = today();
+
+    const cal = (m) => {
+      const first = `${m}-01`;
+      const lead = (new Date(first + 'T00:00:00').getDay() + 6) % 7; // Monday-based
+      const days = new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 0).getDate();
+      const cells = [];
+      for (let i = 0; i < lead; i++) cells.push('<div class="cal-cell empty"></div>');
+      for (let d = 1; d <= days; d++) {
+        const date = `${m}-${('0' + d).slice(-2)}`;
+        const got = byDate.get(date) || [];
+        cells.push(`<div class="cal-cell${got.length ? ' on' : ''}${date === t ? ' today' : ''}">
+          <div class="cal-day">${d}</div>
+          ${got.map((b) => `<div class="cal-time" title="${esc(b.coach)}${b.group ? ' · 단체' : ''}">${esc(b.time)}</div>`).join('')}</div>`);
+      }
+      const inMonth = mine.filter((b) => b.date.slice(0, 7) === m).length;
+      return `<div class="cal-month"><h3>${Number(m.slice(5, 7))}월 <span class="pill">${inMonth}회</span></h3>
+        <div class="cal-grid">${WEEKDAYS.map((d) => `<div class="cal-head">${d}</div>`).join('')}${cells.join('')}</div></div>`;
+    };
+
+    $('#cal-title').textContent = row.name;
+    $('#cal-sum').innerHTML = `${esc(schedScope().label)} · 예약 <strong>${mine.length}회</strong> · 개인 ${mine.filter((b) => !b.group).length} · 단체 ${mine.filter((b) => b.group).length} · 강사 ${esc(row.coachList)}`
+      + (topTimes.length ? `<br>자주 오는 시간: ${topTimes.map(([time, n]) => `${esc(time)} <span class="pill">${n}</span>`).join(' · ')}` : '')
+      + (row.member ? '' : '<br><span style="color:var(--warn)">시트 회원 명단과 이름이 맞지 않습니다 (체험 · 대타 · 표기 차이).</span>');
+    $('#cal-body').innerHTML = months.length ? months.map(cal).join('') : '<p class="empty">이 기간에는 예약이 없습니다.</p>';
+    const memberBtn = $('#cal-member');
+    memberBtn.hidden = !row.customerId;
+    memberBtn.onclick = () => { $('#dlg-cal').close(); openDialog('customers', Store.get('customers', row.customerId)); };
+    $('#dlg-cal').showModal();
+  }
+
   /** 회원별: how often each name shows up, and when. */
   function schedulePeopleTable() {
     const s = schedScope();
@@ -1835,10 +1889,10 @@
     });
     const shown = rows.slice(0, ts.limit);
     const notMember = rows.filter((r) => !r.member).length;
-    const note = `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">${esc(s.label)} · ${rows.length}${mode === 'person' ? '명' : '행'} · 예약 ${total}건${notMember ? ` · 시트 회원과 이름이 맞지 않는 ${notMember}${mode === 'person' ? '명' : '행'} (체험·대타·표기 차이)` : ''}. ${mode === 'person' ? '같은 사람의 여러 표기(Augustus1 · 김무건(단체))를 하나로 묶었습니다.' : '시트에 적힌 이름 그대로, 강사별로 한 줄입니다.'} 행을 누르면 그 회원 카드가 열립니다.</p>`;
+    const note = `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">${esc(s.label)} · ${rows.length}${mode === 'person' ? '명' : '행'} · 예약 ${total}건${notMember ? ` · 시트 회원과 이름이 맞지 않는 ${notMember}${mode === 'person' ? '명' : '행'} (체험·대타·표기 차이)` : ''}. ${mode === 'person' ? '같은 사람의 여러 표기(Augustus1 · 김무건(단체))를 하나로 묶었습니다.' : '시트에 적힌 이름 그대로, 강사별로 한 줄입니다.'} 행을 누르면 그 회원의 예약 달력이 열립니다.</p>`;
     return note + table(SCHED_COLUMNS, shown, (id) => {
       const row = rows.find((r) => r.id === id);
-      if (row && row.customerId) openDialog('customers', Store.get('customers', row.customerId));
+      if (row) openBookingCalendar(row);
     }, schedLoading ? '읽는 중…' : '이 기간에는 예약이 없습니다.', {
       tbl: 'sched', sort: ts.sort,
       footer: `${pageFooter(ts, shown.length, rows.length, 'sched', mode === 'person' ? '명' : '행')} · 예약 ${total}건`,
@@ -1876,7 +1930,7 @@
 
     return times.length
       ? `<div class="table-wrap"><table class="sched"><thead><tr><th style="width:56px">시간</th>${head7}</tr></thead><tbody>${body}</tbody>
-         <tfoot><tr><td colspan="8">${weekStart.replace(/-/g, '.')} ~ ${days[6].replace(/-/g, '.')} · 예약 <strong>${week.length}건</strong>${state.schedCoach ? ` · ${esc(state.schedCoach)}` : ''} · 개인 ${week.filter((b) => !b.group).length} · 단체 ${week.filter((b) => b.group).length}</td></tr></tfoot></table></div>`
+         <tfoot><tr><td colspan="8"><strong>${esc(weekLabel(weekStart))}</strong> · ${weekStart.replace(/-/g, '.')} ~ ${days[6].replace(/-/g, '.')} · 예약 <strong>${week.length}건</strong>${state.schedCoach ? ` · ${esc(state.schedCoach)}` : ''} · 개인 ${week.filter((b) => !b.group).length} · 단체 ${week.filter((b) => b.group).length}</td></tr></tfoot></table></div>`
       : `<p class="empty">${schedLoading ? '읽는 중…' : '이 주에는 예약이 없습니다.'}</p>`;
   }
 
@@ -1934,7 +1988,7 @@
     const cell = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const list = scopedBookings();
     const times = Array.from(new Set(list.map((b) => b.time))).sort();
-    const head = ['구분', '시간', '예약', '인원', '일수', '일 평균 예약', '일 평균 인원', '주 평균 예약', '주 평균 인원', '월 평균 예약', '월 평균 인원', '개인', '단체'].concat(WEEKDAYS).concat(['강사', '멤버']);
+    const head = ['구분', '시간', '주차', '예약', '인원', '일수', '일 평균 예약', '일 평균 인원', '주 평균 예약', '주 평균 인원', '월 평균 예약', '월 평균 인원', '개인', '단체'].concat(WEEKDAYS).concat(['강사', '멤버']);
     const dayOf = (d) => WEEKDAYS[(new Date(d + 'T00:00:00').getDay() + 6) % 7];
     const dates = schedDates();
     // Each week and each month as its own row, so the weekly/monthly view survives the export.
@@ -1943,6 +1997,7 @@
       const mine = dates.filter((d) => bucketKey(d, unit) === key);
       const pd = perDate(inB, mine);
       return [unit === 'month' ? '달' : '주', unit === 'month' ? key : `${key}~${addDays(key, 6)}`,
+        unit === 'month' ? '' : weekLabel(key),
         inB.length, new Set(inB.map((b) => Sheets.personKey(b.name))).size, pd.days,
         pd.dayBookings, pd.dayPeople, '', '', '', '',
         inB.filter((b) => !b.group).length, inB.filter((b) => b.group).length]
@@ -1957,7 +2012,7 @@
       at.forEach((b) => { times2[b.time] = (times2[b.time] || 0) + 1; });
       const top = Object.entries(times2).sort((a, b) => b[1] - a[1])[0] || ['', 0];
       const pd = perDate(at, dates.filter((d) => dayOf(d) === day));
-      return ['요일', day, at.length, new Set(at.map((b) => Sheets.personKey(b.name))).size,
+      return ['요일', day, '', at.length, new Set(at.map((b) => Sheets.personKey(b.name))).size,
         pd.days, pd.dayBookings, pd.dayPeople, wk.bookings, wk.people, mo.bookings, mo.people,
         at.filter((b) => !b.group).length, at.filter((b) => b.group).length]
         .concat(WEEKDAYS.map((d) => (d === day ? at.length : 0)))
@@ -1976,7 +2031,7 @@
       const coaches = {};
       at.forEach((b) => { coaches[b.coach] = (coaches[b.coach] || 0) + 1; });
       const pd = perDate(at, dates);
-      return ['시간', time, at.length, byPerson.size, pd.ranDays, pd.ranBookings, pd.ranPeople,
+      return ['시간', time, '', at.length, byPerson.size, pd.ranDays, pd.ranBookings, pd.ranPeople,
         wk.bookings, wk.people, mo.bookings, mo.people,
         at.filter((b) => !b.group).length, at.filter((b) => b.group).length]
         .concat(WEEKDAYS.map((d) => at.filter((b) => dayOf(b.date) === d).length))

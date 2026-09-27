@@ -240,3 +240,18 @@ dialog h2 { margin: 0 0 14px; font-size: 24px; font-weight: 600; color: var(--pr
   .fields { grid-template-columns: 1fr; }
   .view { padding: 12px; }
 }
+
+/* 회원별 → 한 회원의 예약 달력 (dialog#dlg-cal) */
+#dlg-cal { width: min(760px, 94vw); }
+#dlg-cal #cal-body { max-height: 60vh; overflow: auto; }
+.cal-month { margin-bottom: 18px; }
+.cal-month h3 { font-family: var(--serif); font-size: 18px; font-weight: 600; margin: 0 0 8px; color: var(--primary); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-head { text-align: center; font-size: 11px; color: var(--muted); padding-bottom: 2px; }
+.cal-cell { min-height: 46px; border: 1px solid var(--line); border-radius: 4px; padding: 3px 4px; background: var(--card); }
+.cal-cell.empty { border: 0; background: none; }
+.cal-cell.on { background: var(--soft); border-color: var(--brass); }
+.cal-cell.today .cal-day { color: var(--brass-ink); font-weight: 700; }
+.cal-day { font-size: 11px; color: var(--muted); }
+.cal-cell.on .cal-day { color: var(--ink); font-weight: 600; }
+.cal-time { font-size: 11px; line-height: 1.45; font-variant-numeric: tabular-nums; }
