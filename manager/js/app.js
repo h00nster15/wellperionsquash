@@ -1445,6 +1445,9 @@
   if (schedCache && !Array.isArray(schedCache.bookings)) schedCache = null;
   const schedMonths = () => (schedCache && schedCache.months) || [];
   const schedBookings = () => (schedCache && schedCache.bookings) || [];
+  // Which books a cached month was read with: 'current' = the coaches teaching now,
+  // 'all' = plus the books of past years and coaches who have left (Schedule.gs ?books=all).
+  const schedScopes = () => (schedCache && schedCache.scopes) || {};
 
   // Local calendar days: toISOString() would shift every date a day back in KST.
   const ymd = (d) => `${d.getFullYear()}-${('0' + (d.getMonth() + 1)).slice(-2)}-${('0' + d.getDate()).slice(-2)}`;
@@ -1458,17 +1461,23 @@
   };
 
   async function loadSchedule(months, force) {
-    const want = months.filter((m) => force || !schedMonths().includes(m));
+    const all = !!state.schedAll;
+    // A month cached without the former coaches is re-read when 이전 강사 is switched on.
+    const want = months.filter((m) => force || !schedMonths().includes(m) || (all && schedScopes()[m] !== 'all'));
     if (!want.length || schedLoading || !scriptSource()) return;
     schedLoading = want.join(', '); schedError = '';
     if (state.view === 'schedule') render();
     try {
-      const j = await socialCall('schedule', { months: want.join(',') });
+      const j = await socialCall('schedule', Object.assign({ months: want.join(',') }, all ? { books: 'all' } : {}));
       const kept = schedBookings().filter((b) => !want.includes(String(b.date).slice(0, 7)));
+      const scopes = Object.assign({}, schedScopes());
+      for (const m of want) scopes[m] = j.scope === 'all' ? 'all' : 'current';
       schedCache = {
         at: new Date().toISOString(),
         months: schedMonths().filter((m) => !want.includes(m)).concat(want).sort(),
+        scopes,
         coaches: j.coaches || [],
+        missing: j.missing || [],
         bookings: kept.concat(j.bookings || []),
       };
       try { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedCache)); } catch (e) { /* quota: the cache is a nicety */ }
@@ -1651,14 +1660,17 @@
 
     const chip = (label, value, active, attr) => `<button class="ghost${active ? ' on' : ''}" ${attr}="${esc(value)}" style="font-size:12px${active ? ';font-weight:600' : ''}">${esc(label)}</button>`;
     const tabs = `${chip('주간', 'week', !people, 'data-sched-tab')}${chip('회원별', 'people', people, 'data-sched-tab')}`;
-    const weekNav = `<button class="ghost" data-week="-7" title="이전 주">←</button>
+    const weekNav = `<button class="ghost" data-month="-1" title="한 달 前">«</button>
+      <button class="ghost" data-week="-7" title="이전 주">←</button>
       <button class="ghost" data-week="today">오늘</button>
-      <button class="ghost" data-week="7" title="다음 주">→</button>`;
+      <button class="ghost" data-week="7" title="다음 주">→</button>
+      <button class="ghost" data-month="1" title="한 달 後">»</button>`;
     const ranges = `${chip('이번 주', 'week', state.schedRange === 'week', 'data-sched-range')}${chip('달', 'month', (state.schedRange || 'month') === 'month', 'data-sched-range')}${chip('전체', 'all', state.schedRange === 'all', 'data-sched-range')}`;
     const modes = `${chip('회원', 'member', (state.schedMode || 'member') === 'member', 'data-sched-mode')}${chip('사람', 'person', state.schedMode === 'person', 'data-sched-mode')}`;
     const nav = `${tabs} ${people ? `${weekNav} ${ranges} ${modes}` : weekNav}
       ${chip(people ? '전체 강사' : `전체 ${inWeek}건`, '', !state.schedCoach, 'data-sched-coach')}
       ${coaches.map((c) => chip(c, c, state.schedCoach === c, 'data-sched-coach')).join('')}
+      <button class="ghost${state.schedAll ? ' on' : ''}" id="btn-sched-all" style="font-size:12px${state.schedAll ? ';font-weight:600' : ''}" title="지난 해 장부와 그만둔 강사의 장부까지 읽습니다 — 장부를 더 여느라 그만큼 느립니다">이전 강사 · 작년${state.schedAll ? ' ✓' : ''}</button>
       ${people ? '<button class="ghost" id="btn-sched-csv" title="위 표를 CSV로 내려받습니다">표 CSV</button><button class="ghost" id="btn-sched-csv-raw" title="이 기간의 예약을 한 줄에 하나씩 CSV로 내려받습니다">예약 원본 CSV</button>' : ''}
       <button class="ghost" id="btn-sched-refresh" ${schedLoading ? 'disabled' : ''} title="이번 화면의 달을 시트에서 다시 읽습니다 (약 1분)">${schedLoading ? '읽는 중…' : '새로고침'}</button>`;
 
@@ -1667,7 +1679,7 @@
       : schedLoading
         ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">${esc(schedLoading)} 스케줄을 시트에서 읽는 중입니다 — 두 강사의 장부를 여느라 1분 가까이 걸립니다.</p>`
         : schedCache
-          ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">코치 스케줄 시트(${esc(schedMonths().join(', '))}월 탭 <code>N월S</code>) · 마지막 읽기 ${esc(localStamp(schedCache.at))} · 예약 ${schedBookings().length}건. 시트가 원본입니다 — 앱에서는 수정하지 않습니다.</p>`
+          ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">코치 스케줄 시트(${esc(schedMonths().join(', '))} · <code>N월S</code> 탭) · 마지막 읽기 ${esc(localStamp(schedCache.at))} · 예약 ${schedBookings().length}건${schedBooksRead()} · 시트가 원본입니다 — 앱에서는 수정하지 않습니다.${(schedCache.missing || []).length ? `<br><span style="color:var(--warn)">⚠ 시간이 모자라 못 읽은 장부: ${esc((schedCache.missing || []).map((m) => `${m.coach} ${m.month}`).join(', '))} — 새로고침을 한 번 더 누르면 이어서 읽습니다.</span>` : ''}</p>`
           : '<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">아직 읽은 스케줄이 없습니다. 시트에서 읽어오는 중이거나, Google Sheet 소스가 필요합니다.</p>';
 
     return head('스케줄', nav) + status + (people ? schedulePeopleTable() : scheduleWeekGrid());
@@ -1694,6 +1706,14 @@
         Sheets.personKey(b.name), b.coach, b.group ? '단체레슨' : '개인레슨',
       ].map(cell).join(',')));
     download(`wellperion-예약-${schedScope().from}_${schedScope().to}.csv`, '﻿' + lines.join('\n'), 'text/csv');
+  }
+
+  /** " · 장부 4권: 이상훈, 박상현, 최수진, 이우성" — what the last read actually covered. */
+  function schedBooksRead() {
+    const read = (schedCache && schedCache.coaches || []).filter((c) => !c.missing && !c.error);
+    const names = Array.from(new Set(read.map((c) => c.coach)));
+    if (!names.length) return '';
+    return ` · 장부 ${read.length}권 (${esc(names.join(', '))})`;
   }
 
   /** Today's lessons, for the Dashboard. Cache only — the page load does not fetch. */
@@ -2265,6 +2285,14 @@
     viewEl.querySelectorAll('[data-sched-coach]').forEach((el) => {
       el.onclick = () => { state.schedCoach = el.dataset.schedCoach; render(); };
     });
+    viewEl.querySelectorAll('[data-month]').forEach((el) => {
+      el.onclick = () => {
+        const d = new Date((state.weekStart || mondayOf(today())) + 'T00:00:00');
+        d.setMonth(d.getMonth() + Number(el.dataset.month));
+        state.weekStart = mondayOf(ymd(d));
+        render();
+      };
+    });
     viewEl.querySelectorAll('[data-sched-tab]').forEach((el) => {
       el.onclick = () => { state.schedTab = el.dataset.schedTab; render(); };
     });
@@ -2274,6 +2302,12 @@
     viewEl.querySelectorAll('[data-sched-mode]').forEach((el) => {
       el.onclick = () => { state.schedMode = el.dataset.schedMode; render(); };
     });
+    const schedAll = $('#btn-sched-all');
+    if (schedAll) schedAll.onclick = () => {
+      state.schedAll = !state.schedAll;
+      render();
+      if (state.schedAll) loadSchedule(Array.from(new Set(schedScope().months.filter(Boolean))));
+    };
     const schedCsv = $('#btn-sched-csv');
     if (schedCsv) schedCsv.onclick = () => downloadScheduleCSV();
     const schedCsvRaw = $('#btn-sched-csv-raw');
