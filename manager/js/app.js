@@ -1424,6 +1424,7 @@
   const tbl = (key) => state.tables[key];
   state.tables.club = { sort: { k: 'clubEnd', dir: -1 }, colFilters: {}, initial: 10, limit: 10 };
   state.tables.sched = { sort: { k: 'count', dir: -1 }, colFilters: {}, initial: 25, limit: 25 }; // 스케줄 → 회원별
+  state.tables.schedtime = { sort: { k: 'time', dir: 1 }, colFilters: {}, initial: 40, limit: 40 }; // 스케줄 → 시간별
   // Footer paging: "+20 더 보기" grows the limit by 20; "접기" returns to the initial count.
   function pageFooter(ts, shownCount, total, key, label) {
     const more = total - shownCount;
@@ -1589,12 +1590,80 @@
     { h: '시트 회원', k: 'member', v: (r) => (r.member ? 1 : 0), f: (r) => (r.member ? '○' : '<span style="color:var(--muted)">—</span>') },
   ];
 
-  /** 회원별 / 사람별: how often each name shows up, and when. */
+  const SCHEDTIME_COLUMNS = [
+    { h: '시간', k: 'time', v: (r) => r.time, f: (r) => `<strong>${esc(r.time)}</strong>` },
+    { h: '예약', k: 'count', v: (r) => r.count, f: (r) => `<strong>${r.count}</strong>회` },
+    { h: '인원', k: 'people', v: (r) => r.people, f: (r) => `${r.people}명` },
+    { h: '개인 · 단체', k: 'solo', v: (r) => r.solo, f: (r) => `${r.solo} · ${r.group}` },
+    { h: '요일', k: 'topDay', v: (r) => r.topDayN, f: (r) => WEEKDAYS.map((d) => (r.days[d] ? `<span class="pill" style="font-size:10px" title="${esc(d)}요일 ${r.days[d]}회">${esc(d)}${r.days[d]}</span>` : '')).join(' ') || '—' },
+    { h: '강사', k: 'coachList', v: (r) => r.coachList, f: (r) => esc(r.coachList) },
+    { h: '멤버', k: 'members', v: (r) => r.people, f: (r) => r.memberCell },
+  ];
+
+  /** 시간별: which members book each slot, and how many of them. */
+  function scheduleTimesTable() {
+    const s = schedScope();
+    loadSchedule(Array.from(new Set(s.months.filter(Boolean))));
+    const ts = tbl('schedtime');
+    const list = scopedBookings();
+    const times = Array.from(new Set(list.map((b) => b.time))).sort();
+
+    let rows = times.map((time) => {
+      const at = list.filter((b) => b.time === time);
+      const days = {}, coaches = {}, byPerson = new Map();
+      for (const b of at) {
+        const d = WEEKDAYS[(new Date(b.date + 'T00:00:00').getDay() + 6) % 7];
+        days[d] = (days[d] || 0) + 1;
+        coaches[b.coach] = (coaches[b.coach] || 0) + 1;
+        const k = Sheets.personKey(b.name);
+        const p = byPerson.get(k) || byPerson.set(k, { name: b.name, n: 0 }).get(k);
+        p.n++;
+        if (b.name.length < p.name.length) p.name = b.name; // the plainest spelling
+      }
+      const members = Array.from(byPerson.values()).sort((a, b) => b.n - a.n || collator.compare(a.name, b.name));
+      const shown = members.slice(0, 8);
+      const topDay = Object.entries(days).sort((a, b) => b[1] - a[1])[0] || ['', 0];
+      return {
+        id: 'time:' + time, time, count: at.length, people: byPerson.size,
+        solo: at.filter((b) => !b.group).length, group: at.filter((b) => b.group).length,
+        days, topDay: topDay[0], topDayN: topDay[1],
+        coachList: Object.entries(coaches).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} ${n}`).join(' · '),
+        members,
+        memberCell: `<span title="${esc(members.map((m) => `${m.name} ${m.n}`).join(', '))}">${shown.map((m) => `${esc(m.name)}<span style="color:var(--muted)"> ${m.n}</span>`).join(' · ')}${members.length > shown.length ? ` <span class="pill">+${members.length - shown.length}</span>` : ''}</span>`,
+      };
+    });
+
+    const col = SCHEDTIME_COLUMNS.find((c) => c.k === ts.sort.k) || SCHEDTIME_COLUMNS[0];
+    rows = rows.slice().sort((a, b) => {
+      const va = col.v(a), vb = col.v(b);
+      const r = typeof va === 'number' && typeof vb === 'number' ? va - vb : collator.compare(String(va == null ? '' : va), String(vb == null ? '' : vb));
+      return r * ts.sort.dir || collator.compare(a.time, b.time);
+    });
+
+    // 시간 × 요일: where the week actually fills up. Shaded by count, darkest = busiest.
+    const max = Math.max(1, ...times.map((t) => Math.max(...WEEKDAYS.map((d) => list.filter((b) => b.time === t && WEEKDAYS[(new Date(b.date + 'T00:00:00').getDay() + 6) % 7] === d).length))));
+    const matrix = times.length ? `<div class="table-wrap" style="margin-bottom:16px"><table class="sched"><thead><tr><th style="width:56px">시간</th>${WEEKDAYS.map((d) => `<th style="text-align:center">${d}</th>`).join('')}<th style="text-align:center;width:64px">합계</th></tr></thead><tbody>${times.map((t) => {
+      const cells = WEEKDAYS.map((d) => list.filter((b) => b.time === t && WEEKDAYS[(new Date(b.date + 'T00:00:00').getDay() + 6) % 7] === d).length);
+      const total = cells.reduce((a, b) => a + b, 0);
+      return `<tr><td style="color:var(--muted);font-size:12px">${esc(t)}</td>${cells.map((n) => `<td style="text-align:center;font-size:12px;${n ? `background:rgba(31,42,107,${(0.06 + 0.5 * (n / max)).toFixed(3)})` : ''}">${n || ''}</td>`).join('')}<td style="text-align:center;font-weight:600">${total}</td></tr>`;
+    }).join('')}</tbody></table></div>` : '';
+
+    const total = list.length;
+    const peak = rows.slice().sort((a, b) => b.count - a.count)[0];
+    const note = `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">${esc(s.label)} · 시간대 ${times.length}개 · 예약 ${total}건${peak ? ` · 가장 붐비는 시간 <strong>${esc(peak.time)}</strong> (${peak.count}회 · ${peak.people}명)` : ''}. 위 표는 요일 × 시간 예약 수, 아래 표는 시간대마다 누가 오는지입니다. 인원은 같은 사람의 여러 표기를 하나로 센 수입니다.</p>`;
+
+    return note + matrix + table(SCHEDTIME_COLUMNS, rows, () => {}, schedLoading ? '읽는 중…' : '이 기간에는 예약이 없습니다.', {
+      tbl: 'schedtime', sort: ts.sort,
+      footer: `시간대 ${rows.length}개 · 예약 ${total}건 · 연인원 ${rows.reduce((n, r) => n + r.people, 0)}명`,
+    });
+  }
+
+  /** 회원별: how often each name shows up, and when. */
   function schedulePeopleTable() {
     const s = schedScope();
     loadSchedule(Array.from(new Set(s.months.filter(Boolean))));
     const ts = tbl('sched');
-    const mode = state.schedMode || 'member';
+    const mode = 'member'; // 사람 merge lives on in the CSV's 사람키 column; the tab is 시간별 now
     let rows = bookingRows(mode);
     const total = rows.reduce((n, r) => n + r.count, 0);
     const col = SCHED_COLUMNS.find((c) => c.k === ts.sort.k) || SCHED_COLUMNS[0];
@@ -1652,6 +1721,7 @@
 
   function schedulePanel() {
     const people = state.schedTab === 'people';
+    const times = state.schedTab === 'times';
     const all = schedBookings();
     const coaches = Array.from(new Set(all.map((b) => b.coach))).sort();
     if (state.schedCoach && !coaches.includes(state.schedCoach)) state.schedCoach = '';
@@ -1659,20 +1729,20 @@
     const inWeek = all.filter((b) => b.date >= weekStart && b.date <= addDays(weekStart, 6)).length;
 
     const chip = (label, value, active, attr) => `<button class="ghost${active ? ' on' : ''}" ${attr}="${esc(value)}" style="font-size:12px${active ? ';font-weight:600' : ''}">${esc(label)}</button>`;
-    const tabs = `${chip('주간', 'week', !people, 'data-sched-tab')}${chip('회원별', 'people', people, 'data-sched-tab')}`;
+    const tabs = `${chip('주간', 'week', !people && !times, 'data-sched-tab')}${chip('회원별', 'people', people, 'data-sched-tab')}${chip('시간별', 'times', times, 'data-sched-tab')}`;
     const weekNav = `<button class="ghost" data-month="-1" title="한 달 前">«</button>
       <button class="ghost" data-week="-7" title="이전 주">←</button>
       <button class="ghost" data-week="today">오늘</button>
       <button class="ghost" data-week="7" title="다음 주">→</button>
       <button class="ghost" data-month="1" title="한 달 後">»</button>`;
     const ranges = `${chip('이번 주', 'week', state.schedRange === 'week', 'data-sched-range')}${chip('달', 'month', (state.schedRange || 'month') === 'month', 'data-sched-range')}${chip('전체', 'all', state.schedRange === 'all', 'data-sched-range')}`;
-    const modes = `${chip('회원', 'member', (state.schedMode || 'member') === 'member', 'data-sched-mode')}${chip('사람', 'person', state.schedMode === 'person', 'data-sched-mode')}`;
-    const nav = `${tabs} ${people ? `${weekNav} ${ranges} ${modes}` : weekNav}
-      ${chip(people ? '전체 강사' : `전체 ${inWeek}건`, '', !state.schedCoach, 'data-sched-coach')}
-      ${coaches.map((c) => chip(c, c, state.schedCoach === c, 'data-sched-coach')).join('')}
-      <button class="ghost${state.schedAll ? ' on' : ''}" id="btn-sched-all" style="font-size:12px${state.schedAll ? ';font-weight:600' : ''}" title="지난 해 장부와 그만둔 강사의 장부까지 읽습니다 — 장부를 더 여느라 그만큼 느립니다">이전 강사 · 작년${state.schedAll ? ' ✓' : ''}</button>
-      ${people ? '<button class="ghost" id="btn-sched-csv" title="위 표를 CSV로 내려받습니다">표 CSV</button><button class="ghost" id="btn-sched-csv-raw" title="이 기간의 예약을 한 줄에 하나씩 CSV로 내려받습니다">예약 원본 CSV</button>' : ''}
-      <button class="ghost" id="btn-sched-refresh" ${schedLoading ? 'disabled' : ''} title="이번 화면의 달을 시트에서 다시 읽습니다 (약 1분)">${schedLoading ? '읽는 중…' : '새로고침'}</button>`;
+    const group = (html) => `<span class="btn-group">${html}</span>`;
+    const nav = group(tabs) + group(weekNav) + (people || times ? group(ranges) : '')
+      + group(`${chip(people || times ? '전체 강사' : `전체 ${inWeek}건`, '', !state.schedCoach, 'data-sched-coach')}
+        ${coaches.map((c) => chip(c, c, state.schedCoach === c, 'data-sched-coach')).join('')}
+        <button class="ghost${state.schedAll ? ' on' : ''}" id="btn-sched-all" style="font-size:12px${state.schedAll ? ';font-weight:600' : ''}" title="지난 해 장부와 그만둔 강사의 장부까지 읽습니다 — 장부를 더 여느라 그만큼 느립니다">이전 강사 · 작년${state.schedAll ? ' ✓' : ''}</button>`)
+      + group(`${people || times ? '<button class="ghost" id="btn-sched-csv" title="위 표를 CSV로 내려받습니다">표 CSV</button><button class="ghost" id="btn-sched-csv-raw" title="이 기간의 예약을 한 줄에 하나씩 CSV로 내려받습니다">예약 원본 CSV</button>' : ''}
+        <button class="ghost" id="btn-sched-refresh" ${schedLoading ? 'disabled' : ''} title="이번 화면의 달을 시트에서 다시 읽습니다 (약 1분)">${schedLoading ? '읽는 중…' : '새로고침'}</button>`);
 
     const status = schedError
       ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--warn)">스케줄을 읽지 못했습니다: ${esc(schedError)}</p>`
@@ -1682,12 +1752,13 @@
           ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">코치 스케줄 시트(${esc(schedMonths().join(', '))} · <code>N월S</code> 탭) · 마지막 읽기 ${esc(localStamp(schedCache.at))} · 예약 ${schedBookings().length}건${schedBooksRead()} · 시트가 원본입니다 — 앱에서는 수정하지 않습니다.${(schedCache.missing || []).length ? `<br><span style="color:var(--warn)">⚠ 시간이 모자라 못 읽은 장부: ${esc((schedCache.missing || []).map((m) => `${m.coach} ${m.month}`).join(', '))} — 새로고침을 한 번 더 누르면 이어서 읽습니다.</span>` : ''}</p>`
           : '<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">아직 읽은 스케줄이 없습니다. 시트에서 읽어오는 중이거나, Google Sheet 소스가 필요합니다.</p>';
 
-    return head('스케줄', nav) + status + (people ? schedulePeopleTable() : scheduleWeekGrid());
+    return head('스케줄', nav) + status + (people ? schedulePeopleTable() : times ? scheduleTimesTable() : scheduleWeekGrid());
   }
 
-  /** 표 CSV: the 회원별/사람별 table as it stands. */
+  /** 표 CSV: whichever table is on screen — 시간별 or 회원별. */
   function downloadScheduleCSV() {
-    const mode = state.schedMode || 'member';
+    if (state.schedTab === 'times') return downloadScheduleTimesCSV();
+    const mode = 'member'; // 사람 merge lives on in the CSV's 사람키 column; the tab is 시간별 now
     const cell = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const head = ['이름', '사람키', '표기', '강사', '예약', '주당', '개인', '단체', '주요 요일', '주요 요일 횟수', '주요 시간', '주요 시간 횟수', '오전', '낮', '저녁', '첫 예약', '마지막 예약', '시트 회원'];
     const lines = [head.join(',')].concat(bookingRows(mode).sort((a, b) => b.count - a.count).map((r) => [
@@ -1695,6 +1766,34 @@
       r.topDay, r.topDayN, r.topTime, r.topTimeN, r.morning, r.day, r.evening, r.first, r.last, r.member ? 'Y' : 'N',
     ].map(cell).join(',')));
     download(`wellperion-스케줄-${mode === 'person' ? '사람별' : '회원별'}-${today()}.csv`, '﻿' + lines.join('\n'), 'text/csv');
+  }
+
+  /** 시간별 CSV: one line per time slot — the headcount, the weekday split and who comes. */
+  function downloadScheduleTimesCSV() {
+    const cell = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const list = scopedBookings();
+    const times = Array.from(new Set(list.map((b) => b.time))).sort();
+    const head = ['시간', '예약', '인원', '개인', '단체'].concat(WEEKDAYS).concat(['강사', '멤버']);
+    const lines = [head.join(',')].concat(times.map((time) => {
+      const at = list.filter((b) => b.time === time);
+      const byPerson = new Map();
+      for (const b of at) {
+        const k = Sheets.personKey(b.name);
+        const p = byPerson.get(k) || byPerson.set(k, { name: b.name, n: 0 }).get(k);
+        p.n++;
+        if (b.name.length < p.name.length) p.name = b.name;
+      }
+      const coaches = {};
+      at.forEach((b) => { coaches[b.coach] = (coaches[b.coach] || 0) + 1; });
+      return [time, at.length, byPerson.size, at.filter((b) => !b.group).length, at.filter((b) => b.group).length]
+        .concat(WEEKDAYS.map((d) => at.filter((b) => WEEKDAYS[(new Date(b.date + 'T00:00:00').getDay() + 6) % 7] === d).length))
+        .concat([
+          Object.entries(coaches).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} ${n}`).join(' · '),
+          Array.from(byPerson.values()).sort((a, b) => b.n - a.n).map((m) => `${m.name} ${m.n}`).join(', '),
+        ]).map(cell).join(',');
+    }));
+    const s = schedScope();
+    download(`wellperion-시간별-${s.from}_${s.to}.csv`, '﻿' + lines.join('\n'), 'text/csv');
   }
 
   /** 예약 원본 CSV: one line per booked slot, for a spreadsheet or a pivot table. */
@@ -2297,10 +2396,7 @@
       el.onclick = () => { state.schedTab = el.dataset.schedTab; render(); };
     });
     viewEl.querySelectorAll('[data-sched-range]').forEach((el) => {
-      el.onclick = () => { state.schedRange = el.dataset.schedRange; tbl('sched').limit = tbl('sched').initial; render(); };
-    });
-    viewEl.querySelectorAll('[data-sched-mode]').forEach((el) => {
-      el.onclick = () => { state.schedMode = el.dataset.schedMode; render(); };
+      el.onclick = () => { state.schedRange = el.dataset.schedRange; tbl('sched').limit = tbl('sched').initial; tbl('schedtime').limit = tbl('schedtime').initial; render(); };
     });
     const schedAll = $('#btn-sched-all');
     if (schedAll) schedAll.onclick = () => {

@@ -60,7 +60,8 @@ button, .btn, input, select, textarea { font: inherit; }
 
 .view { padding: 20px; max-width: 1480px; margin: 0 auto; }
 .view-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.view-head h1 { font-size: 30px; font-weight: 600; margin: 0; flex: 1; color: var(--primary); }
+.view-head h1 { font-size: 30px; font-weight: 600; margin: 0; flex: 1 0 auto; white-space: nowrap; color: var(--primary); }
+.view-head .btn-group { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 .view-head input[type=search], .view-head select {
   padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card);
 }
