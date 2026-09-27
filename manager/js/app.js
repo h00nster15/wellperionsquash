@@ -1627,6 +1627,83 @@
     };
   }
   const avgCell = (a) => `${a.bookings.toFixed(1)} <span style="color:var(--muted)">·</span> ${a.people.toFixed(1)}`;
+  const round1 = (v) => Math.round(v * 10) / 10;
+
+  /** Every date of the range that belongs to a month actually read. */
+  function schedDates() {
+    const s = schedScope();
+    const known = schedMonths();
+    const out = [];
+    for (let d = s.from; d <= s.to && out.length < 800; d = addDays(d, 1)) {
+      if (!known.length || known.includes(d.slice(0, 7))) out.push(d);
+    }
+    return out;
+  }
+
+  /**
+   * Per-date averages. Two denominators, because they answer different questions:
+   *   ran   — the dates this slot actually ran on ("when 17:00 runs, 5.3 people come")
+   *   daily — every date in the period ("17:00 carries 4.2 bookings a day on average")
+   * Both are given per week and per month, which is the same figure seen through the
+   * weekly and the monthly window: a partial week or month has fewer days in it.
+   */
+  function perDate(list, dates) {
+    const days = dates.length || 1;
+    const ranDates = new Set(list.map((b) => b.date));
+    const ran = ranDates.size || 1;
+    const people = new Map();
+    for (const b of list) {
+      const set = people.get(b.date) || people.set(b.date, new Set()).get(b.date);
+      set.add(Sheets.personKey(b.name));
+    }
+    const peopleSum = Array.from(people.values()).reduce((a, s) => a + s.size, 0);
+    return {
+      ranDays: ranDates.size,
+      days,
+      ranBookings: round1(list.length / ran), ranPeople: round1(peopleSum / ran),
+      dayBookings: round1(list.length / days), dayPeople: round1(peopleSum / days),
+    };
+  }
+
+  /** 주별 / 월별: the same figures as a run of weeks or months, with the daily average. */
+  function scheduleBucketTable(list) {
+    const unit = state.schedUnit || 'week';
+    const buckets = schedBuckets(unit);
+    const dates = schedDates();
+    const rows = buckets.map((key) => {
+      const inB = list.filter((b) => bucketKey(b.date, unit) === key);
+      const pd = perDate(inB, dates.filter((d) => bucketKey(d, unit) === key));
+      const times = {}, days = {};
+      for (const b of inB) {
+        times[b.time] = (times[b.time] || 0) + 1;
+        const d = WEEKDAYS[(new Date(b.date + 'T00:00:00').getDay() + 6) % 7];
+        days[d] = (days[d] || 0) + 1;
+      }
+      const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0] || ['', 0];
+      return {
+        key,
+        label: unit === 'month' ? key.replace('-', '.') : `${key.slice(5).replace('-', '.')}~${addDays(key, 6).slice(5).replace('-', '.')}`,
+        count: inB.length, people: new Set(inB.map((b) => Sheets.personKey(b.name))).size,
+        pd, topTime: top(times), topDay: top(days),
+      };
+    });
+    const max = Math.max(1, ...rows.map((r) => r.count));
+    const chip = (label, value) => `<button class="ghost${(state.schedUnit || 'week') === value ? ' on' : ''}" data-sched-unit="${value}" style="font-size:11px${(state.schedUnit || 'week') === value ? ';font-weight:600' : ''}">${label}</button>`;
+    return `<div class="table-wrap" style="margin-bottom:16px"><table class="sched" style="min-width:680px"><thead><tr>
+        <th style="width:120px">${unit === 'month' ? '달' : '주'} ${chip('주별', 'week')}${chip('월별', 'month')}</th>
+        <th style="width:56px">일수</th><th>예약</th><th>인원</th>
+        <th>일 평균 <span style="font-weight:400;color:var(--muted)">예약 · 인원</span></th>
+        <th>최다 시간</th><th>최다 요일</th></tr></thead><tbody>
+      ${rows.map((r) => `<tr>
+        <td><strong>${esc(r.label)}</strong></td>
+        <td style="color:var(--muted);font-size:12px">${r.pd.days}일</td>
+        <td style="background:rgba(31,42,107,${(0.05 + 0.45 * (r.count / max)).toFixed(3)})"><strong>${r.count}</strong>회</td>
+        <td>${r.people}명</td>
+        <td>${r.pd.dayBookings.toFixed(1)} <span style="color:var(--muted)">·</span> ${r.pd.dayPeople.toFixed(1)}</td>
+        <td>${r.topTime[0] ? `${esc(r.topTime[0])} <span class="pill">${r.topTime[1]}</span>` : '—'}</td>
+        <td>${r.topDay[0] ? `${esc(r.topDay[0])} <span class="pill">${r.topDay[1]}</span>` : '—'}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="7">일 평균 = 그 ${unit === 'month' ? '달' : '주'}의 예약(인원) ÷ 그 ${unit === 'month' ? '달' : '주'}의 날 수 · 읽어온 달의 날짜만 셉니다</td></tr></tfoot></table></div>`;
+  }
 
   /** 요일별: what a typical 월요일 looks like, in bookings and in people. */
   function scheduleDayTable(list) {
@@ -1640,15 +1717,18 @@
       const times = {};
       at.forEach((b) => { times[b.time] = (times[b.time] || 0) + 1; });
       const top = Object.entries(times).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0] || ['', 0];
+      const mine = dates.filter((d) => dayOf(d) === day);
       return {
-        day, days: dates.filter((d) => dayOf(d) === day).length, count: at.length,
+        day, days: mine.length, count: at.length,
         people: new Set(at.map((b) => Sheets.personKey(b.name))).size,
+        pd: perDate(at, mine), // 하루 평균: that weekday's own dates, not every date
         week: avgOver(at, 'week'), month: avgOver(at, 'month'), topTime: top[0], topTimeN: top[1],
       };
     });
     const max = Math.max(1, ...rows.map((r) => r.count));
     return `<div class="table-wrap" style="margin-bottom:16px"><table class="sched" style="min-width:680px"><thead><tr>
         <th style="width:56px">요일</th><th style="width:56px">일수</th><th>예약</th><th>인원</th>
+        <th>하루 평균 <span style="font-weight:400;color:var(--muted)">예약 · 인원</span></th>
         <th>주 평균 <span style="font-weight:400;color:var(--muted)">예약 · 인원</span></th>
         <th>월 평균 <span style="font-weight:400;color:var(--muted)">예약 · 인원</span></th>
         <th>최다 시간</th></tr></thead><tbody>
@@ -1657,16 +1737,20 @@
         <td style="color:var(--muted);font-size:12px">${r.days}일</td>
         <td style="background:rgba(31,42,107,${(0.05 + 0.45 * (r.count / max)).toFixed(3)})"><strong>${r.count}</strong>회</td>
         <td>${r.people}명</td>
+        <td>${r.pd.dayBookings.toFixed(1)} <span style="color:var(--muted)">·</span> ${r.pd.dayPeople.toFixed(1)}</td>
         <td>${avgCell(r.week)}</td>
         <td>${avgCell(r.month)}</td>
         <td>${r.topTime ? `${esc(r.topTime)} <span class="pill">${r.topTimeN}</span>` : '—'}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="7">주 ${schedBuckets('week').length}개 · 달 ${schedBuckets('month').length}개 기준 평균 · 인원은 그 주(달)에 온 사람 수를 주(달)마다 세어 평균 낸 값입니다</td></tr></tfoot></table></div>`;
+      <tfoot><tr><td colspan="8">주 ${schedBuckets('week').length}개 · 달 ${schedBuckets('month').length}개 기준 평균 · 인원은 그 주(달)에 온 사람 수를 주(달)마다 세어 평균 낸 값입니다</td></tr></tfoot></table></div>`;
   }
 
   const SCHEDTIME_COLUMNS = [
     { h: '시간', k: 'time', v: (r) => r.time, f: (r) => `<strong>${esc(r.time)}</strong>` },
     { h: '예약', k: 'count', v: (r) => r.count, f: (r) => `<strong>${r.count}</strong>회` },
     { h: '인원', k: 'people', v: (r) => r.people, f: (r) => `${r.people}명` },
+    { h: '운영일', k: 'ranDays', v: (r) => r.pd.ranDays, f: (r) => `${r.pd.ranDays}일` },
+    { h: '운영일 평균 (예약·인원)', k: 'ranAvg', v: (r) => r.pd.ranPeople, f: (r) => `${r.pd.ranBookings.toFixed(1)} <span style="color:var(--muted)">·</span> ${r.pd.ranPeople.toFixed(1)}` },
+    { h: '일 평균 (예약·인원)', k: 'dayAvg', v: (r) => r.pd.dayPeople, f: (r) => `${r.pd.dayBookings.toFixed(2)} <span style="color:var(--muted)">·</span> ${r.pd.dayPeople.toFixed(2)}` },
     { h: '주 평균 (예약·인원)', k: 'weekAvg', v: (r) => r.week.people, f: (r) => avgCell(r.week) },
     { h: '월 평균 (예약·인원)', k: 'monthAvg', v: (r) => r.month.people, f: (r) => avgCell(r.month) },
     { h: '개인 · 단체', k: 'solo', v: (r) => r.solo, f: (r) => `${r.solo} · ${r.group}` },
@@ -1681,6 +1765,7 @@
     loadSchedule(Array.from(new Set(s.months.filter(Boolean))));
     const ts = tbl('schedtime');
     const list = scopedBookings();
+    const dates = schedDates();
     const times = Array.from(new Set(list.map((b) => b.time))).sort();
 
     let rows = times.map((time) => {
@@ -1700,7 +1785,7 @@
       const topDay = Object.entries(days).sort((a, b) => b[1] - a[1])[0] || ['', 0];
       return {
         id: 'time:' + time, time, count: at.length, people: byPerson.size,
-        week: avgOver(at, 'week'), month: avgOver(at, 'month'),
+        pd: perDate(at, dates), week: avgOver(at, 'week'), month: avgOver(at, 'month'),
         solo: at.filter((b) => !b.group).length, group: at.filter((b) => b.group).length,
         days, topDay: topDay[0], topDayN: topDay[1],
         coachList: Object.entries(coaches).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} ${n}`).join(' · '),
@@ -1728,7 +1813,7 @@
     const peak = rows.slice().sort((a, b) => b.count - a.count)[0];
     const note = `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">${esc(s.label)} · 시간대 ${times.length}개 · 예약 ${total}건${peak ? ` · 가장 붐비는 시간 <strong>${esc(peak.time)}</strong> (${peak.count}회 · ${peak.people}명)` : ''}. 요일별 평균 → 요일 × 시간 예약 수 → 시간대마다 누가 오는지 순서입니다. 인원은 같은 사람의 여러 표기를 하나로 센 수이고, 주·월 평균은 기간에 걸친 주(${schedBuckets('week').length}개)와 달(${schedBuckets('month').length}개)마다 세어 평균 낸 값입니다.</p>`;
 
-    return note + scheduleDayTable(list) + matrix + table(SCHEDTIME_COLUMNS, rows, () => {}, schedLoading ? '읽는 중…' : '이 기간에는 예약이 없습니다.', {
+    return note + scheduleBucketTable(list) + scheduleDayTable(list) + matrix + table(SCHEDTIME_COLUMNS, rows, () => {}, schedLoading ? '읽는 중…' : '이 기간에는 예약이 없습니다.', {
       tbl: 'schedtime', sort: ts.sort,
       footer: `시간대 ${rows.length}개 · 예약 ${total}건 · 연인원 ${rows.reduce((n, r) => n + r.people, 0)}명`,
     });
@@ -1849,8 +1934,21 @@
     const cell = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const list = scopedBookings();
     const times = Array.from(new Set(list.map((b) => b.time))).sort();
-    const head = ['구분', '시간', '예약', '인원', '주 평균 예약', '주 평균 인원', '월 평균 예약', '월 평균 인원', '개인', '단체'].concat(WEEKDAYS).concat(['강사', '멤버']);
+    const head = ['구분', '시간', '예약', '인원', '일수', '일 평균 예약', '일 평균 인원', '주 평균 예약', '주 평균 인원', '월 평균 예약', '월 평균 인원', '개인', '단체'].concat(WEEKDAYS).concat(['강사', '멤버']);
     const dayOf = (d) => WEEKDAYS[(new Date(d + 'T00:00:00').getDay() + 6) % 7];
+    const dates = schedDates();
+    // Each week and each month as its own row, so the weekly/monthly view survives the export.
+    const bucketLines = ['week', 'month'].map((unit) => schedBuckets(unit).map((key) => {
+      const inB = list.filter((b) => bucketKey(b.date, unit) === key);
+      const mine = dates.filter((d) => bucketKey(d, unit) === key);
+      const pd = perDate(inB, mine);
+      return [unit === 'month' ? '달' : '주', unit === 'month' ? key : `${key}~${addDays(key, 6)}`,
+        inB.length, new Set(inB.map((b) => Sheets.personKey(b.name))).size, pd.days,
+        pd.dayBookings, pd.dayPeople, '', '', '', '',
+        inB.filter((b) => !b.group).length, inB.filter((b) => b.group).length]
+        .concat(WEEKDAYS.map((d) => inB.filter((b) => dayOf(b.date) === d).length))
+        .concat(['', '']).map(cell).join(',');
+    })).flat();
     // The weekday block first, then one row per time slot — same columns, so it pivots as one table.
     const dayLines = WEEKDAYS.map((day) => {
       const at = list.filter((b) => dayOf(b.date) === day);
@@ -1858,12 +1956,14 @@
       const times2 = {};
       at.forEach((b) => { times2[b.time] = (times2[b.time] || 0) + 1; });
       const top = Object.entries(times2).sort((a, b) => b[1] - a[1])[0] || ['', 0];
-      return ['요일', day, at.length, new Set(at.map((b) => Sheets.personKey(b.name))).size, wk.bookings, wk.people, mo.bookings, mo.people,
+      const pd = perDate(at, dates.filter((d) => dayOf(d) === day));
+      return ['요일', day, at.length, new Set(at.map((b) => Sheets.personKey(b.name))).size,
+        pd.days, pd.dayBookings, pd.dayPeople, wk.bookings, wk.people, mo.bookings, mo.people,
         at.filter((b) => !b.group).length, at.filter((b) => b.group).length]
         .concat(WEEKDAYS.map((d) => (d === day ? at.length : 0)))
         .concat(['', top[0] ? `최다 시간 ${top[0]} ${top[1]}회` : '']).map(cell).join(',');
     });
-    const lines = [head.join(',')].concat(dayLines).concat(times.map((time) => {
+    const lines = [head.join(',')].concat(bucketLines).concat(dayLines).concat(times.map((time) => {
       const at = list.filter((b) => b.time === time);
       const wk = avgOver(at, 'week'), mo = avgOver(at, 'month');
       const byPerson = new Map();
@@ -1875,7 +1975,9 @@
       }
       const coaches = {};
       at.forEach((b) => { coaches[b.coach] = (coaches[b.coach] || 0) + 1; });
-      return ['시간', time, at.length, byPerson.size, wk.bookings, wk.people, mo.bookings, mo.people,
+      const pd = perDate(at, dates);
+      return ['시간', time, at.length, byPerson.size, pd.ranDays, pd.ranBookings, pd.ranPeople,
+        wk.bookings, wk.people, mo.bookings, mo.people,
         at.filter((b) => !b.group).length, at.filter((b) => b.group).length]
         .concat(WEEKDAYS.map((d) => at.filter((b) => dayOf(b.date) === d).length))
         .concat([
@@ -2485,6 +2587,9 @@
     });
     viewEl.querySelectorAll('[data-sched-tab]').forEach((el) => {
       el.onclick = () => { state.schedTab = el.dataset.schedTab; render(); };
+    });
+    viewEl.querySelectorAll('[data-sched-unit]').forEach((el) => {
+      el.onclick = () => { state.schedUnit = el.dataset.schedUnit; render(); };
     });
     viewEl.querySelectorAll('[data-sched-range]').forEach((el) => {
       el.onclick = () => { state.schedRange = el.dataset.schedRange; tbl('sched').limit = tbl('sched').initial; tbl('schedtime').limit = tbl('schedtime').initial; render(); };
