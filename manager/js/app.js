@@ -12,7 +12,26 @@
   const CALL_OUTCOMES = ['booked', 'callback', 'info-sent', 'not-interested', 'opt-out', 'no-answer'];
   const EVENT_TYPES = ['league', 'tournament', 'open-day', 'social', 'corporate', 'coaching-clinic'];
   const EVENT_STATUS = ['idea', 'planned', 'open', 'full', 'done', 'cancelled'];
-  const ASSET_TYPES = ['logo', 'font', 'template', 'photo', 'video', 'document', 'other'];
+  // Social plan (Social tab). Two accounts, two scopes (owner's rule, 2026-09-25):
+  //   @glass_court + 네이버 블로그 — everything.
+  //   @wellperion_squash — US squash, and events held at Wellperion. Nothing else.
+  // A row with 웰페리온 교차 게시 ticked goes to both; the tab counts them.
+  // Training Sessions and the Tournament Series were cancelled (2026-09-25); the
+  // only event on the books is 웰림픽 스쿼시컵 in November.
+  const POST_STATUS = ['idea', 'draft', 'scheduled', 'posted', 'dropped'];
+  const POST_CHANNELS = ['Instagram @glass_court', 'Instagram @wellperion_squash', 'Naver blog', 'YouTube Shorts'];
+  const PILLARS = [
+    { k: 'science', label: 'Science of Squash', share: 30, color: '#1f2a6b', job: '근거로 설명하는 프로 — 권위' },
+    { k: 'junior', label: '주니어 · 미국 진학', share: 25, color: '#7fa8d9', job: 'WSC 학부모 · 미국 스쿼시 — 성장 (웰페리온 계정 교차)' },
+    { k: 'tactics', label: '기본 전술', share: 20, color: '#3f57a8', job: '저장되는 짧은 릴스 — 도달' },
+    { k: 'event', label: '웰페리온 행사', share: 10, color: '#a9c6e8', job: '웰림픽 스쿼시컵 (11월) — 전환 (웰페리온 계정 교차)' },
+    { k: 'member', label: '회원 이야기', share: 10, color: '#c8102e', job: '재등록의 이유 — 신뢰 (서면 동의)' },
+    { k: 'facility', label: '웰페리온 시설', share: 5, color: '#8c94a3', job: '한남동 2,900평 — 신뢰도' },
+  ];
+  const PILLAR_KEYS = PILLARS.map((p) => p.k);
+  const pillarOf = (k) => PILLARS.find((p) => p.k === k) || { label: k || '—', color: '#8c94a3', job: '' };
+  /** Only these belong on @wellperion_squash: US squash, and events at Wellperion. */
+  const WELLPERION_OK = new Set(['junior', 'event']);
 
   const schemas = {
     customers: {
@@ -89,14 +108,34 @@
         { k: 'notes', label: 'Notes / checklist', type: 'textarea', full: true },
       ],
     },
-    assets: {
-      title: 'Brand asset',
+    kpi: {
+      title: '월간 지표',
       fields: [
-        { k: 'name', label: 'Name', required: true, full: true },
-        { k: 'type', label: 'Type', type: 'select', options: ASSET_TYPES, def: 'template' },
-        { k: 'version', label: 'Version', placeholder: 'v1' },
-        { k: 'location', label: 'File path or link', full: true, placeholder: 'brand/assets/logos/… or https://…' },
-        { k: 'usage', label: 'Usage notes', type: 'textarea', full: true },
+        { k: 'month', label: 'Month (YYYY-MM)', required: true, def: () => today().slice(0, 7), placeholder: '2026-09' },
+        { k: 'igFollowers', label: '인스타 팔로워', type: 'number' },
+        { k: 'igReach', label: '인스타 도달 (30일)', type: 'number' },
+        { k: 'igSaves', label: '저장 수', type: 'number' },
+        { k: 'igProfile', label: '프로필 조회', type: 'number' },
+        { k: 'igDms', label: 'DM · 문의', type: 'number' },
+        { k: 'blogVisits', label: '블로그 방문 (30일) — 네이버는 API가 없어 직접 입력', type: 'number' },
+        { k: 'bookings', label: '세션 · 체험 예약 (인스타/블로그發)', type: 'number' },
+        { k: 'notes', label: 'Notes', type: 'textarea', full: true },
+      ],
+    },
+    posts: {
+      title: 'Post',
+      fields: [
+        { k: 'date', label: 'Date (게시 예정일)', type: 'date', def: today, required: true },
+        { k: 'channel', label: 'Channel', type: 'select', options: POST_CHANNELS, def: 'Instagram' },
+        { k: 'pillar', label: 'Pillar (콘텐츠 필러)', type: 'select', options: PILLAR_KEYS, def: 'science' },
+        { k: 'status', label: 'Status', type: 'select', options: POST_STATUS, def: 'idea' },
+        { k: 'title', label: 'Title KR (한국어 제목)', required: true, full: true },
+        { k: 'titleEn', label: 'Title EN', full: true },
+        { k: 'format', label: 'Format (릴스 30초 / 카드뉴스 7장 …)', full: true },
+        { k: 'cta', label: 'CTA (가격은 쓰지 않습니다)' },
+        { k: 'wellperion', label: '@wellperion_squash 에도 게시 (미국 스쿼시 · 웰페리온 행사만)', type: 'checkbox', full: true },
+        { k: 'blocker', label: 'Blocked by (없으면 비워 둠)', placeholder: '세션 #2 날짜' },
+        { k: 'notes', label: 'Notes — 원고 · 촬영 · 디자인 상태', type: 'textarea', full: true },
       ],
     },
   };
@@ -485,8 +524,53 @@
     const twin = (Store.settings().sheet.sources || []).find((x) => x.token && base(x.url) === base(url));
     return twin ? twin.token : '';
   }
-  async function syncFromSheet(btn) { return Store.batch(() => syncFromSheetInner(btn)); }
-  async function syncFromSheetInner(btn) {
+  // The roster tabs move every month (Config.gs → appSources_ picks each coach's newest
+  // month tab and the one before it), but the browser used to keep whatever list it got at
+  // its first login — so Sync kept reading old tabs and new registrations never arrived.
+  // Now every Sync asks the script for the current member sources first. A member source
+  // keeps its column mapping when its URL is unchanged, else takes the mapping of the same
+  // coach's previous tab (the monthly tabs share one layout). Other sources are untouched.
+  async function refreshMemberSources() {
+    if (!scriptSource()) return;
+    let fresh;
+    // Only each coach's current month tab: the script also offers last month's (prevMonth),
+    // but the owner wants the Members list to be this month's roster only (2026-09-25).
+    try { fresh = ((await socialCall('sources')).sources || []).filter((x) => x.kind === 'members' && x.url && !x.prevMonth); }
+    catch (err) { console.warn('member sources not refreshed:', err.message); return; }
+    if (!fresh.length) return;
+    const now = Store.settings().sheet.sources || [];
+    // Roster sources saved without a kind (added in the Google Sheet dialog, or from before
+    // kinds existed — e.g. "박상현 회원" on the old mirror tab) count as member sources too,
+    // or they survive the swap and fail with "Tab not found".
+    const isMember = (x) => x.kind === 'members' || (!x.kind && (!!x.coach || (/회원/.test(x.name || '') && !/DB|문의|연락처/.test(x.name || ''))));
+    const oldMembers = now.filter(isMember);
+    const token = tokenFor(scriptSource().url, scriptSource().token);
+    const members = fresh.map((x, i) => {
+      const same = oldMembers.find((o) => o.url === x.url);
+      if (same) return Object.assign({}, same, x, { mapping: same.mapping, token: same.token || token });
+      const sibling = oldMembers.find((o) => o.coach && o.coach === x.coach && hasIdentity(o.mapping));
+      return Object.assign({ id: Date.now().toString(36) + 'm' + i, mapping: sibling ? Object.assign({}, sibling.mapping) : {} }, x, { token });
+    });
+    Store.setSheetSettings({ sources: members.concat(now.filter((x) => !isMember(x))) });
+  }
+  // Sync progress: a bar under the page heading, one step per source. Sync re-renders the
+  // view only when it is done, so the bar is patched in place meanwhile.
+  function syncProgress(btn) {
+    const host = (btn && typeof btn.closest === 'function' && btn.closest('.view-head')) || viewEl.firstElementChild; // the post-login Sync passes a stand-in, not a button
+    const show = (frac, text) => {
+      const old = document.getElementById('sync-progress');
+      const html = progressHtml(frac, text, 'Sync 진행', 'sync-progress');
+      if (old) old.outerHTML = html; else if (host) host.insertAdjacentHTML('afterend', html);
+    };
+    return { show, done: () => { const el = document.getElementById('sync-progress'); if (el) el.remove(); } };
+  }
+  async function syncFromSheet(btn) {
+    const bar = syncProgress(btn);
+    bar.show(null, '시트 목록 확인 중…');
+    try { return await Store.batch(async () => { await refreshMemberSources(); return syncFromSheetInner(btn, bar); }); }
+    finally { bar.done(); }
+  }
+  async function syncFromSheetInner(btn, bar) {
     const s = Store.settings().sheet;
     const sources = (s.sources || []).filter((x) => x.url);
     if (!sources.length) return openSheetSettings();
@@ -509,8 +593,11 @@
     const total = { rows: 0, unique: 0, collapsed: 0, added: 0, updated: 0, merged: 0, removed: 0, sheets: [], warnings: [] };
     const runAt = new Date().toISOString();
     const errors = [];
+    let step = 0;
     for (const src of sources) { // sequential so later sheets merge into customers created by earlier ones
       btn.textContent = `Syncing ${src.name}…`;
+      if (bar) bar.show(step / sources.length, `${step + 1} / ${sources.length} · ${src.name}`);
+      step++;
       try {
         const csv = await Sheets.fetchCSV(src.url, tokenFor(src.url, src.token));
         const kind = src.kind || (src.enrichOnly ? 'contacts' : 'members');
@@ -520,6 +607,7 @@
         total.sheets.push({ name: src.name, ...r });
       } catch (err) { errors.push(`${src.name}: ${err.message}`); }
     }
+    if (bar) bar.show(1, '정리 중…');
     // Only prune when every source succeeded — a failed fetch must not look like "everyone left".
     if (total.sheets.length === sources.length && !errors.length) {
       const pr = Sheets.pruneMissing(Store, runAt);
@@ -543,8 +631,9 @@
       const j = await res.json();
       if (!j.ok) throw new Error(j.error || 'unknown error');
       const tabs = (j.sourceTabs || []).map((t) => `${t.name}: ${t.rows}행`).join(', ');
+      const skipped = (j.skippedTabs || []).map((t) => `${t.name}: ${t.rows}행 (열 이름 불일치: ${(t.headers || []).join(' · ')})`).join('\n');
       btn.textContent = label; btn.disabled = false;
-      alert(`문의 DB 가져오기 완료\n문의-주니어 ${j.juniors}건 · 문의-시니어 ${j.seniors}건 (총 ${j.inquiries}건, 수기 입력 ${j.kept}칸 유지)\n원본 탭: ${tabs || '-'}\n\n이제 Sync를 실행합니다.`);
+      alert(`문의 DB 가져오기 완료\n문의-주니어 ${j.juniors}건 · 문의-시니어 ${j.seniors}건 (총 ${j.inquiries}건, 수기 입력 ${j.kept}칸 유지)\n원본 탭: ${tabs || '-'}${skipped ? `\n⚠ 읽지 못한 탭 (문의 열 이름이 달라 건너뜀):\n${skipped}` : ''}\n\n이제 Sync를 실행합니다.`);
       const syncBtn = $('#btn-sync-leads') || $('#btn-sync');
       if (syncBtn) await syncFromSheet(syncBtn);
     } catch (err) {
@@ -592,7 +681,8 @@
   const nameOf = (col, id) => { const r = id && Store.get(col, id); return r ? labelOf(col, r) : '—'; };
 
   const pillClass = (v) => ({
-    active: 'ok', booked: 'ok', live: 'ok', open: 'ok', done: '',
+    active: 'ok', booked: 'ok', live: 'ok', open: 'ok', done: '', posted: 'ok',
+    draft: 'warn', scheduled: 'info', dropped: 'bad',
     'at-risk': 'warn', callback: 'warn', paused: 'warn', full: 'warn', planned: 'info', 'trial-booked': 'info',
     lapsed: 'bad', 'opted-out': 'bad', 'opt-out': 'bad', 'not-interested': 'bad', cancelled: 'bad',
   }[v] || '');
@@ -620,8 +710,714 @@
     return `<div class="view-head"><h1>${esc(title)}</h1>${extra}</div>`;
   }
 
+  // ---------- Member trend (Dashboard) ----------
+  // Monthly series built from the sheet's own dates: a member counts as active in a month
+  // when 등록일자 <= that month's end and 유효기간 [종료일자] >= its start (no 유효기간 = still
+  // running). Renewals are collapsed into one record (earliest 등록일자, latest 유효기간), so
+  // this is the trend of member records, not of every registration — and members deleted
+  // from the sheet are gone from it, so months far back read low. Both caveats sit in the
+  // note under the charts.
+  const CHART_ACTIVE = '#2d53a3', CHART_NEW = '#b27a1e'; // Oxford blue, brass — validated on the ivory panel (dataviz six checks)
+  // Money on charts: axes and end labels short (350만, 1.2억), tooltips and tables in full won.
+  const wonFull = (v) => `${Math.round(v).toLocaleString('ko-KR')}원`;
+  const wonShort = (v) => (Math.abs(v) >= 1e8 ? `${+(v / 1e8).toFixed(1)}억` : Math.abs(v) >= 1e4 ? `${Math.round(v / 1e4).toLocaleString('ko-KR')}만` : String(Math.round(v)));
+  // opts.money on a chart: short won on the axis, full won in the tooltip (figure data-fmt="won").
+  const figAttr = (opts) => (opts && opts.money ? ' data-fmt="won"' : '');
+  const axisOf = (opts) => (opts && opts.money ? wonShort : (v) => Math.round(v));
+  const ymAdd = (ym, n) => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7); };
+  // Ticks every `step` months; the year rides the first one and every change of year.
+  function monthTicks(points, step) {
+    const out = [];
+    let year = '';
+    points.forEach((p, i) => {
+      const last = i === points.length - 1;
+      if (!(i % step === 0 || last)) return;
+      if (last && out.length && i - out[out.length - 1].i < step / 2) out.pop(); // no collision at the right edge
+      const y = p.m.slice(0, 4), m = p.m.slice(5);
+      out.push({ i, text: y === year ? `${+m}월` : `${y}.${m}` });
+      year = y;
+    });
+    return out;
+  }
+  function niceMax(v) {
+    if (!(v > 0)) return 1;
+    if (v <= 10) return Math.ceil(v / 2) * 2; // even, so the middle gridline is a whole number
+    const mag = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const s of [1, 1.5, 2, 2.5, 3, 4, 5, 7.5]) if (v <= s * mag) return s * mag;
+    return 10 * mag;
+  }
+  function memberTrend(members, months) {
+    const rows = members.filter((c) => c.joined);
+    const now = today().slice(0, 7);
+    const earliest = rows.map((c) => c.joined.slice(0, 7)).sort()[0] || now;
+    let first = months === 'all' ? earliest : ymAdd(now, -(months - 1));
+    if (first < earliest) first = earliest;
+    if (first > now) first = now;
+    const out = [];
+    for (let m = first; m <= now && out.length < 240; m = ymAdd(m, 1)) {
+      const start = m + '-01', end = m + '-31';
+      out.push({
+        m,
+        active: rows.filter((c) => c.joined <= end && (!c.validUntil || c.validUntil >= start)).length,
+        added: rows.filter((c) => c.joined.slice(0, 7) === m).length,
+      });
+    }
+    return { points: out, dated: rows.length, undated: members.length - rows.length };
+  }
+
+  // The coaches' yearly books (Months.gs → ?action=member-history): the counted roster of
+  // every monthly payroll tab, current coaches and past ones. When the script has it, the
+  // chart uses it instead of the reconstruction above, which only sees the synced roster.
+  // Counts only, no names — kept in localStorage so the chart draws before the fetch returns,
+  // then re-fetched once per page load (it only reads the cached tab, so it is quick): a copy
+  // kept for hours hid a script update for just as long.
+  const HISTORY_KEY = 'wellperion-squash.member-history';
+  // Views drawn from the books: they re-render as the history loads or rebuilds.
+  const historyView = () => state.view === 'dashboard' || state.view === 'revenue';
+  let historyCache = null, historyLoading = false, historyError = '', historyTried = false, historyProgress = '';
+  let historyDone = 0, historyTotal = 0; // progress of 장부 새로고침, in month tabs
+  let historyChecks = null; // this month's tabs as the script read them on the last 장부 새로고침
+  try { historyCache = JSON.parse(localStorage.getItem(HISTORY_KEY) || 'null'); } catch (e) { historyCache = null; }
+  if (historyCache && !Array.isArray(historyCache.totals)) historyCache = null; // saved before dropout existed
+  async function loadMemberHistory(force) {
+    if (historyLoading || !scriptSource() || (!force && historyTried)) return; // once per page load unless asked: a failed fetch must not loop through render()
+    historyLoading = true; historyTried = true;
+    try {
+      const j = await socialCall('member-history');
+      historyCache = { at: new Date().toISOString(), months: j.months || [], coachMonths: j.coachMonths || [], totals: j.totals || [], stale: j.stale || 0, current: j.current || '' };
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(historyCache)); } catch (e) { /* ignore */ }
+      historyError = '';
+    } catch (err) {
+      historyError = err.message || String(err);
+    } finally {
+      historyLoading = false;
+      if (historyView()) render();
+    }
+  }
+  // 회원구분 → 주니어 / 성인. WSC is the sheets' junior class (same words as Sheets' junior segment).
+  const isJuniorType = (t) => /wsc|주니어|학생|아동|kid/i.test(t);
+  // A coach's rows (or everyone's with coach = ''), summed per month:
+  // active = on that month's roster, added = 등록일자 in that month, junior/adult split by 회원구분.
+  // left = on last month's roster, not on this one (the script works it out from hashed
+  // roster keys); rate = left ÷ last month's roster. With no coach, active is the number of
+  // distinct people across every coach's book, not the sum of the rosters.
+  function historySeries(rows, coach) {
+    const byMonth = {};
+    rows.filter((r) => !coach || r.coach === coach).forEach((r) => {
+      const p = byMonth[r.month] || (byMonth[r.month] = { m: r.month, active: 0, added: 0, junior: 0, adult: 0, newJoin: 0, renew: 0, split: true, left: null });
+      p.active += r.members; p.added += r.joined;
+      if (r.newJoin == null) p.split = false; else { p.newJoin += r.newJoin; p.renew += r.renew; }
+      Object.entries(r.byType || {}).forEach(([t, n]) => { if (isJuniorType(t)) p.junior += n; else p.adult += n; });
+    });
+    const drops = coach
+      ? ((historyCache && historyCache.coachMonths) || []).filter((d) => d.coach === coach)
+      : ((historyCache && historyCache.totals) || []);
+    drops.forEach((d) => {
+      const p = byMonth[d.month];
+      if (!p) return;
+      p.left = d.left;
+      if (!coach && d.people) p.active = d.people;
+    });
+    const out = Object.keys(byMonth).sort().map((m) => byMonth[m]);
+    out.forEach((p, i) => {
+      p.other = p.split ? Math.max(0, p.added - p.newJoin - p.renew) : 0;
+      const prev = out[i - 1];
+      p.rate = p.left != null && prev && prev.m === ymAdd(p.m, -1) && prev.active ? p.left / prev.active : null;
+    });
+    return out;
+  }
+  const pct = (r) => (r == null ? '—' : `${(100 * r).toFixed(1)}%`);
+  // Months counted before the 신규/재등록/명단키 columns existed have no split and no dropout.
+  // "장부 다시 읽기" has the script recount them: each call is time-budgeted (~4.5 min), so
+  // keep calling while it reports months remaining.
+  async function rebuildMemberHistory() {
+    if (historyLoading) return;
+    historyLoading = true; historyError = ''; historyProgress = '장부 읽는 중…'; historyDone = 0; historyTotal = 0;
+    render();
+    try {
+      // ~90 month tabs across nine books take several rounds. The script saves every tab as
+      // it goes, so a round that dies at the time limit loses nothing: just ask again.
+      let failures = 0;
+      for (let round = 1; round <= 30; round++) {
+        let j;
+        // ~75 s per round, so the bar moves; this month is recounted in the first round only.
+        try { j = await socialCall('member-history', Object.assign({ rebuild: '1', budget: '75' }, round > 1 ? { skipCurrent: '1' } : {})); failures = 0; }
+        catch (err) {
+          if (++failures >= 3) throw err;
+          historyProgress = `시간 초과 — 이어서 읽는 중 (${failures}/3)`;
+          if (historyView()) render();
+          continue;
+        }
+        historyCache = { at: new Date().toISOString(), months: j.months || [], coachMonths: j.coachMonths || [], totals: j.totals || [], stale: j.stale || 0, current: j.current || '' };
+        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(historyCache)); } catch (e) { /* ignore */ }
+        if (j.rebuilt && j.rebuilt.checks && j.rebuilt.checks.length) historyChecks = { at: new Date().toISOString(), rows: j.rebuilt.checks };
+        const left = j.rebuilt ? j.rebuilt.remaining : 0;
+        if (j.rebuilt && j.rebuilt.total) { historyTotal = j.rebuilt.total; historyDone = j.rebuilt.total - left; }
+        if (!left) break;
+        historyProgress = `${historyDone} / ${historyTotal}개월 · ${left}개월 남음`;
+        if (historyView()) render();
+      }
+    } catch (err) {
+      historyError = err.message || String(err);
+    } finally {
+      historyLoading = false; historyProgress = ''; historyDone = historyTotal = 0;
+      if (historyView()) render();
+    }
+  }
+  function historyTrend(months, coach) {
+    const rows = (historyCache && historyCache.months) || [];
+    if (!rows.length) return null;
+    const now = today().slice(0, 7);
+    const first = months === 'all' ? '' : ymAdd(now, -(months - 1));
+    const inRange = (p) => p.m >= first && p.m <= now;
+    const latest = rows.map((r) => r.month).filter((m) => m <= now).sort().pop() || now;
+    // Coaches on the newest month's books first (largest roster first), then those who have left.
+    const size = (c) => rows.filter((r) => r.coach === c && r.month === latest).reduce((a, r) => a + r.members, 0);
+    const coaches = [...new Set(rows.map((r) => r.coach))];
+    const current = coaches.filter((c) => size(c) > 0).sort((a, b) => size(b) - size(a) || a.localeCompare(b, 'ko'));
+    const past = coaches.filter((c) => !current.includes(c)).sort((a, b) => a.localeCompare(b, 'ko'));
+    return {
+      points: historySeries(rows, coach).filter(inRange),
+      perCoach: current.concat(past).map((c) => ({ coach: c, current: current.includes(c), points: historySeries(rows, c) })),
+      inRange, latest,
+      books: new Set(rows.map((r) => r.book)).size,
+      coaches: current.concat(past), current,
+      at: historyCache.at,
+    };
+  }
+
+  // Coach lines: at most three, so every pair stays apart for colour-blind readers and each
+  // line can carry its own end label (validated all-pairs on the ivory panel: Oxford blue / brass / green).
+  const SERIES_COLORS = ['#2d53a3', '#b27a1e', '#2e9e7c'];
+  function coachSeries(hist, key = 'active') {
+    const solo = hist.perCoach.length <= SERIES_COLORS.length;
+    const named = solo ? hist.perCoach : hist.perCoach.filter((c) => c.current).slice(0, SERIES_COLORS.length - 1);
+    const rest = hist.perCoach.filter((c) => !named.includes(c));
+    const months = [...new Set(hist.perCoach.flatMap((c) => c.points.map((p) => p.m)))].filter((m) => hist.inRange({ m })).sort();
+    // A month with no book for the coach: 0 members, but for money a gap in the line — a coach
+    // who left did not earn 0, they are just not in the books any more.
+    const none = key === 'active' ? 0 : null;
+    const at = (c, m) => { const p = c.points.find((q) => q.m === m); return p ? p[key] || 0 : none; };
+    const series = named.map((c, i) => ({ key: 's' + i, label: c.coach, color: SERIES_COLORS[i] }));
+    if (rest.length) series.push({ key: 's' + named.length, label: rest.every((c) => !c.current) ? '이전 코치' : '그 외 코치', color: SERIES_COLORS[named.length], members: rest.map((c) => c.coach) });
+    const points = months.map((m) => {
+      const p = { m };
+      named.forEach((c, i) => { p['s' + i] = at(c, m); });
+      if (rest.length) { const vs = rest.map((c) => at(c, m)).filter((v) => v != null); p['s' + named.length] = vs.length ? vs.reduce((a, v) => a + v, 0) : none; }
+      return p;
+    });
+    return { series, points };
+  }
+
+  // Columns stacked by series (same geometry as barChart), 2px of surface between segments.
+  // extra(p) adds tooltip rows that are not bars, e.g. the dropout rate.
+  function stackedBarChart(points, series, label, extra, opts = {}) {
+    const W = 1500, H = 190, L = 56, R = 34, T = 16, B = 34;
+    const iw = W - L - R, ih = H - T - B, n = points.length;
+    const total = (p) => series.reduce((a, s) => a + (p[s.key] || 0), 0);
+    const max = niceMax(Math.max(...points.map(total), 1));
+    const band = iw / n, bw = Math.min(24, Math.max(3, band - 2));
+    const y = (v) => T + ih - (ih * v) / max;
+    const step = Math.ceil(n / 12);
+    const bars = (p, i) => {
+      const bx = L + band * i + (band - bw) / 2;
+      let base = 0;
+      const segs = series.filter((s) => p[s.key] > 0);
+      return segs.map((s, k) => {
+        const v0 = base, v1 = base + p[s.key]; base = v1;
+        const top = k === segs.length - 1;
+        const y1 = y(v1) + (top ? 0 : 1), y0 = y(v0) - (k ? 1 : 0); // 1px off each shared edge = 2px gap
+        if (y0 - y1 < 0.5) return '';
+        const r = top ? Math.min(4, bw / 2, y0 - y1) : 0;
+        return `<path d="M${bx.toFixed(1)},${(y1 + r).toFixed(1)} a${r},${r} 0 0 1 ${r},${-r} h${(bw - 2 * r).toFixed(1)} a${r},${r} 0 0 1 ${r},${r} V${y0.toFixed(1)} H${bx.toFixed(1)} Z" fill="${s.color}"/>`;
+      }).join('');
+    };
+    const legend = series.length > 1 ? `<div class="chart-legend">${series.map((s) => `<span><i class="sq" style="background:${s.color}"></i>${esc(s.label)}</span>`).join('')}</div>` : '';
+    const axis = axisOf(opts);
+    return `${legend}<figure class="chart"${figAttr(opts)}>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${[0, 1].map((f) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="tick" x="${L - 8}" y="${(y(max * f) + 4).toFixed(1)}" text-anchor="end">${axis(max * f)}</text>`).join('')}
+        ${points.map(bars).join('')}
+        ${monthTicks(points, step).map((t) => `<text class="tick" x="${(L + band * t.i + band / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(t.text)}</text>`).join('')}
+        ${points.map((p, i) => `<rect class="hit" tabindex="0" data-x="${(L + band * i + band / 2).toFixed(1)}" data-y="${y(total(p)).toFixed(1)}" data-label="${esc(p.m)}" data-rows="${esc(JSON.stringify(series.map((s) => [s.label, s.color, p[s.key] || 0]).concat(extra ? extra(p) : [])))}" x="${(L + band * i).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ih}" fill="transparent"/>`).join('')}
+      </svg>
+      <div class="chart-tip" hidden></div>
+    </figure>`;
+  }
+
+  // Lines, several series on one axis (same geometry as lineChart). Identity is never colour
+  // alone: a legend above, the value + name at each line's end, and every value in the tooltip.
+  // opts.tick(p, i) labels the x axis (default: months); opts.fmt(v) formats values. A null
+  // value is a gap: the line breaks there and its end label sits on its last real point.
+  function multiLineChart(points, series, label, opts = {}) {
+    const W = 1500, H = 250, L = 56, R = 120, T = 16, B = 34; // R leaves room for the end labels
+    const iw = W - L - R, ih = H - T - B, n = points.length;
+    const fmt = opts.fmt || ((v) => String(v));
+    const val = (p, s) => (p[s.key] == null ? null : p[s.key]);
+    const max = niceMax(Math.max(...points.flatMap((p) => series.map((s) => val(p, s) || 0)), 1));
+    const x = (i) => n === 1 ? L + iw / 2 : L + (iw * i) / (n - 1);
+    const y = (v) => T + ih - (ih * v) / max;
+    const band = n === 1 ? iw : iw / (n - 1);
+    const step = Math.ceil(n / 12);
+    const ticks = opts.tick ? points.map((p, i) => ({ i, text: opts.tick(p, i) })).filter((t) => t.i % step === 0 || t.i === n - 1) : monthTicks(points, step);
+    const path = (s) => { let pen = false; return points.map((p, i) => { const v = val(p, s); if (v == null) { pen = false; return ''; } const c = `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`; pen = true; return c; }).join(' '); };
+    // End labels: stacked by value, pushed apart so two close lines don't print over each other.
+    const ends = series.map((s) => { let i = n - 1; while (i >= 0 && val(points[i], s) == null) i--; return i < 0 ? null : { s, i, v: val(points[i], s), y: y(val(points[i], s)) }; })
+      .filter(Boolean).sort((a, b) => a.y - b.y);
+    ends.forEach((e, i) => { if (i && e.y - ends[i - 1].ly < 16) e.ly = ends[i - 1].ly + 16; else e.ly = e.y; });
+    const tickText = opts.money ? wonShort : (v) => (Number.isInteger(v) ? v : +v.toFixed(1));
+    const legend = `<div class="chart-legend">${series.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.label)}${s.members ? ` <em>(${s.members.map(esc).join(', ')})</em>` : ''}</span>`).join('')}</div>`;
+    return `${legend}<figure class="chart"${figAttr(opts)}>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${[0, 0.5, 1].map((f) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="tick" x="${L - 8}" y="${(y(max * f) + 4).toFixed(1)}" text-anchor="end">${tickText(max * f)}</text>`).join('')}
+        ${series.map((s) => `<path d="${path(s)}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
+        ${ticks.map((t) => `<text class="tick" x="${x(t.i).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(t.text)}</text>`).join('')}
+        <line class="crosshair" x1="0" x2="0" y1="${T}" y2="${T + ih}" style="display:none"/>
+        ${ends.map((e) => `<circle cx="${x(e.i).toFixed(1)}" cy="${e.y.toFixed(1)}" r="4.5" fill="${e.s.color}" stroke="#fff" stroke-width="2"/><text class="end-label" x="${(x(e.i) + 12).toFixed(1)}" y="${(e.ly + 4).toFixed(1)}">${esc((opts.money && !opts.fmt ? wonShort : fmt)(e.v))} <tspan class="tick">${esc(e.s.label)}</tspan></text>`).join('')}
+        ${points.map((p, i) => `<rect class="hit" tabindex="0" data-x="${x(i).toFixed(1)}" data-y="${T}" data-label="${esc(opts.tick ? opts.tick(p, i) : p.m)}" data-rows="${esc(JSON.stringify(series.map((s) => [s.label, s.color, val(p, s) == null ? '—' : opts.fmt ? fmt(val(p, s)) : val(p, s)])))}" x="${(x(i) - band / 2).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ih}" fill="transparent"/>`).join('')}
+      </svg>
+      <div class="chart-tip" hidden></div>
+    </figure>`;
+  }
+
+
+  // One row per coach: where the roster stands and which way it is going.
+  function coachTable(hist) {
+    const now = hist.latest, prev = ymAdd(now, -1), yearAgo = ymAdd(now, -12);
+    const at = (pts, m) => { const p = pts.find((q) => q.m === m); return p ? p.active : null; };
+    const diff = (a, b) => (a == null || b == null ? '—' : `<span style="color:${a - b < 0 ? 'var(--bad)' : 'inherit'}">${a - b > 0 ? '+' : ''}${a - b}</span>`);
+    const rows = hist.perCoach.map(({ coach, current, points }) => {
+      const cur = at(points, now);
+      const last12 = points.filter((p) => p.m > yearAgo && p.m <= now);
+      const peak = last12.reduce((a, p) => (p.active > a.active ? p : a), { active: 0, m: '' });
+      const juniors = points.find((p) => p.m === now);
+      const rated = last12.filter((p) => p.rate != null);
+      const leftSum = rated.reduce((a, p) => a + p.left, 0);
+      const avgRate = rated.length ? rated.reduce((a, p) => a + p.rate, 0) / rated.length : null;
+      const split = last12.length && last12.every((p) => p.split);
+      return `<tr${current ? '' : ' style="color:var(--muted)"'}><td>${esc(coach)}${current ? '' : ' <span class="muted-note">(이전)</span>'}</td>
+        <td>${cur == null ? '—' : cur}</td><td>${diff(cur, at(points, prev))}</td><td>${diff(cur, at(points, yearAgo))}</td>
+        <td>${juniors && juniors.active ? `${Math.round((100 * juniors.junior) / juniors.active)}%` : '—'}</td>
+        <td>${last12.reduce((a, p) => a + p.added, 0)}${split ? ` <span class="muted-note">(신규 ${last12.reduce((a, p) => a + p.newJoin, 0)} · 재등록 ${last12.reduce((a, p) => a + p.renew, 0)})</span>` : ''}</td>
+        <td>${rated.length ? `${leftSum} <span class="muted-note">(월 ${pct(avgRate)})</span>` : '—'}</td><td>${peak.m ? `${peak.active} <span class="muted-note">(${esc(peak.m)})</span>` : '—'}</td></tr>`;
+    });
+    return `<h3 class="chart-title">코치별 현황 <span>${esc(now)} 장부 기준</span></h3>
+      <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>회원</th><th>전월 대비</th><th>전년 동월 대비</th><th>주니어 비율</th><th>최근 12개월 등록</th><th>12개월 이탈 (월평균)</th><th>12개월 최고</th></tr></thead>
+      <tbody>${rows.join('')}</tbody></table></div>`;
+  }
+
+  // Line + area, one series: the level — how many members there are.
+  function lineChart(points, key, color, label, opts = {}) {
+    const W = 1500, H = 250, L = 56, R = 34, T = 16, B = 34; // wide viewBox: the SVG scales to the panel width, so a tall box would render huge
+    const iw = W - L - R, ih = H - T - B, n = points.length;
+    const max = niceMax(Math.max(...points.map((p) => p[key]), 1));
+    const x = (i) => n === 1 ? L + iw / 2 : L + (iw * i) / (n - 1);
+    const y = (v) => T + ih - (ih * v) / max;
+    const band = n === 1 ? iw : iw / (n - 1);
+    const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ');
+    const area = `${line} L${x(n - 1).toFixed(1)},${(T + ih).toFixed(1)} L${x(0).toFixed(1)},${(T + ih).toFixed(1)} Z`;
+    const step = Math.ceil(n / 12);
+    const last = points[n - 1];
+    const axis = axisOf(opts);
+    return `<figure class="chart"${figAttr(opts)}>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${[0, 0.5, 1].map((f) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="tick" x="${L - 8}" y="${(y(max * f) + 4).toFixed(1)}" text-anchor="end">${axis(max * f)}</text>`).join('')}
+        <path d="${area}" fill="${color}" fill-opacity=".1"/>
+        <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${monthTicks(points, step).map((t) => `<text class="tick" x="${x(t.i).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(t.text)}</text>`).join('')}
+        <line class="crosshair" x1="0" x2="0" y1="${T}" y2="${T + ih}" style="display:none"/>
+        <circle class="focus-dot" r="4.5" fill="${color}" stroke="#fff" stroke-width="2" style="display:none"/>
+        <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last[key]).toFixed(1)}" r="4.5" fill="${color}" stroke="#fff" stroke-width="2"/>
+        <text class="end-label" x="${(x(n - 1) - 8).toFixed(1)}" y="${(y(last[key]) - 12 < T + 10 ? y(last[key]) + 20 : y(last[key]) - 12).toFixed(1)}" text-anchor="end">${opts.money ? wonShort(last[key]) : last[key]}</text>
+        ${points.map((p, i) => `<rect class="hit" tabindex="0" data-x="${x(i).toFixed(1)}" data-y="${y(p[key]).toFixed(1)}" data-label="${esc(p.m)}" data-v="${p[key]}" x="${(x(i) - band / 2).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ih}" fill="transparent"/>`).join('')}
+      </svg>
+      <div class="chart-tip" hidden></div>
+    </figure>`;
+  }
+
+  // Columns, one series: the flow — how many joined that month.
+  function barChart(points, key, color, label, opts = {}) {
+    const W = 1500, H = 190, L = 56, R = 34, T = 16, B = 34;
+    const iw = W - L - R, ih = H - T - B, n = points.length;
+    const max = niceMax(Math.max(...points.map((p) => p[key]), 1));
+    const band = iw / n, bw = Math.min(24, Math.max(3, band - 2)); // <=24px thick, 2px of surface between neighbours
+    const y = (v) => T + ih - (ih * v) / max;
+    const step = Math.ceil(n / 12);
+    const bar = (p, i) => {
+      const h = (ih * p[key]) / max, bx = L + band * i + (band - bw) / 2, by = T + ih - h;
+      if (!h) return '';
+      const r = Math.min(4, bw / 2, h);
+      return `<path d="M${bx.toFixed(1)},${(by + r).toFixed(1)} a${r},${r} 0 0 1 ${r},${-r} h${(bw - 2 * r).toFixed(1)} a${r},${r} 0 0 1 ${r},${r} V${(T + ih).toFixed(1)} H${bx.toFixed(1)} Z" fill="${color}"/>`;
+    };
+    const axis = axisOf(opts);
+    return `<figure class="chart"${figAttr(opts)}>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${[0, 1].map((f) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="tick" x="${L - 8}" y="${(y(max * f) + 4).toFixed(1)}" text-anchor="end">${axis(max * f)}</text>`).join('')}
+        ${points.map(bar).join('')}
+        ${monthTicks(points, step).map((t) => `<text class="tick" x="${(L + band * t.i + band / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(t.text)}</text>`).join('')}
+        ${points.map((p, i) => `<rect class="hit" tabindex="0" data-x="${(L + band * i + band / 2).toFixed(1)}" data-y="${y(p[key]).toFixed(1)}" data-label="${esc(p.m)}" data-v="${p[key]}" x="${(L + band * i).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ih}" fill="transparent"/>`).join('')}
+      </svg>
+      <div class="chart-tip" hidden></div>
+    </figure>`;
+  }
+
+  // Hover/focus layer: the hit rects carry the values, so the tooltip needs no lookup table.
+  // Labels go in with textContent — they come from the sheet.
+  function wireChart(fig) {
+    const svg = fig.querySelector('svg'), tip = fig.querySelector('.chart-tip');
+    const cross = fig.querySelector('.crosshair'), dot = fig.querySelector('.focus-dot');
+    const unit = (v) => (fig.dataset.fmt === 'won' ? wonFull(v) : `${v}명`);
+    const hide = () => { tip.hidden = true; if (cross) cross.style.display = 'none'; if (dot) dot.style.display = 'none'; };
+    const show = (r) => {
+      const vb = svg.viewBox.baseVal, box = svg.getBoundingClientRect();
+      const cx = +r.dataset.x, cy = +r.dataset.y, sx = box.width / vb.width, sy = box.height / vb.height;
+      if (cross) { cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.style.display = ''; }
+      if (dot) { dot.setAttribute('cx', cx); dot.setAttribute('cy', cy); dot.style.display = ''; }
+      tip.textContent = '';
+      tip.classList.toggle('multi', !!r.dataset.rows);
+      if (r.dataset.rows) { // several series: the month, then one "● name value" line each
+        const l = document.createElement('span'); l.textContent = r.dataset.label;
+        tip.append(l);
+        JSON.parse(r.dataset.rows).forEach(([name, color, val]) => {
+          const row = document.createElement('div');
+          const key = document.createElement('i'); if (color) key.style.background = color; else key.style.visibility = 'hidden';
+          const nm = document.createElement('span'); nm.textContent = name;
+          const v = document.createElement('strong'); v.textContent = typeof val === 'number' ? unit(val) : val;
+          row.append(key, nm, v);
+          tip.append(row);
+        });
+      } else {
+        const v = document.createElement('strong'); v.textContent = unit(+r.dataset.v);
+        const l = document.createElement('span'); l.textContent = r.dataset.label;
+        tip.append(v, l);
+      }
+      tip.hidden = false;
+      tip.style.left = `${Math.max(0, Math.min(box.width - tip.offsetWidth, cx * sx - tip.offsetWidth / 2))}px`;
+      tip.style.top = `${Math.max(0, cy * sy - tip.offsetHeight - 10)}px`;
+    };
+    fig.querySelectorAll('rect.hit').forEach((r) => { r.onpointerenter = () => show(r); r.onfocus = () => show(r); r.onblur = hide; });
+    fig.onpointerleave = hide;
+  }
+
+  // What the script understood in each coach's current month tab: which columns it found,
+  // the 등록분류 words, and dates it could not read (digits shown as 9). Opens by itself when
+  // something looks off — registrations dated this month but none classed 신규/재등록,
+  // unreadable dates, or a missing column.
+  // 장부 새로고침 progress: determinate once the first round reports how many month tabs
+  // there are, a sliding bar before that.
+  function progressBar() {
+    return progressHtml(historyTotal ? historyDone / historyTotal : null, historyProgress || '장부 읽는 중…', '장부 읽는 중');
+  }
+  // frac = 0…1, or null for a sliding bar while the total is not known yet.
+  function progressHtml(frac, text, label, id) {
+    const pct = frac == null ? null : Math.round(100 * frac);
+    return `<div class="progress-wrap"${id ? ` id="${id}"` : ''} role="progressbar" aria-label="${esc(label)}" ${pct == null ? '' : `aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"`}>
+      <div class="progress${pct == null ? ' indeterminate' : ''}"><i style="width:${pct == null ? 30 : Math.max(2, pct)}%"></i></div>
+      <span>${esc(text)}${pct == null ? '' : ` · ${pct}%`}</span>
+    </div>`;
+  }
+
+  function historyCheckTable() {
+    if (!historyChecks) return '';
+    const off = (r) => r.error || !r.check || !r.check.columns || r.check.columns.iReg == null || r.check.columns.iJoined == null
+      || r.check.unreadDates > 0 || (r.joined > 0 && r.newJoin + r.renew === 0);
+    const cols = (c) => c ? ['iJoined', 'iReg', 'iType', 'iPay'].map((k) => `${{ iJoined: '등록일자', iReg: '등록분류', iType: '회원구분', iPay: '결제 금액' }[k]}: ${c[k] ? esc(c[k]) : '<b style="color:var(--bad)">없음</b>'}`).join(' · ') : '—';
+    const regs = (v) => Object.entries(v || {}).map(([k, n]) => `${esc(k)} ${n}`).join(', ') || '—';
+    const rows = historyChecks.rows.map((r) => r.error
+      ? `<tr><td>${esc(r.coach)}</td><td>${esc(r.tab)}</td><td colspan="6" style="color:var(--bad)">${esc(r.error)}</td></tr>`
+      : `<tr><td>${esc(r.coach)}</td><td>${esc(r.tab)}</td><td>${r.members}</td><td>${r.joined} <span class="muted-note">(신규 ${r.newJoin} · 재등록 ${r.renew})</span></td><td>${r.revenue == null ? '—' : `${wonFull(r.revenue)}${r.unpaidRows ? ` <span class="muted-note">(금액 없음 ${r.unpaidRows}건)</span>` : ''}`}</td>
+          <td class="wrap">${regs(r.check && r.check.regValues)}</td>
+          <td>${r.check && r.check.unreadDates ? `<span style="color:var(--bad)">${r.check.unreadDates}건</span> <span class="muted-note">${r.check.unreadSamples.map(esc).join(', ')}</span>` : '0'}</td>
+          <td class="wrap">${cols(r.check && r.check.columns)}</td></tr>`);
+    return `<details class="chart-table"${historyChecks.rows.some(off) ? ' open' : ''}><summary>이번 달 장부 점검 · ${new Date(historyChecks.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</summary>
+      <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>탭</th><th>명부</th><th>이번 달 등록일자</th><th>이번 달 매출</th><th>등록분류 값</th><th>못 읽은 날짜</th><th>찾은 열</th></tr></thead>
+      <tbody>${rows.join('')}</tbody></table></div>
+      <p class="chart-note">신규·재등록은 등록일자가 이번 달이고 등록분류에 "신규" 또는 "재등록"이 들어간 행만 셉니다. 이름은 표시하지 않습니다.</p>
+    </details>`;
+  }
+
+  function trendPanel(members) {
+    loadMemberHistory();
+    const hist = historyTrend(state.trendMonths, state.trendCoach);
+    const books = !!(hist && hist.perCoach.length);
+    const coach = books && hist.coaches.includes(state.trendCoach) ? state.trendCoach : '';
+    const { points, dated, undated } = books ? hist : memberTrend(members, state.trendMonths);
+    if (!points.length && !books) return '';
+    const n = points.length, last = points[n - 1] || { active: 0 }, prev = points[n - 2];
+    const delta = prev ? last.active - prev.active : 0;
+    const rangeBtn = (v, l) => `<button class="chip ${state.trendMonths === v ? 'on' : ''}" data-trend="${v}">${l}</button>`;
+    const coachBtn = (v, l) => `<button class="chip ${coach === v ? 'on' : ''}" data-trend-coach="${esc(v)}">${esc(l)}</button>`;
+    const sum = points.reduce((a, p) => a + p.added, 0);
+    const split = books && points.some((p) => p.junior || p.adult);
+    const byCoach = books && !coach && hist.perCoach.length > 1 ? coachSeries(hist) : null;
+    const who = coach ? `${esc(coach)} · ` : '';
+    const splitJoins = books && points.length && points.every((p) => p.split);
+    const hasOther = splitJoins && points.some((p) => p.other > 0);
+    const churn = books && points.some((p) => p.left != null);
+    const lastRated = churn ? points.filter((p) => p.left != null).pop() : null;
+    const stale = books && historyCache.stale ? historyCache.stale : 0;
+    const CHURN = '#9a4a6e'; // mulberry: its own identity, not the burgundy alert colour and not a coach/sign-up hue
+    return `<div class="panel chart-panel">
+      <div class="chart-head">
+        <h2>회원 추이 <span class="muted-note">${who}활동 회원 ${last.active}명${prev ? ` · 전월 대비 ${delta > 0 ? '+' : ''}${delta}명` : ''}${lastRated ? ` · ${esc(lastRated.m)} 이탈 ${lastRated.left}명 (${pct(lastRated.rate)})` : ''}</span></h2>
+        <div class="chips">${rangeBtn(12, '12개월')}${rangeBtn(24, '24개월')}${rangeBtn('all', '전체')}${scriptSource() ? `<button class="chip" id="btn-history" ${historyLoading ? 'disabled' : ''}>${historyLoading ? '읽는 중…' : '장부 새로고침'}</button>` : ''}</div>
+      </div>
+      ${historyLoading ? progressBar() : ''}
+      ${stale && scriptSource() ? `<p class="chart-note">${stale}개월은 신규·재등록과 이탈 집계 전에 저장된 기록입니다. <button class="chip" id="btn-history-rebuild" ${historyLoading ? 'disabled' : ''}>장부 다시 읽기</button> <span class="muted-note">(몇 분 걸릴 수 있습니다)</span></p>` : ''}
+      ${books ? `<div class="chips coach-chips"><span class="muted-note">담당강사</span>${coachBtn('', '전체')}${hist.current.map((c) => coachBtn(c, c)).join('')}${hist.coaches.filter((c) => !hist.current.includes(c)).map((c) => coachBtn(c, c + ' (이전)')).join('')}</div>` : ''}
+      ${points.length ? `
+      <h3 class="chart-title">${who}활동 회원 수 <span>${books ? '그 달 장부 명부에 있는 회원' : '월말 기준 · 유효기간이 남아 있는 회원'}</span></h3>
+      ${lineChart(points, 'active', CHART_ACTIVE, '월별 활동 회원 수')}
+      ${splitJoins
+        ? `<h3 class="chart-title">${who}등록 <span>등록일자가 그 달인 회원 · 신규 ${points.reduce((a, p) => a + p.newJoin, 0)} · 재등록 ${points.reduce((a, p) => a + p.renew, 0)}${hasOther ? ` · 기타 ${points.reduce((a, p) => a + p.other, 0)}` : ''}명</span></h3>
+      ${stackedBarChart(points, [{ key: 'newJoin', label: '신규', color: SERIES_COLORS[0] }, { key: 'renew', label: '재등록', color: SERIES_COLORS[1] }].concat(hasOther ? [{ key: 'other', label: '기타 (등록분류 없음)', color: '#a39e93' }] : []), '월별 신규·재등록 수')}`
+        : `<h3 class="chart-title">${who}신규 등록 <span>등록일자가 그 달인 회원${books ? ' (재등록 포함)' : ''} · 기간 합계 ${sum}명</span></h3>
+      ${barChart(points, 'added', CHART_NEW, '월별 신규 등록 수')}`}
+      ${churn ? `<h3 class="chart-title">${who}이탈 <span>지난달 명부에 있었는데 이번 달 명부에 없는 회원 · 이탈률 = 이탈 ÷ 지난달 회원</span></h3>
+      ${stackedBarChart(points.map((p) => Object.assign({}, p, { left: p.left || 0 })), [{ key: 'left', label: '이탈', color: CHURN }], '월별 이탈 회원 수', (p) => [['이탈률', null, points.find((q) => q.m === p.m).left == null ? '기록 없음' : pct(p.rate)]])}` : ''}
+      ${split ? `<h3 class="chart-title">${who}주니어 · 성인 <span>회원구분 WSC = 주니어, 나머지 = 성인</span></h3>
+      ${multiLineChart(points, [{ key: 'junior', label: '주니어', color: SERIES_COLORS[0] }, { key: 'adult', label: '성인', color: SERIES_COLORS[1] }], '월별 주니어·성인 회원 수')}` : ''}`
+      : `<p class="empty">${esc(coach)} 코치의 장부에 이 기간 기록이 없습니다. 기간을 '전체'로 바꿔 보세요.</p>`}
+      ${byCoach && byCoach.points.length ? `<h3 class="chart-title">코치별 활동 회원 <span>코치 이름을 누르면 그 코치만 봅니다</span></h3>
+      ${multiLineChart(byCoach.points, byCoach.series, '코치별 월별 활동 회원 수')}` : ''}
+      ${books && !coach ? coachTable(hist) : ''}
+      <p class="chart-note">${books
+        ? `코치 장부 ${hist.books}권(${hist.coaches.map(esc).join(' · ')})의 월별 명부로 계산 · ${new Date(hist.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 불러옴. ${coach ? '' : '전체 활동 회원은 두 코치에게 등록한 사람도 한 번만 셉니다 (코치별 합보다 적을 수 있음). '}이탈은 이름 대신 암호화한 명단 키로 비교하며, 같은 이름의 다른 회원은 구분하지 못합니다. 이번 달 장부가 아직 입력 중이면 이번 달 이탈이 크게 보일 수 있습니다.`
+        : `등록일자가 있는 ${dated}명으로 계산${undated ? ` (날짜 없는 ${undated}명 제외)` : ''}. 재등록은 한 회원으로 합쳐지고 시트에서 지워진 회원은 빠지므로, 과거 달일수록 실제보다 적게 보일 수 있습니다.`}${historyError ? ` <span style="color:var(--bad)">장부를 불러오지 못했습니다: ${esc(historyError)}</span>` : ''}</p>
+      ${historyCheckTable()}
+      ${points.length ? `<details class="chart-table"><summary>표로 보기</summary>
+        <div class="table-wrap"><table><thead><tr><th>월</th><th>활동 회원</th><th>신규 등록</th>${splitJoins ? '<th>신규</th><th>재등록</th>' : ''}${churn ? '<th>이탈</th><th>이탈률</th>' : ''}${split ? '<th>주니어</th><th>성인</th>' : ''}${byCoach ? byCoach.series.map((s) => `<th>${esc(s.label)}</th>`).join('') : ''}</tr></thead>
+        <tbody>${points.slice().reverse().map((p) => {
+          const c = byCoach && byCoach.points.find((q) => q.m === p.m);
+          return `<tr><td>${esc(p.m)}</td><td>${p.active}</td><td>${p.added}</td>${splitJoins ? `<td>${p.newJoin}</td><td>${p.renew}</td>` : ''}${churn ? `<td>${p.left == null ? '—' : p.left}</td><td>${pct(p.rate)}</td>` : ''}${split ? `<td>${p.junior}</td><td>${p.adult}</td>` : ''}${byCoach ? byCoach.series.map((s) => `<td>${c ? c[s.key] : '—'}</td>`).join('') : ''}</tr>`;
+        }).join('')}</tbody></table></div>
+      </details>` : ''}
+    </div>`;
+  }
+
+  // ---------- Year over year (Dashboard) ----------
+  // One line per year across 1월–12월, for the metric picked above the chart; follows the
+  // 담당강사 filter. The latest three years are drawn (three hues stay apart for colour-blind
+  // readers — this year blue, last year brass, the year before green); each keeps its colour
+  // by recency, so this year is always blue.
+  const YOY_METRICS = [
+    { key: 'active', label: '활동 회원', flow: false },
+    { key: 'newJoin', label: '신규', flow: true, split: true },
+    { key: 'renew', label: '재등록', flow: true, split: true },
+    { key: 'left', label: '이탈', flow: true },
+    { key: 'rate', label: '이탈률', flow: false, pct: true },
+  ];
+  function yoyPanel() {
+    const rows = (historyCache && historyCache.months) || [];
+    if (!rows.length) return '';
+    const coach = state.trendCoach && rows.some((r) => r.coach === state.trendCoach) ? state.trendCoach : '';
+    const series = historySeries(rows, coach);
+    const years = [...new Set(series.map((p) => p.m.slice(0, 4)))].sort().reverse();
+    if (years.length < 2) return '';
+    const shown = years.slice(0, 3);
+    const metric = YOY_METRICS.find((m) => m.key === state.yoyMetric) || YOY_METRICS[0];
+    const value = (p) => {
+      if (!p) return null;
+      if (metric.split && !p.split) return null;
+      if (metric.key === 'rate') return p.rate == null ? null : +(100 * p.rate).toFixed(1);
+      return p[metric.key] == null ? null : p[metric.key];
+    };
+    const at = (y, mo) => value(series.find((p) => p.m === `${y}-${String(mo).padStart(2, '0')}`));
+    const points = Array.from({ length: 12 }, (_, i) => { const p = { m: String(i + 1) }; shown.forEach((y) => { p[y] = at(y, i + 1); }); return p; });
+    const lines = shown.map((y, i) => ({ key: y, label: `${y}년`, color: SERIES_COLORS[i] }));
+    const fmt = (v) => (metric.pct ? `${v}%` : `${v}명`);
+    // Headline: flows compare the year to date, levels compare the latest month.
+    const [cur, prev] = shown;
+    let lastMo = 12; while (lastMo > 0 && at(cur, lastMo) == null) lastMo--;
+    let head = '';
+    if (lastMo) {
+      if (metric.flow) {
+        const sum = (y) => { let t = 0, any = false; for (let mo = 1; mo <= lastMo; mo++) { const v = at(y, mo); if (v != null) { t += v; any = true; } } return any ? t : null; };
+        const a = sum(cur), b = sum(prev);
+        head = `${cur}년 1–${lastMo}월 ${metric.label} ${a}명${b == null ? '' : ` · 전년 동기 ${b}명 (${a - b >= 0 ? '+' : ''}${a - b}${b ? `, ${a - b >= 0 ? '+' : ''}${((100 * (a - b)) / b).toFixed(1)}%` : ''})`}`;
+      } else {
+        const a = at(cur, lastMo), b = at(prev, lastMo);
+        const d = b == null ? null : +(a - b).toFixed(1);
+        head = `${lastMo}월 ${metric.label} ${fmt(a)}${b == null ? '' : ` · 전년 ${lastMo}월 ${fmt(b)} (${d >= 0 ? '+' : ''}${metric.pct ? d + '%p' : d + '명'})`}`;
+      }
+    }
+    const chip = (m) => `<button class="chip ${m.key === metric.key ? 'on' : ''}" data-yoy="${m.key}">${esc(m.label)}</button>`;
+    const cell = (v) => (v == null ? '—' : esc(fmt(v)));
+    return `<div class="panel chart-panel">
+      <div class="chart-head">
+        <h2>전년 비교 <span class="muted-note">${coach ? esc(coach) + ' · ' : ''}${esc(head)}</span></h2>
+        <div class="chips">${YOY_METRICS.map(chip).join('')}</div>
+      </div>
+      ${multiLineChart(points, lines, `연도별 월별 ${metric.label}`, { tick: (p) => `${p.m}월`, fmt })}
+      <p class="chart-note">같은 달끼리 비교합니다. 그해 장부가 있는 코치만 세므로, 장부가 없는 달은 비어 있습니다.${years.length > 3 ? ` 최근 3년만 표시합니다 (${years.slice(3).join(', ')}년 제외).` : ''}${metric.split ? ' 신규·재등록은 등록분류로 나눕니다.' : ''}${metric.key === 'rate' ? ' 이탈률 = 이탈 ÷ 지난달 회원.' : ''} 담당강사 필터는 위 회원 추이에서 바꿉니다.</p>
+      <details class="chart-table"><summary>표로 보기</summary>
+        <div class="table-wrap"><table><thead><tr><th>월</th>${shown.map((y) => `<th>${y}년</th>`).join('')}<th>전년 대비</th></tr></thead>
+        <tbody>${points.map((p) => { const a = p[cur], b = p[prev]; const d = a == null || b == null ? null : +(a - b).toFixed(1);
+          return `<tr><td>${p.m}월</td>${shown.map((y) => `<td>${cell(p[y])}</td>`).join('')}<td>${d == null ? '—' : `<span style="color:${d < 0 ? 'var(--bad)' : 'inherit'}">${d > 0 ? '+' : ''}${d}${metric.pct ? '%p' : ''}</span>`}</td></tr>`; }).join('')}</tbody></table></div>
+      </details>
+    </div>`;
+  }
+
+
+  // ---------- Monthly revenue (Revenue view) ----------
+  // From the same books and cache as 회원 추이: for each coach's monthly tab the script sums
+  // 결제 금액 over the rows whose 등록일자 falls in that month (every payment row, so two
+  // payments in one month both count), split 신규/재등록 by 등록분류. Carried-over rows are
+  // not counted again. Months counted before the 매출 columns existed have revenue null.
+  function revenueSeries(rows, coach) {
+    const byMonth = {};
+    rows.filter((r) => !coach || r.coach === coach).forEach((r) => {
+      const p = byMonth[r.month] || (byMonth[r.month] = { m: r.month, revenue: 0, revNew: 0, revRenew: 0, paid: 0, unpaid: 0, counted: true });
+      if (r.revenue == null) { p.counted = false; return; }
+      p.revenue += r.revenue; p.revNew += r.revNew || 0; p.revRenew += r.revRenew || 0;
+      p.paid += r.paidRows || 0; p.unpaid += r.unpaidRows || 0;
+    });
+    return Object.keys(byMonth).sort().map((m) => {
+      const p = byMonth[m];
+      p.revOther = Math.max(0, p.revenue - p.revNew - p.revRenew);
+      p.avg = p.paid ? Math.round(p.revenue / p.paid) : null;
+      return p;
+    }).filter((p) => p.counted); // a month with any coach not yet recounted would read low
+  }
+  // "+120만 (+8.3%)": a change in won, short, red when down.
+  function wonDiff(a, b) {
+    if (a == null || b == null) return '—';
+    const d = a - b;
+    return `<span style="color:${d < 0 ? 'var(--bad)' : 'inherit'}">${d > 0 ? '+' : ''}${wonShort(d)}${b ? ` (${d > 0 ? '+' : ''}${((100 * d) / b).toFixed(1)}%)` : ''}</span>`;
+  }
+
+  function revenueCoachTable(perCoach, latest) {
+    const prev = ymAdd(latest, -1), yearAgo = ymAdd(latest, -12);
+    const at = (pts, m) => { const p = pts.find((q) => q.m === m); return p ? p.revenue : null; };
+    const rows = perCoach.map(({ coach, current, points }) => {
+      const cur = at(points, latest);
+      const last12 = points.filter((p) => p.m > yearAgo && p.m <= latest);
+      const total = last12.reduce((a, p) => a + p.revenue, 0);
+      const paid = last12.reduce((a, p) => a + p.paid, 0);
+      const peak = last12.reduce((a, p) => (p.revenue > a.revenue ? p : a), { revenue: 0, m: '' });
+      return `<tr${current ? '' : ' style="color:var(--muted)"'}><td>${esc(coach)}${current ? '' : ' <span class="muted-note">(이전)</span>'}</td>
+        <td>${cur == null ? '—' : wonFull(cur)}</td><td>${wonDiff(cur, at(points, prev))}</td><td>${wonDiff(cur, at(points, yearAgo))}</td>
+        <td>${last12.length ? `${wonFull(total)} <span class="muted-note">(신규 ${wonShort(last12.reduce((a, p) => a + p.revNew, 0))} · 재등록 ${wonShort(last12.reduce((a, p) => a + p.revRenew, 0))})</span>` : '—'}</td>
+        <td>${last12.length ? wonFull(Math.round(total / last12.length)) : '—'}</td>
+        <td>${peak.m ? `${wonFull(peak.revenue)} <span class="muted-note">(${esc(peak.m)})</span>` : '—'}</td>
+        <td>${paid ? wonFull(Math.round(total / paid)) : '—'}</td></tr>`;
+    });
+    return `<h3 class="chart-title">코치별 매출 <span>${esc(latest)} 장부 기준</span></h3>
+      <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>이번 달</th><th>전월 대비</th><th>전년 동월 대비</th><th>최근 12개월</th><th>월평균</th><th>12개월 최고</th><th>건당 평균</th></tr></thead>
+      <tbody>${rows.join('')}</tbody></table></div>`;
+  }
+
+  function revenuePanel() {
+    loadMemberHistory();
+    const rows = (historyCache && historyCache.months) || [];
+    const hist = historyTrend(state.revMonths, state.revCoach);
+    const coach = hist && hist.coaches.includes(state.revCoach) ? state.revCoach : '';
+    const counted = rows.filter((r) => r.revenue != null).length;
+    const stale = rows.length - counted;
+    const who = coach ? `${esc(coach)} · ` : '';
+    const rangeBtn = (v, l) => `<button class="chip ${state.revMonths === v ? 'on' : ''}" data-rev-range="${v}">${l}</button>`;
+    const coachBtn = (v, l) => `<button class="chip ${coach === v ? 'on' : ''}" data-rev-coach="${esc(v)}">${esc(l)}</button>`;
+    const refresh = scriptSource() ? `<button class="chip" id="btn-history" ${historyLoading ? 'disabled' : ''}>${historyLoading ? '읽는 중…' : '장부 새로고침'}</button>` : '';
+    const error = historyError ? ` <span style="color:var(--bad)">장부를 불러오지 못했습니다: ${esc(historyError)}</span>` : '';
+    if (!hist || !counted) {
+      return `<div class="panel chart-panel">
+        <div class="chart-head"><h2>매출 추이</h2><div class="chips">${refresh}</div></div>
+        ${historyLoading ? progressBar() : ''}
+        <p class="empty">아직 매출 기록이 없습니다. 코치 장부의 <b>결제 금액</b>을 읽으려면 <b>장부 새로고침</b>을 누르세요 (처음 한 번은 모든 달을 다시 읽어 몇 분 걸립니다).${scriptSource() ? '' : ' 먼저 Members 탭에서 Apps Script 연결이 필요합니다.'}${error}</p>
+        ${historyCheckTable()}
+      </div>`;
+    }
+    const all = revenueSeries(rows, coach);
+    const points = all.filter(hist.inRange);
+    const perCoach = hist.coaches.map((c) => ({ coach: c, current: hist.current.includes(c), points: revenueSeries(rows, c) }));
+    const byCoach = !coach && perCoach.length > 1 ? coachSeries({ perCoach, inRange: hist.inRange }, 'revenue') : null;
+    const last = points[points.length - 1];
+    const find = (m) => all.find((p) => p.m === m);
+    const prev = last && find(ymAdd(last.m, -1)), yearAgo = last && find(ymAdd(last.m, -12));
+    const inProgress = last && last.m === historyCache.current;
+    const sum = points.reduce((a, p) => a + p.revenue, 0);
+    const hasOther = points.some((p) => p.revOther > 0);
+    const unpaid = points.reduce((a, p) => a + p.unpaid, 0);
+    const avgPoints = points.filter((p) => p.avg != null);
+    return `<div class="panel chart-panel">
+      <div class="chart-head">
+        <h2>매출 추이 <span class="muted-note">${last ? `${who}${esc(last.m)} 매출 ${wonFull(last.revenue)}${inProgress ? ' (진행 중)' : ''}${prev ? ` · 전월 대비 ${wonDiff(last.revenue, prev.revenue)}` : ''}${yearAgo ? ` · 전년 동월 대비 ${wonDiff(last.revenue, yearAgo.revenue)}` : ''}` : ''}</span></h2>
+        <div class="chips">${rangeBtn(12, '12개월')}${rangeBtn(24, '24개월')}${rangeBtn('all', '전체')}${refresh}</div>
+      </div>
+      ${historyLoading ? progressBar() : ''}
+      ${stale && scriptSource() ? `<p class="chart-note">${stale}개 장부 탭은 매출 집계 전에 저장된 기록이라 빠져 있습니다. <button class="chip" id="btn-history-rebuild" ${historyLoading ? 'disabled' : ''}>장부 다시 읽기</button> <span class="muted-note">(몇 분 걸릴 수 있습니다)</span></p>` : ''}
+      <div class="chips coach-chips"><span class="muted-note">담당강사</span>${coachBtn('', '전체')}${hist.current.map((c) => coachBtn(c, c)).join('')}${hist.coaches.filter((c) => !hist.current.includes(c)).map((c) => coachBtn(c, c + ' (이전)')).join('')}</div>
+      ${points.length ? `
+      <h3 class="chart-title">${who}월별 매출 <span>등록일자가 그 달인 결제 금액 · 기간 합계 ${wonFull(sum)} · 월평균 ${wonFull(Math.round(sum / points.length))}</span></h3>
+      ${stackedBarChart(points, [{ key: 'revNew', label: '신규', color: SERIES_COLORS[0] }, { key: 'revRenew', label: '재등록', color: SERIES_COLORS[1] }].concat(hasOther ? [{ key: 'revOther', label: '기타 (등록분류 없음)', color: '#a39e93' }] : []), '월별 매출', (p) => [['합계', null, wonFull(p.revenue)], ['결제 건수', null, `${p.paid}건`]], { money: true })}
+      ${avgPoints.length ? `<h3 class="chart-title">${who}건당 평균 결제액 <span>매출 ÷ 금액이 적힌 결제 건수</span></h3>
+      ${lineChart(avgPoints, 'avg', CHART_NEW, '월별 건당 평균 결제액', { money: true })}` : ''}`
+      : `<p class="empty">${esc(coach)} 코치의 장부에 이 기간 매출 기록이 없습니다. 기간을 '전체'로 바꿔 보세요.</p>`}
+      ${byCoach && byCoach.points.length ? `<h3 class="chart-title">코치별 매출 <span>코치 이름을 누르면 그 코치만 봅니다</span></h3>
+      ${multiLineChart(byCoach.points, byCoach.series, '코치별 월별 매출', { money: true })}` : ''}
+      ${!coach ? revenueCoachTable(perCoach, hist.latest) : ''}
+      <p class="chart-note">코치 장부 ${hist.books}권(${hist.coaches.map(esc).join(' · ')})의 월별 탭에서 <b>등록일자가 그 달인 행의 결제 금액</b>을 더했습니다. 한 달에 두 번 결제하면 두 번 모두 셉니다. 신규·재등록은 등록분류로 나눕니다.${unpaid ? ` 이 기간 등록 ${unpaid}건은 결제 금액이 비어 있어 빠졌습니다.` : ''}${inProgress ? ' 이번 달은 장부가 입력 중이면 적게 보일 수 있습니다.' : ''} ${new Date(hist.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 불러옴.${error}</p>
+      ${historyCheckTable()}
+      ${points.length ? `<details class="chart-table"><summary>표로 보기</summary>
+        <div class="table-wrap"><table><thead><tr><th>월</th><th>매출</th><th>신규</th><th>재등록</th>${hasOther ? '<th>기타</th>' : ''}<th>결제 건수</th><th>건당 평균</th>${unpaid ? '<th>금액 없음</th>' : ''}${byCoach ? byCoach.series.map((s) => `<th>${esc(s.label)}</th>`).join('') : ''}</tr></thead>
+        <tbody>${points.slice().reverse().map((p) => {
+          const c = byCoach && byCoach.points.find((q) => q.m === p.m);
+          return `<tr><td>${esc(p.m)}</td><td>${wonFull(p.revenue)}</td><td>${wonFull(p.revNew)}</td><td>${wonFull(p.revRenew)}</td>${hasOther ? `<td>${wonFull(p.revOther)}</td>` : ''}<td>${p.paid}건</td><td>${p.avg == null ? '—' : wonFull(p.avg)}</td>${unpaid ? `<td>${p.unpaid}건</td>` : ''}${byCoach ? byCoach.series.map((s) => `<td>${c && c[s.key] != null ? wonFull(c[s.key]) : '—'}</td>`).join('') : ''}</tr>`;
+        }).join('')}</tbody></table></div>
+      </details>` : ''}
+    </div>`;
+  }
+
+  // Year over year for revenue: one line per year across 1월–12월, following the 담당강사
+  // filter of 매출 추이. Flows (매출, 신규, 재등록) compare the year to date; 건당 평균, the latest month.
+  const REV_YOY_METRICS = [
+    { key: 'revenue', label: '매출', flow: true },
+    { key: 'revNew', label: '신규 매출', flow: true },
+    { key: 'revRenew', label: '재등록 매출', flow: true },
+    { key: 'avg', label: '건당 평균', flow: false },
+  ];
+  function revenueYoyPanel() {
+    const rows = (historyCache && historyCache.months) || [];
+    if (!rows.some((r) => r.revenue != null)) return '';
+    const coach = state.revCoach && rows.some((r) => r.coach === state.revCoach) ? state.revCoach : '';
+    const series = revenueSeries(rows, coach);
+    const years = [...new Set(series.map((p) => p.m.slice(0, 4)))].sort().reverse();
+    if (years.length < 2) return '';
+    const shown = years.slice(0, 3);
+    const metric = REV_YOY_METRICS.find((m) => m.key === state.revYoyMetric) || REV_YOY_METRICS[0];
+    const at = (y, mo) => { const p = series.find((q) => q.m === `${y}-${String(mo).padStart(2, '0')}`); return p && p[metric.key] != null ? p[metric.key] : null; };
+    const points = Array.from({ length: 12 }, (_, i) => { const p = { m: String(i + 1) }; shown.forEach((y) => { p[y] = at(y, i + 1); }); return p; });
+    const lines = shown.map((y, i) => ({ key: y, label: `${y}년`, color: SERIES_COLORS[i] }));
+    const [cur, prev] = shown;
+    let lastMo = 12; while (lastMo > 0 && at(cur, lastMo) == null) lastMo--;
+    let head = '';
+    if (lastMo) {
+      if (metric.flow) {
+        const sum = (y) => { let t = 0, any = false; for (let mo = 1; mo <= lastMo; mo++) { const v = at(y, mo); if (v != null) { t += v; any = true; } } return any ? t : null; };
+        const a = sum(cur), b = sum(prev);
+        head = `${cur}년 1–${lastMo}월 ${metric.label} ${wonFull(a)}${b == null ? '' : ` · 전년 동기 ${wonFull(b)} (${wonDiff(a, b)})`}`;
+      } else {
+        const a = at(cur, lastMo), b = at(prev, lastMo);
+        head = `${lastMo}월 ${metric.label} ${wonFull(a)}${b == null ? '' : ` · 전년 ${lastMo}월 ${wonFull(b)} (${wonDiff(a, b)})`}`;
+      }
+    }
+    const chip = (m) => `<button class="chip ${m.key === metric.key ? 'on' : ''}" data-rev-yoy="${m.key}">${esc(m.label)}</button>`;
+    return `<div class="panel chart-panel">
+      <div class="chart-head">
+        <h2>매출 전년 비교 <span class="muted-note">${coach ? esc(coach) + ' · ' : ''}${head}</span></h2>
+        <div class="chips">${REV_YOY_METRICS.map(chip).join('')}</div>
+      </div>
+      ${multiLineChart(points, lines, `연도별 월별 ${metric.label}`, { tick: (p) => `${p.m}월`, money: true })}
+      <p class="chart-note">같은 달끼리 비교합니다. 매출이 집계된 장부만 세므로, 기록이 없는 달은 비어 있습니다.${years.length > 3 ? ` 최근 3년만 표시합니다 (${years.slice(3).join(', ')}년 제외).` : ''} 담당강사 필터는 위 매출 추이에서 바꿉니다.</p>
+      <details class="chart-table"><summary>표로 보기</summary>
+        <div class="table-wrap"><table><thead><tr><th>월</th>${shown.map((y) => `<th>${y}년</th>`).join('')}<th>전년 대비</th></tr></thead>
+        <tbody>${points.map((p) => `<tr><td>${p.m}월</td>${shown.map((y) => `<td>${p[y] == null ? '—' : wonFull(p[y])}</td>`).join('')}<td>${wonDiff(p[cur], p[prev])}</td></tr>`).join('')}</tbody></table></div>
+      </details>
+    </div>`;
+  }
+
   // ---------- Views ----------
-  const state = { view: 'dashboard', q: '', filter: '', tables: {
+  const state = { view: 'dashboard', q: '', filter: '', trendMonths: 12, trendCoach: '', yoyMetric: 'active', revMonths: 12, revCoach: '', revYoyMetric: 'revenue', tables: {
     members: { sort: { k: 'name', dir: 1 }, colFilters: {}, initial: 20, limit: 20 },
     leads: { sort: { k: 'inqDate', dir: -1 }, colFilters: {}, initial: 10, limit: 10 },
   } };
@@ -637,7 +1433,120 @@
   const isLead = (c) => c.source === 'inquiry';
   const isClub = (c) => c.source === 'clubdb';
 
+  // ---------- Schedule (Schedule.gs → ?action=schedule) ----------
+  // The coaches' `N월S` grids, one booking per filled cell. The script opens both yearly
+  // books for this, which takes the better part of a minute, so a month is fetched once and
+  // kept in localStorage: the page draws from the cache immediately and re-renders when a
+  // month it has never seen arrives. 새로고침 re-reads the weeks on screen.
+  const SCHEDULE_KEY = 'wellperion-squash.schedule';
+  let schedCache = null, schedLoading = '', schedError = '';
+  try { schedCache = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || 'null'); } catch (e) { schedCache = null; }
+  if (schedCache && !Array.isArray(schedCache.bookings)) schedCache = null;
+  const schedMonths = () => (schedCache && schedCache.months) || [];
+  const schedBookings = () => (schedCache && schedCache.bookings) || [];
+
+  // Local calendar days: toISOString() would shift every date a day back in KST.
+  const ymd = (d) => `${d.getFullYear()}-${('0' + (d.getMonth() + 1)).slice(-2)}-${('0' + d.getDate()).slice(-2)}`;
+  const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+  const mondayOf = (iso) => { const d = new Date(iso + 'T00:00:00'); return addDays(iso, -((d.getDay() + 6) % 7)); };
+  const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
+  // The cache stamps itself in UTC (toISOString); show it in the reader's own clock.
+  const localStamp = (iso) => {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? String(iso).replace('T', ' ').slice(0, 16) : `${ymd(d)} ${('0' + d.getHours()).slice(-2)}:${('0' + d.getMinutes()).slice(-2)}`;
+  };
+
+  async function loadSchedule(months, force) {
+    const want = months.filter((m) => force || !schedMonths().includes(m));
+    if (!want.length || schedLoading || !scriptSource()) return;
+    schedLoading = want.join(', '); schedError = '';
+    if (state.view === 'schedule') render();
+    try {
+      const j = await socialCall('schedule', { months: want.join(',') });
+      const kept = schedBookings().filter((b) => !want.includes(String(b.date).slice(0, 7)));
+      schedCache = {
+        at: new Date().toISOString(),
+        months: schedMonths().filter((m) => !want.includes(m)).concat(want).sort(),
+        coaches: j.coaches || [],
+        bookings: kept.concat(j.bookings || []),
+      };
+      try { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedCache)); } catch (e) { /* quota: the cache is a nicety */ }
+    } catch (err) {
+      schedError = err.message || String(err);
+    } finally {
+      schedLoading = '';
+      if (state.view === 'schedule' || state.view === 'dashboard') render();
+    }
+  }
+
+  /** The week on screen: 7 days from Monday, every booked time as a row. */
+  function schedulePanel() {
+    const weekStart = state.weekStart || (state.weekStart = mondayOf(today()));
+    const days = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(weekStart, i));
+    const months = Array.from(new Set(days.map((d) => d.slice(0, 7))));
+    loadSchedule(months); // not awaited: draws from the cache now, re-renders when it lands
+    const t = today();
+
+    const all = schedBookings();
+    const coaches = Array.from(new Set(all.map((b) => b.coach))).sort();
+    if (state.schedCoach && !coaches.includes(state.schedCoach)) state.schedCoach = '';
+    const week = all.filter((b) => b.date >= days[0] && b.date <= days[6] && (!state.schedCoach || b.coach === state.schedCoach));
+    const times = Array.from(new Set(week.map((b) => b.time))).sort();
+    const at = (date, time) => week.filter((b) => b.date === date && b.time === time);
+    const perDay = days.map((d) => week.filter((b) => b.date === d).length);
+
+    const chip = (label, value, active) => `<button class="ghost${active ? ' on' : ''}" data-sched-coach="${esc(value)}" style="font-size:12px${active ? ';font-weight:600' : ''}">${esc(label)}</button>`;
+    const nav = `<button class="ghost" data-week="-7" title="이전 주">←</button>
+      <button class="ghost" data-week="today">오늘</button>
+      <button class="ghost" data-week="7" title="다음 주">→</button>
+      ${chip(`전체 ${all.filter((b) => b.date >= days[0] && b.date <= days[6]).length}건`, '', !state.schedCoach)}
+      ${coaches.map((c) => chip(c, c, state.schedCoach === c)).join('')}
+      <button class="ghost" id="btn-sched-refresh" ${schedLoading ? 'disabled' : ''} title="이번 화면의 달을 시트에서 다시 읽습니다 (약 1분)">${schedLoading ? '읽는 중…' : '새로고침'}</button>`;
+
+    const status = schedError
+      ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--warn)">스케줄을 읽지 못했습니다: ${esc(schedError)}</p>`
+      : schedLoading
+        ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">${esc(schedLoading)} 스케줄을 시트에서 읽는 중입니다 — 두 강사의 장부를 여느라 1분 가까이 걸립니다.</p>`
+        : schedCache
+          ? `<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">코치 스케줄 시트(${esc(schedMonths().join(', '))}월 탭 <code>N월S</code>) · 마지막 읽기 ${esc(localStamp(schedCache.at))} · 예약 ${schedBookings().length}건. 시트가 원본입니다 — 앱에서는 수정하지 않습니다.</p>`
+          : '<p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">아직 읽은 스케줄이 없습니다. 시트에서 읽어오는 중이거나, Google Sheet 소스가 필요합니다.</p>';
+
+    const head7 = days.map((d, i) => {
+      const isToday = d === t;
+      return `<th class="${isToday ? 'today' : ''}" style="text-align:center">
+        <div style="font-size:12px;color:var(--muted)">${WEEKDAYS[i]}</div>
+        <div${isToday ? ' style="font-weight:700"' : ''}>${d.slice(5).replace('-', '.')}</div>
+        <div style="font-size:11px;color:var(--muted)">${perDay[i]}건</div></th>`;
+    }).join('');
+
+    const body = times.map((time) => `<tr>
+      <td style="white-space:nowrap;color:var(--muted);font-size:12px">${esc(time)}</td>
+      ${days.map((d) => {
+        const cell = at(d, time);
+        return `<td class="${d === t ? 'today' : ''}" style="vertical-align:top">${cell.map((b) => `<div style="font-size:12px;line-height:1.5">${esc(b.name)}${state.schedCoach ? '' : ` <span class="pill" style="font-size:10px">${esc(b.coach)}</span>`}</div>`).join('')}</td>`;
+      }).join('')}</tr>`).join('');
+
+    const grid = times.length
+      ? `<div class="table-wrap"><table class="sched"><thead><tr><th style="width:56px">시간</th>${head7}</tr></thead><tbody>${body}</tbody>
+         <tfoot><tr><td colspan="8">${weekStart.replace(/-/g, '.')} ~ ${days[6].replace(/-/g, '.')} · 예약 <strong>${week.length}건</strong>${state.schedCoach ? ` · ${esc(state.schedCoach)}` : ''} · 개인 ${week.filter((b) => !b.group).length} · 단체 ${week.filter((b) => b.group).length}</td></tr></tfoot></table></div>`
+      : `<p class="empty">${schedLoading ? '읽는 중…' : '이 주에는 예약이 없습니다.'}</p>`;
+
+    return head('스케줄', nav) + status + grid;
+  }
+
+  /** Today's lessons, for the Dashboard. Cache only — the page load does not fetch. */
+  function todaysBookings() {
+    const t = today();
+    return schedBookings().filter((b) => b.date === t).sort((a, b) => a.time.localeCompare(b.time));
+  }
+
   const views = {
+    revenue() {
+      return head('Revenue') + revenuePanel() + revenueYoyPanel();
+    },
+    schedule() {
+      return schedulePanel();
+    },
     dashboard() {
       const cs = Store.list('customers'), ev = Store.list('events'), cp = Store.list('campaigns'), calls = Store.list('calls');
       const t = today();
@@ -648,28 +1557,45 @@
       const booked = callsThisMonth.filter((c) => c.outcome === 'booked').length;
       const card = (n, l) => `<div class="card"><div class="num">${n}</div><div class="label">${l}</div></div>`;
       // Members whose 잔여 세션 has reached 0 (or below): the 재등록 call list. A person who
-      // re-upped shows up as a second row ("김민준1") with sessions left AND a 등록일자 → not a
-      // target. A numbered row without 등록일자 is not a re-registration (owner's rule).
+      // re-upped shows up as a second row ("김민준1") with sessions left AND a 등록일자. They stay
+      // on the list, marked 재등록 with that row's 등록일자 and 등록회수, below the people still to
+      // call (owner's request). A numbered row without 등록일자 is not a re-registration, and one
+      // dated before the finished registration is an older package, not a re-up.
       // Same person = same name ignoring digits/brackets, unless both rows carry different phones.
       const synced = cs.filter((c) => c.sheetSyncedAt && typeof c.sessionsLeft === 'number');
       const digits = (c) => String(c.phone || '').replace(/\D+/g, '').slice(-9);
       const samePerson = (a, b) => Sheets.personKey(labelOf('customers', a)) === Sheets.personKey(labelOf('customers', b))
         && !(digits(a).length >= 7 && digits(b).length >= 7 && digits(a) !== digits(b));
       const active = synced.filter((c) => c.sessionsLeft > 0 && c.joined);
-      const out = synced.filter((c) => c.sessionsLeft <= 0 && !active.some((a) => samePerson(a, c)))
-        .sort((a, b) => (a.coach || '').localeCompare(b.coach || '', 'ko') || (a.validUntil || '').localeCompare(b.validUntil || '') || labelOf('customers', a).localeCompare(labelOf('customers', b), 'ko'));
+      // The newest re-registration of the person behind a finished row, or null.
+      const reupOf = (c) => active
+        .filter((a) => samePerson(a, c) && (!c.joined || a.joined >= c.joined))
+        .sort((a, b) => b.joined.localeCompare(a.joined))[0] || null;
+      const byCoach = (a, b) => (a.coach || '').localeCompare(b.coach || '', 'ko') || (a.validUntil || '').localeCompare(b.validUntil || '') || labelOf('customers', a).localeCompare(labelOf('customers', b), 'ko');
+      const out = synced.filter((c) => c.sessionsLeft <= 0).map((c) => ({ c, reup: reupOf(c) }))
+        .sort((x, y) => Number(!!x.reup) - Number(!!y.reup) || byCoach(x.c, y.c));
+      const reupped = out.filter((o) => o.reup).length;
+      const reupNote = (r) => `<span class="pill ok">재등록 ${fmtDate(r.joined)} · ${typeof r.sessionsTotal === 'number' ? `${r.sessionsTotal}회` : '회수 미기재'}</span>`;
       return head('Dashboard') + `
         <div class="cards">
           ${card(cs.filter((c) => c.status === 'active').length, 'Active members')}
+          ${card(schedCache ? todaysBookings().length : '—', '오늘 수업')}
           ${card(cs.filter((c) => isLead(c) && ['new', 'contacted', 'trial-booked'].includes(c.status)).length, 'Open inquiries')}
           ${card(cp.filter((c) => c.status === 'live').length, 'Live campaigns')}
           ${card(callsThisMonth.length, 'Calls this month')}
           ${card(callsThisMonth.length ? Math.round(100 * booked / callsThisMonth.length) + '%' : '—', 'Call → booking rate')}
           ${card(upcoming.length, 'Upcoming events')}
         </div>
+        ${trendPanel(cs.filter((c) => !isLead(c) && !isClub(c)))}
+        ${yoyPanel()}
         <div class="two-col">
+          <div class="panel"><h2>오늘 수업 ${schedCache ? `<span class="pill">${todaysBookings().length}건</span>` : ''}</h2>${schedCache
+            ? (todaysBookings().length
+              ? `<ul>${todaysBookings().map((b) => `<li><strong>${esc(b.time)}</strong> — ${esc(b.name)} <span class="pill">${esc(b.coach)}</span></li>`).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" data-goto="schedule" style="font-size:12px">스케줄 탭에서 이번 주 보기</button></p>`
+              : '<p class="empty">오늘은 예약된 수업이 없습니다.</p>')
+            : '<p class="empty">스케줄 탭을 한 번 열면 코치 시트에서 이번 달 예약을 읽어옵니다.</p>'}</div>
           <div class="panel"><h2>Upcoming events</h2>${upcoming.length ? `<ul>${upcoming.map((e) => `<li><strong>${fmtDate(e.date)}</strong> — ${esc(e.name)} ${pill(e.status)} <span class="pill">${e.registered || 0}/${e.capacity || '∞'}</span></li>`).join('')}</ul>` : '<p class="empty">No upcoming events. Add one under Events.</p>'}</div>
-          <div class="panel"><h2>잔여 세션 0 — 재등록 대상 <span class="pill bad">${out.length}명</span></h2>${out.length ? `<ul>${out.map((c) => `<li><strong>${esc(labelOf('customers', c))}</strong> — ${esc(c.coach) || '—'} · ${esc(c.segmentLabel || c.segment || '')}${c.validUntil ? ` · 유효기간 ${fmtDate(c.validUntil)}` : ''}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}</li>`).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-out-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : '<p class="empty">잔여 세션이 0인 회원이 없습니다. (Sync 후 갱신됩니다)</p>'}</div>
+          <div class="panel"><h2>잔여 세션 0 — 재등록 대상 <span class="pill bad">${out.length - reupped}명</span>${reupped ? ` <span class="pill ok">재등록 완료 ${reupped}명</span>` : ''}</h2>${out.length ? `<ul>${out.map(({ c, reup }) => `<li><strong>${esc(labelOf('customers', c))}</strong> — ${esc(c.coach) || '—'} · ${esc(c.segmentLabel || c.segment || '')}${c.validUntil ? ` · 유효기간 ${fmtDate(c.validUntil)}` : ''}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}${reup ? ` ${reupNote(reup)}` : ''}</li>`).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-out-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : '<p class="empty">잔여 세션이 0인 회원이 없습니다. (Sync 후 갱신됩니다)</p>'}</div>
           <div class="panel"><h2>Follow-ups due (next 30 days)</h2>${due.length ? `<ul>${due.map((c) => `<li><strong>${fmtDate(c.nextFollowUp)}</strong> — ${esc(labelOf('customers', c))} ${pill(c.status)}</li>`).join('')}</ul>` : '<p class="empty">Nothing due. Set “Next follow-up” on a customer or log a callback.</p>'}</div>
         </div>`;
     },
@@ -798,35 +1724,342 @@
         + table(cols, rows, (id) => openDialog('events', Store.get('events', id)), 'No events yet.');
     },
 
-    brand() {
-      const b = Store.all().brand;
-      const assets = Store.list('assets');
+    // The social plan: what goes out, when, and what is holding each piece up.
+    // The rules and templates live in marketing/social-media/; this tab is the
+    // status, so it travels with the rest of the app data.
+    social() {
+      const posts = Store.list('posts').slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      const t = today();
+      const weekOut = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+      const live = (p) => p.status !== 'posted' && p.status !== 'dropped';
+      const crossPosts = posts.filter((p) => live(p) && (p.wellperion || /wellperion/i.test(p.channel || '')));
+      const late = posts.filter((p) => live(p) && p.date && p.date < t);
+      const soon = posts.filter((p) => live(p) && p.date >= t && p.date <= weekOut);
+      const ready = posts.filter((p) => live(p) && (p.status === 'draft' || p.status === 'scheduled'));
+      const postedThisMonth = posts.filter((p) => p.status === 'posted' && (p.date || '').slice(0, 7) === t.slice(0, 7));
+
+      if (!posts.length) {
+        return head('Social', '<button class="primary" id="btn-new">+ Post</button>')
+          + '<div class="panel"><h2>소셜 플랜</h2>'
+          + '<p style="color:var(--muted);margin:0 0 12px">인스타그램 @glass_court와 네이버 블로그 계획을 여기서 관리합니다. 규칙과 템플릿은 <code>marketing/social-media/</code>에 있고, 이 탭은 <strong>무엇이 언제 나가는지, 지금 무엇이 막혀 있는지</strong>를 봅니다.</p>'
+          + '<button class="primary" id="btn-seed-social">10–11월 계획 불러오기 · ' + SOCIAL_PLAN.length + '건 (10/1 → 11/28)</button></div>';
+      }
+
+      // What is holding posts up, most-blocking first.
+      const blockers = new Map();
+      for (const p of posts.filter((x) => live(x) && x.blocker)) blockers.set(p.blocker, (blockers.get(p.blocker) || []).concat([p]));
+      const blocked = [...blockers.entries()].sort((a, b) => b[1].length - a[1].length);
+
+      // Planned share per pillar against the target mix.
+      const plannedTotal = posts.filter(live).length || 1;
+      const mix = PILLARS.map((p) => {
+        const n = posts.filter((x) => x.pillar === p.k && live(x)).length;
+        return Object.assign({}, p, { n, pct: Math.round((n / plannedTotal) * 100) });
+      });
+
+      const dday = (d) => {
+        if (!d) return '';
+        const days = Math.round((new Date(d) - new Date(t)) / 864e5);
+        return days === 0 ? '오늘' : days > 0 ? 'D-' + days : -days + '일 지남';
+      };
+      const mark = (p) => (live(p) && p.date && p.date < t ? ' style="border-left:3px solid var(--bad);padding-left:6px"' : '');
+      const sub = (s) => (s ? '<div class="sub">' + esc(s) + '</div>' : '');
       const cols = [
-        { h: 'Asset', f: (a) => `<strong>${esc(a.name)}</strong>` },
-        { h: 'Type', f: (a) => pill(a.type) },
-        { h: 'Version', f: (a) => esc(a.version) || '—' },
-        { h: 'Location', f: (a) => /^https?:/.test(a.location || '') ? `<a href="${esc(a.location)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(a.location)}</a>` : esc(a.location) || '—', wrap: true },
-        { h: 'Usage', f: (a) => esc(a.usage), wrap: true },
+        { h: 'Date', f: (p) => '<strong' + mark(p) + '>' + fmtDate(p.date) + '</strong>' + sub(dday(p.date)) },
+        { h: 'Channel', f: (p) => (esc(p.channel) || '—')
+          + (p.wellperion && !/wellperion/i.test(p.channel || '') ? '<div class="sub">+ @wellperion_squash</div>' : '')
+          + (p.wellperion && !WELLPERION_OK.has(p.pillar) ? '<div class="blocker">미국 스쿼시 · 웰페리온 행사만 교차 게시</div>' : '') },
+        { h: 'Pillar', f: (p) => '<span class="pill" style="background:' + pillarOf(p.pillar).color + ';color:#fff">' + esc(pillarOf(p.pillar).label) + '</span>' },
+        { h: 'Post', f: (p) => '<strong>' + esc(p.title) + '</strong>' + sub(p.titleEn) + sub(p.notes), wrap: true },
+        { h: 'Format', f: (p) => esc(p.format) || '—' },
+        { h: 'CTA', f: (p) => esc(p.cta) || '—' },
+        { h: '막는 것', f: (p) => (p.blocker && live(p) ? '<span class="blocker">' + esc(p.blocker) + '</span>' : '—') },
+        { h: 'Status', f: (p) => pill(p.status) },
       ];
-      return head('Brand') + `
-        <div class="two-col" style="margin-bottom:16px">
-          <div class="panel"><h2>Identity</h2>
-            <form id="brand-form" class="fields">
-              <label class="full">Tagline<input name="tagline" value="${esc(b.tagline)}" placeholder="TBD"></label>
-              <label>Heading font<input name="heading" value="${esc(b.fonts.heading)}"></label>
-              <label>Body font<input name="body" value="${esc(b.fonts.body)}"></label>
-              <label class="full"><span></span><button class="primary" type="submit">Save identity</button></label>
-            </form>
-            <p style="color:var(--muted);font-size:12px;margin:10px 0 0">Full guidelines live in <code>brand/brand-guidelines.md</code>.</p>
-          </div>
-          <div class="panel"><h2>Palette</h2>
-            <div class="swatches">${b.colors.map((c, i) => `<div class="swatch"><div class="color" style="background:${esc(c.hex)}"></div><div class="meta"><input type="color" data-i="${i}" value="${esc(c.hex)}" style="width:100%;height:24px;border:0;padding:0;background:none"><div>${esc(c.role)}</div><code>${esc(c.hex)}</code></div></div>`).join('')}</div>
-          </div>
-        </div>`
-        + head('Asset library', `<button class="primary" id="btn-new">+ Asset</button>`)
-        + table(cols, assets, (id) => openDialog('assets', Store.get('assets', id)), 'No assets registered. Add logos, templates and photos with their file paths or links.');
+
+      const card = (n, l) => '<div class="card"><div class="num">' + n + '</div><div class="label">' + l + '</div></div>';
+      const blockList = blocked.map(([b, list]) =>
+        '<li><strong>' + esc(b) + '</strong> — ' + list.length + '건: '
+        + list.map((p) => fmtDate(p.date) + ' ' + esc(p.title.slice(0, 20))).join(' · ') + '</li>').join('');
+      const legend = mix.map((p) =>
+        '<div><i style="background:' + p.color + '"></i><span><strong>' + esc(p.label) + '</strong> · ' + esc(p.job) + '</span>'
+        + '<span class="n">' + p.n + '건 · ' + p.pct + '% <span style="opacity:.6">(목표 ' + p.share + '%)</span></span></div>').join('');
+      const bars = mix.map((p) => '<span style="width:' + p.pct + '%;background:' + p.color + '" title="' + esc(p.label) + ' ' + p.pct + '%"></span>').join('');
+
+      const hasPlan = posts.some((p) => (p.date || '') >= '2026-11-01');
+      const oldRows = posts.filter((p) => (p.date || '') < '2026-10-01');
+      return head('Social',
+        (oldRows.length ? '<button class="ghost" id="btn-purge-old">이전 계획 정리 · ' + oldRows.length + '건 삭제</button> ' : '')
+        + (hasPlan ? '' : '<button class="ghost" id="btn-seed-social">10–11월 계획 불러오기</button> ')
+        + '<button class="primary" id="btn-new">+ Post</button>')
+        + '<div class="cards">'
+        + card(late.length, '밀린 게시물') + card(soon.length, '이번 주 (7일)') + card(ready.length, '원고 · 예약 완료')
+        + card(postedThisMonth.length, t.slice(0, 7) + ' 게시 완료') + card(crossPosts.length, '@wellperion_squash')
+        + '</div>'
+        + '<p style="color:var(--muted);font-size:12px;margin:-4px 0 14px">@glass_court와 블로그는 모든 내용, <strong>@wellperion_squash는 미국 스쿼시와 웰페리온에서 열리는 행사만</strong>. 교차 게시할 글은 게시물의 체크박스로 표시합니다.</p>'
+        + (blocked.length
+          ? '<div class="panel" style="margin-bottom:16px"><h2>막고 있는 결정 ' + blocked.length + '가지</h2><ul>' + blockList + '</ul>'
+            + '<p style="color:var(--muted);font-size:12px;margin:10px 0 0">각 게시물의 "Blocked by" 칸에서 모은 것입니다. 결정이 나면 그 칸을 비우세요.</p></div>'
+          : '')
+        + table(cols, posts, (id) => openDialog('posts', Store.get('posts', id)), 'No posts yet.', { tbl: 'social' })
+        + '<div class="two-col" style="margin-top:16px">'
+        + '<div class="panel"><h2>주간 리듬</h2><div class="rhythm">'
+        + '<div><b>화</b><span>릴스 30–60초 — Science of Squash / 기본 전술 · 07:30–08:30 또는 20:30–21:30</span></div>'
+        + '<div><b>수</b><span>네이버 블로그 1,000–1,500자 · 07:00 발행</span></div>'
+        + '<div><b>목</b><span>스토리 1–2장 — 블로그 링크 아웃</span></div>'
+        + '<div><b>금</b><span>카드뉴스 5–7장 — 주니어 / 회원 이야기 / 시설</span></div>'
+        + '<div><b>일</b><span>세션 현장 스토리 3–5장 + 저녁 리캡 · 19:00–21:00</span></div>'
+        + '<div><b>월</b><span>20분 점검 — 지난주 숫자, 이번 주 촬영 목록, 동의서</span></div>'
+        + '</div><p style="color:var(--muted);font-size:12px;margin:12px 0 0">시간이 없는 주의 최소선: 화요일 릴스 + 일요일 세션 스토리. 일요일 세션 커버리지는 거르지 않습니다 — 전환이 일어나는 자리입니다.</p></div>'
+        + '<div class="panel"><h2>콘텐츠 믹스 <span class="muted-note">남은 ' + plannedTotal + '건 기준</span></h2>'
+        + '<div class="mix">' + bars + '</div><div class="mix-legend">' + legend + '</div></div>'
+        + '</div>'
+        + '<div class="two-col" style="margin-top:16px">'
+        + '<div class="panel"><h2>캡션 패턴</h2><pre class="caption-pattern">{한국어 헤드라인 — 인사이트, 25자 이하}\n\n{한국어 본문 3–6줄: 주장 → 근거 → 코트에서 할 것}\n\n{부드러운 CTA — 신청 / 저장 / 블로그 / 문의}\n\n—\n{영어 2–3문장 — 번역이 아니라 원문처럼}\n\nGlass Court Squash Academy at Wellperion · Coach 이상훈\n\n{해시태그 10–15개: 코어 + 필러 1세트}</pre>'
+        + '<p style="color:var(--muted);font-size:12px;margin:10px 0 0">한국어 먼저. 인사이트는 하나만. 숫자는 집계만 (미성년자 실명 금지). 가격은 쓰지 않습니다 — 가격은 웰페리온 데스크의 일입니다.</p></div>'
+        + '<div class="panel"><h2>해시태그</h2>'
+        + '<p style="margin:0 0 6px"><strong>코어 (매 게시물)</strong><br><span style="color:var(--muted);font-size:12.5px">#GlassCourt #GCSquash #GlassCourtSquashAcademy #웰페리온 #웰페리온스쿼시 #스쿼시 #squash #한남동스쿼시 #squashseoul #squashkorea</span></p>'
+        + '<p style="margin:10px 0 6px"><strong>필러 1세트만 추가</strong><br><span style="color:var(--muted);font-size:12.5px">Science → #ScienceOfSquash #스쿼시훈련 · 기본 전술 → #기본스쿼시전술 #squashtactics · 주니어 → #주니어스쿼시 #collegesquash · 세션 → #GlassCourtTrainingSessions #스쿼시대회</span></p>'
+        + '<p style="margin:10px 0 0;color:var(--bad);font-size:12.5px"><strong>절대 쓰지 않음</strong> — #헬스 #다이어트 #할인 #이벤트특가 #맞팔 #선팔</p>'
+        + '<p style="color:var(--muted);font-size:12px;margin:12px 0 0">전체 규칙: <code>platform-playbook.md</code> · 캡션 8종: <code>post-templates.md</code> · 제작: <code>instagram-reel-template.md</code>, <code>instagram-card-news-template.md</code></p></div>'
+        + '</div>'
+        + socialMetricsHtml();
     },
   };
+
+  // Two pieces a week — what fits around full-time coaching. The first three weeks
+  // spend what is already made (the drop-shot post, US junior Parts 1 and 2, the seven rendered
+  // How We Decide cards), so the work is filming and rendering, not writing. One
+  // shoot feeds that week's Reel and that week's blog post. No events in October —
+  // Training Sessions and the Tournament Series were cancelled; 웰림픽 스쿼시컵 runs
+  // in November, so its announcement sits in late October.
+  const SOCIAL_PLAN = [
+    { date: '2026-10-01', channel: 'Instagram @glass_court', pillar: 'science', status: 'idea', wellperion: false, title: '릴스 #1 — 주제 미정', titleEn: 'Reel #1 — topic to be decided', format: '릴스 30–45초', cta: '전체 글 → 블로그', blocker: '릴스 주제', notes: '아시안게임 주간 직후 첫 게시물 — 새 팔로워를 레슨으로 넘기는 자리. 후보: 프로 vs 동호인 비교 · 3초 진단 · AG 패턴 재현 · 코치 랠리 · 장비 팁. 드롭샷 클립 2개는 주제와 상관없이 10/2 블로그에 필요' },
+    { date: '2026-10-02', channel: 'Naver blog', pillar: 'science', status: 'draft', wellperion: false, title: '드롭샷은 손목이 아니라 발이 먼저입니다', titleEn: 'Drop shots start with the feet, not the wrist', format: '1,200자 + 클립 2 + 다이어그램', cta: '레슨 상담 → 데스크', blocker: '드롭샷 클립 2개', notes: '본문·다이어그램 완성 (blog/2026-09-16-drop-shot-feet-first.md). 클립만 붙이면 발행' },
+    { date: '2026-10-06', channel: 'Instagram @glass_court', pillar: 'junior', status: 'idea', wellperion: true, title: '미국 주니어 스쿼시, 랭킹은 이렇게 매겨집니다', titleEn: 'How US junior squash rankings actually work', format: '카드뉴스 6장 — cards/us-junior-part1-01~06.png (렌더 완료)', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '', notes: '웰페리온 계정에도 (미국 스쿼시). 카드·캡션 모두 준비됨 — 올리기만 하면 됩니다 (us-junior-instagram.md)' },
+    { date: '2026-10-07', channel: 'Naver blog', pillar: 'junior', status: 'draft', wellperion: false, title: '미국 주니어 스쿼시 Part 1 — 랭킹과 대회 출전', titleEn: 'US junior squash, Part 1: rankings', format: '긴 글 + 카드 3장', cta: '보딩스쿨·대학 진학 1:1 상담', blocker: '', notes: '본문 완성 · 사실 확인 완료. 카드가 늦으면 글만 먼저 발행 가능' },
+    { date: '2026-10-13', channel: 'Instagram @glass_court', pillar: 'junior', status: 'idea', wellperion: true, title: '랭킹보다 레이팅 — 미국 대학 코치가 보는 숫자', titleEn: 'Coaches read the rating, not the ranking', format: '카드뉴스 6장 — cards/us-junior-part2-01~06.png (렌더 완료)', cta: '진학 상담', blocker: '', notes: '웰페리온 계정에도 (미국 스쿼시). 카드·캡션 모두 준비됨 (us-junior-instagram.md)' },
+    { date: '2026-10-14', channel: 'Naver blog', pillar: 'junior', status: 'draft', wellperion: false, title: '미국 주니어 스쿼시 Part 2 — 레이팅', titleEn: 'US junior squash, Part 2: ratings', format: '긴 글 + 캐러셀', cta: '진학 1:1 상담', blocker: '', notes: '사실 확인 완료 — 보딩스쿨 문단만 추가하면 발행' },
+    { date: '2026-10-20', channel: 'Instagram @glass_court', pillar: 'tactics', status: 'idea', wellperion: false, title: '릴스 #2 — 주제 미정', titleEn: 'Reel #2 — topic to be decided', format: '릴스 30–45초', cta: '저장 → 다음 연습에서 확인', blocker: '릴스 주제', notes: '릴스 #1과 같은 시리즈로 이어갈지, 다른 포맷으로 갈지는 #1 반응을 보고 결정' },
+    { date: '2026-10-21', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '부상 없이 오래 치는 법: 웜업에 15분을 쓰는 이유', titleEn: 'Why we spend 15 minutes on the warm-up', format: '긴 글 + 웜업 5동작 (사진 각 1장)', cta: '성인 프라이빗 레슨 상담', blocker: '', notes: '웜업 5동작 사진은 레슨 날 한 번에' },
+    { date: '2026-10-24', channel: 'Instagram @wellperion_squash', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 — 11월 8일 (일)', titleEn: 'Wellympic Squash Cup — Sunday 8 November', format: '카드뉴스 4장 (날짜 · 대상 · 방식 · 신청)', cta: '참가 신청 → 데스크 / 프로필 링크', blocker: '참가 방식 · 신청 마감일', notes: '양 계정 (웰페리온에서 열리는 행사). 날짜 확정 2026-09-25. 히어로 숫자는 11.8' },
+    { date: '2026-10-27', channel: 'Instagram @glass_court', pillar: 'science', status: 'idea', wellperion: false, title: '뇌는 공보다 먼저 움직인다 — 의사결정 속도', titleEn: 'The brain moves before the ball', format: '카드뉴스 7장 — 이미 렌더된 How We Decide 카드', cta: '전체 시리즈 → 블로그', blocker: '', notes: 'blog/cards/how-we-decide-01~07.png 그대로 사용. 제작 시간 0' },
+    { date: '2026-10-28', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '《How We Decide》 총정리 — 코트 위의 의사결정', titleEn: 'How We Decide: the court version', format: '긴 글 (시리즈 5부)', cta: '레슨 상담', blocker: 'Part 3 링크', notes: '초안 있음 (blog/how-we-decide-part5-summary.md)' },
+    { date: '2026-10-31', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '10월의 코트: 한 달의 순간들', titleEn: 'October on court', format: '카드뉴스 6장', cta: '체험 문의', blocker: '', notes: '10월 촬영본 정리. 주니어 얼굴은 서면 동의된 경우만' },
+
+    // November — 웰림픽 스쿼시컵 (2026-11-08, 일). Three weeks of build-up, the day
+    // itself, and two weeks of reusing what the day produced.
+    { date: '2026-11-03', channel: 'Instagram @glass_court', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 D-5 — 대회 주간에 하면 좋은 준비', titleEn: 'Five days out: how to arrive ready', format: '릴스 45초', cta: '참가 신청 마감 임박 → 데스크', blocker: '참가 방식 · 신청 마감일', notes: '대회 전 주 훈련·워밍업·컨디션. 참가자에게도 유용하고 비참가자에게는 대회 존재를 알림' },
+    { date: '2026-11-04', channel: 'Naver blog', pillar: 'event', status: 'idea', wellperion: false, title: '웰림픽 스쿼시컵 안내 — 부문 · 규정 · 타임테이블', titleEn: 'Wellympic Squash Cup: format, rules, schedule', format: '안내 글 + 대진 방식 그림', cta: '참가 신청 → 데스크', blocker: '부문 · 정원 · 타임테이블', notes: '검색으로 들어오는 사람을 위한 공식 안내. 대회 당일까지 계속 갱신' },
+    { date: '2026-11-08', channel: 'Instagram @wellperion_squash', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 현장', titleEn: 'Wellympic Squash Cup, live', format: '스토리 5장 (라이브) + 저녁 리캡 1건', cta: '다음 대회 알림 받기', blocker: '', notes: '대회 당일. 스토리는 경기 중, 리캡은 당일 저녁 19–21시. 촬영 담당을 미리 정해 둘 것' },
+    { date: '2026-11-10', channel: 'Instagram @glass_court', pillar: 'event', status: 'idea', wellperion: true, title: '웰림픽 스쿼시컵 결과', titleEn: 'Wellympic Squash Cup results', format: '카드뉴스 5장 (부문별 결과 · 이니셜)', cta: '다음 대회 사전 등록', blocker: '대회 결과', notes: '미성년자는 이니셜만. instagram-card-news-template.md Example B 구조' },
+    { date: '2026-11-11', channel: 'Naver blog', pillar: 'science', status: 'idea', wellperion: false, title: '웰림픽 리뷰 — 결승에서 반복된 세 장면', titleEn: 'Three patterns that decided the final', format: '긴 글 + 사진 · 클립', cta: '레슨 상담', blocker: '대회 결과', notes: '대회를 Science of Squash 소재로 재사용. 이름 대신 장면으로 설명' },
+    { date: '2026-11-17', channel: 'Instagram @glass_court', pillar: 'tactics', status: 'idea', wellperion: false, title: '대회에서 가장 많이 나온 실수', titleEn: 'The mistake we saw most at the tournament', format: '릴스 45초', cta: '저장 → 다음 연습에서', blocker: '', notes: '11/8 촬영본 재사용. 대회 참가자들이 자기 경기를 떠올리게 되는 자리' },
+    { date: '2026-11-18', channel: 'Naver blog', pillar: 'tactics', status: 'idea', wellperion: false, title: '대회가 끝나고: 다음 대회까지 4주 훈련 계획', titleEn: 'Four weeks to the next tournament', format: '긴 글 + 주차별 표', cta: '성인 프라이빗 레슨 상담', blocker: '', notes: '대회 직후 동기가 가장 높은 시점의 전환 글' },
+    { date: '2026-11-24', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '첫 대회에 나간 회원 이야기', titleEn: 'A member\'s first tournament', format: '단일 사진 + 3줄 인용', cta: '댓글 · 체험 문의', blocker: '서면 동의', notes: '웰림픽 참가자 중 한 명. 이니셜 또는 성만' },
+    { date: '2026-11-25', channel: 'Naver blog', pillar: 'junior', status: 'idea', wellperion: false, title: '겨울 시즌 주니어 대회 캘린더와 준비법', titleEn: 'The winter junior calendar', format: '긴 글 + 일정 표', cta: '주니어 상담 → 데스크', blocker: '겨울 대회 일정', notes: '국내 겨울 대회 + 미국 시즌을 함께 보는 글이면 웰페리온 계정에도 교차 가능' },
+    { date: '2026-11-28', channel: 'Instagram @glass_court', pillar: 'member', status: 'idea', wellperion: false, title: '11월의 코트: 웰림픽이 남긴 것', titleEn: 'November on court', format: '카드뉴스 6장', cta: '체험 문의', blocker: '', notes: '대회 사진 중심. 동의된 얼굴만' },
+  ];
+
+  /** Load the plan: drop anything left over from before October, add what is missing. */
+  // The one event the plan hangs on. Only the date is settled (owner, 2026-09-25);
+  // 부문 · 정원 · 신청 방식 are still open, so the record carries the date and says so.
+  const WELLYMPIC = {
+    name: '웰림픽 스쿼시컵',
+    type: 'tournament',
+    status: 'planned',
+    date: '2026-11-08',
+    venue: '웰페리온 스포츠센터 스쿼시코트 (한남동)',
+    owner: '이상훈',
+    notes: '일정만 확정 (2026-09-25). 미정: 부문 · 정원 · 신청 방식 · 신청 마감일 · 타임테이블.\n소셜: 10/24 예고 → 11/3 D-5 → 11/8 현장 → 11/10 결과 (Social 탭).',
+  };
+
+  /** Rows from a calendar that is over: removed on request, whatever their status. */
+  function purgeOldPosts() {
+    const old = Store.list('posts').filter((p) => (p.date || '') < '2026-10-01');
+    if (!old.length) return;
+    const posted = old.filter((p) => p.status === 'posted').length;
+    const msg = `10월 이전 게시물 ${old.length}건을 삭제합니다.`
+      + (posted ? `\n(게시 완료로 표시된 ${posted}건도 함께 삭제됩니다.)` : '')
+      + '\n계속할까요?';
+    if (!confirm(msg)) return;
+    Store.batch(() => { for (const p of old) Store.remove('posts', p.id); });
+    render();
+  }
+
+  function seedSocialPlan() {
+    const have = new Set(Store.list('posts').map((p) => p.date + '|' + p.title));
+    let added = 0, closed = 0;
+    Store.batch(() => {
+      // Anything before October that never went out is removed, not archived:
+      // the tab is the current plan, and a list of things that did not happen is noise.
+      for (const p of Store.list('posts')) {
+        if (p.date < '2026-10-01' && p.status !== 'posted') { Store.remove('posts', p.id); closed++; }
+      }
+      for (const p of SOCIAL_PLAN) {
+        if (have.has(p.date + '|' + p.title)) continue;
+        Store.upsert('posts', Object.assign({}, p));
+        added++;
+      }
+      // The tournament itself goes on the Events tab, date only.
+      const known = Store.list('events').find((e) => e.name === WELLYMPIC.name && e.date === WELLYMPIC.date);
+      if (!known) Store.upsert('events', Object.assign({}, WELLYMPIC));
+    });
+    render();
+    if (closed) alert(`10–11월 계획 ${added}건을 불러왔습니다.\n10월 이전의 미발행 항목 ${closed}건은 삭제했습니다 (게시된 것은 그대로 둡니다).`);
+  }
+
+
+  // ---------- Social: numbers that fill themselves in ----------
+  // Naver has no API for blog visitors (the old unofficial endpoint answers 204 since
+  // 2026), so those are typed in monthly. Everything else comes from apps-script/Social.gs:
+  // the blog's RSS says which posts are really published, the Naver search API says where
+  // they rank, and Instagram insights (professional account only) give reach and saves.
+  const scriptSource = () => (Store.settings().sheet.sources || []).find((x) => /script\.google\.com/.test(x.url || ''));
+  async function socialCall(action, params) {
+    const src = scriptSource();
+    if (!src) throw new Error('Google Sheet 소스가 없습니다 (Members → Google Sheet).');
+    const u = new URL(src.url);
+    u.search = '';
+    u.searchParams.set('action', action);
+    u.searchParams.set('token', tokenFor(src.url, src.token));
+    for (const [k, v] of Object.entries(params || {})) u.searchParams.set(k, v);
+    const res = await fetch(u.toString(), { redirect: 'follow' });
+    const j = await res.json();
+    if (j.ok === false) throw new Error(j.error || 'unknown error');
+    return j;
+  }
+
+  /** Mark blog rows posted when the post actually shows up in the blog's RSS feed. */
+  async function checkBlogPosts(btn) {
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = '블로그 확인 중…';
+    try {
+      const feed = await socialCall('blog-rss');
+      const items = feed.items || [];
+      const norm = (s) => String(s || '').replace(/[\s·—–\-:,.!?()[\]"']/g, '').toLowerCase();
+      const matched = [];
+      Store.batch(() => {
+        for (const p of Store.list('posts')) {
+          if (p.channel !== 'Naver blog' || p.status === 'posted' || p.status === 'dropped') continue;
+          const key = norm(p.title).slice(0, 12);
+          const hit = items.find((it) => key && norm(it.title).includes(key))
+            || items.find((it) => it.date === p.date);
+          if (!hit) continue;
+          Store.upsert('posts', Object.assign({}, p, { status: 'posted', postedAt: hit.date, url: hit.link }));
+          matched.push(`${hit.date} ${p.title}`);
+        }
+      });
+      state.blogFeed = { at: new Date().toISOString(), count: items.length, newest: items[0] ? items[0].date : '' };
+      render();
+      alert(matched.length
+        ? `블로그 ${feed.blog}: 발행 확인 ${matched.length}건\n\n` + matched.join('\n')
+        : `블로그 ${feed.blog}: RSS ${items.length}건, 새로 발행된 계획 글은 없습니다.` + (items[0] ? `\n가장 최근 글: ${items[0].date} ${items[0].title}` : ''));
+    } catch (err) {
+      alert('블로그 발행 확인 실패: ' + err.message + '\n\napps-script/Social.gs를 배포하고 Script property BLOG_ID를 설정했는지 확인하세요.');
+    }
+    btn.disabled = false; btn.textContent = label;
+  }
+
+  /** Instagram numbers + keyword ranks, as collected by the Apps Script triggers. */
+  async function loadSocialStats(btn) {
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = '불러오는 중…';
+    try {
+      state.socialStats = await socialCall('social-stats');
+      state.socialStats.at = new Date().toISOString();
+      render();
+    } catch (err) {
+      alert('지표를 불러오지 못했습니다: ' + err.message + '\n\n아직 설정 전이라면 apps-script/README.md → "노출 지표"를 보세요.');
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+
+  /** The bottom half of the Social tab: what the numbers say, and the monthly log. */
+  function socialMetricsHtml() {
+    const s = state.socialStats;
+    const stats = (s && s.stats) || [];
+    const media = (s && s.media) || [];
+    const ranks = (s && s.ranks) || [];
+    const last = stats[stats.length - 1];
+    const num = (v) => (v === '' || v == null ? '—' : Number(v).toLocaleString('ko-KR'));
+
+    // Keyword ranks: the newest check per keyword.
+    const latestRank = new Map();
+    for (const r of ranks) latestRank.set(r['키워드'], r);
+    const rankRows = [...latestRank.values()].sort((a, b) => (Number(a['순위']) || 99) - (Number(b['순위']) || 99));
+
+    const kpis = Store.list('kpi').slice().sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+    const kpiCols = [
+      { h: '월', f: (r) => `<strong>${esc(r.month)}</strong>` },
+      { h: '팔로워', f: (r) => num(r.igFollowers) },
+      { h: '도달 30일', f: (r) => num(r.igReach) },
+      { h: '저장', f: (r) => num(r.igSaves) },
+      { h: '프로필 조회', f: (r) => num(r.igProfile) },
+      { h: 'DM · 문의', f: (r) => num(r.igDms) },
+      { h: '블로그 방문', f: (r) => num(r.blogVisits) },
+      { h: '예약', f: (r) => num(r.bookings) },
+      { h: 'Notes', f: (r) => esc(r.notes || ''), wrap: true },
+    ];
+
+    const noRow = () => {}; // these tables are read-only
+    const mediaRows = media.slice(0, 8).map((m, i) => Object.assign({ id: 'm' + i }, m));
+    const mediaCols = [
+      { h: '게시일', f: (m) => esc(m['게시일']) },
+      { h: '형식', f: (m) => esc(m['형식']) },
+      { h: '첫 줄', f: (m) => `<a href="${esc(m['링크'])}" target="_blank" rel="noopener">${esc(m['첫 줄'])}</a>`, wrap: true },
+      { h: '도달', f: (m) => num(m['reach']) },
+      { h: '저장', f: (m) => num(m['saved']) },
+      { h: '공유', f: (m) => num(m['shares']) },
+      { h: '좋아요', f: (m) => num(m['likes']) },
+    ];
+    const rankCols = [
+      { h: '키워드', f: (r) => `<strong>${esc(r['키워드'])}</strong>` },
+      { h: '순위', f: (r) => (Number(r['순위']) ? `<span class="pill ${Number(r['순위']) <= 10 ? 'ok' : 'warn'}">${esc(r['순위'])}위</span>` : '<span class="pill">30위 밖</span>') },
+      { h: '확인일', f: (r) => esc(r['날짜']) },
+      { h: '전체 검색결과', f: (r) => num(r['전체 검색결과']) },
+      { h: '링크', f: (r) => (r['링크'] ? `<a href="${esc(r['링크'])}" target="_blank" rel="noopener">글 보기</a>` : '—') },
+    ];
+
+    let metrics = '';
+    if (!s) {
+      metrics = '<p style="color:var(--muted);margin:0">인스타그램 도달 · 저장과 네이버 검색 노출 순위는 Apps Script가 모아 둡니다. '
+        + '설정 전이라면 <code>apps-script/README.md</code> → “노출 지표”를 보세요. 인스타그램은 <strong>프로페셔널(비즈니스/크리에이터) 계정</strong>이어야 인사이트가 존재합니다.</p>';
+    } else if (!last && !rankRows.length) {
+      metrics = '<p style="color:var(--muted);margin:0">시트에 아직 기록이 없습니다. Apps Script에서 <code>socialStatus()</code>로 설정 상태를 확인하고, <code>installSocialTriggers()</code>로 수집을 켜세요.</p>';
+    } else {
+      const card = (n, l) => '<div class="card"><div class="num">' + n + '</div><div class="label">' + l + '</div></div>';
+      metrics = (last
+        ? '<div class="cards" style="margin-bottom:12px">'
+          + card(num(last['팔로워']), '팔로워 · ' + esc(last['계정'] || ''))
+          + card(num(last['reach']), '도달 (' + esc(last['날짜']) + ')')
+          + card(num(last['views']), '조회')
+          + card(num(last['profile_views']), '프로필 조회')
+          + '</div>'
+        : '')
+        + (mediaRows.length
+          ? '<h3 style="font-size:13px;margin:12px 0 6px;color:var(--muted)">최근 게시물</h3>'
+            + table(mediaCols, mediaRows, noRow, '아직 없습니다.', { tbl: 'igmedia' })
+          : '')
+        + (rankRows.length
+          ? '<h3 style="font-size:13px;margin:16px 0 6px;color:var(--muted)">네이버 검색 노출 (키워드별 최신)</h3>'
+            + table(rankCols, rankRows.map((r, i) => Object.assign({ id: 'r' + i }, r)), noRow, '아직 없습니다.', { tbl: 'igrank' })
+          : '');
+    }
+
+    return '<div class="two-col" style="margin-top:16px">'
+      + '<div class="panel"><div class="panel-head" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">'
+      + '<h2 style="margin:0">노출 지표</h2>'
+      + '<span style="display:flex;gap:6px"><button class="ghost" id="btn-blog-check">블로그 발행 확인</button>'
+      + '<button class="ghost" id="btn-social-stats">' + (s ? '새로고침' : '지표 불러오기') + '</button></span></div>'
+      + (state.blogFeed ? `<p style="color:var(--muted);font-size:12px;margin:0 0 10px">블로그 RSS ${state.blogFeed.count}건 · 최근 글 ${esc(state.blogFeed.newest)}</p>` : '<div style="height:6px"></div>')
+      + metrics + '</div>'
+      + '<div class="panel"><div class="panel-head" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">'
+      + '<h2 style="margin:0">월간 지표</h2><button class="primary" id="btn-new-kpi">+ 이번 달</button></div>'
+      + table(kpiCols, kpis, (id) => openDialog('kpi', Store.get('kpi', id)), '아직 기록이 없습니다. 월 첫 월요일에 인스타 인사이트 · 블로그 통계 · 앱 예약 수를 한 줄로 남기세요.', { tbl: 'kpi' })
+      + '<p style="color:var(--muted);font-size:12px;margin:10px 0 0">첫 4주 목표: 팔로워 +60 · 저장 40 이상 · DM 10건 이상 · 인스타/블로그發 예약 4건 이상 (기준 2026-09-12: 팔로워 884, 블로그 누적 13,000+ 방문).</p>'
+      + '</div></div>';
+  }
 
   // ---------- Render & wiring ----------
   const viewEl = $('#view');
@@ -842,9 +2075,39 @@
     });
 
     const newBtn = $('#btn-new');
-    if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', brand: 'assets' }[state.view]);
+    if (newBtn) newBtn.onclick = () => openDialog({ customers: 'customers', campaigns: 'campaigns', events: 'events', social: 'posts' }[state.view]);
+    const seedBtn = $('#btn-seed-social');
+    if (seedBtn) seedBtn.onclick = () => seedSocialPlan();
+    const purgeBtn = $('#btn-purge-old');
+    if (purgeBtn) purgeBtn.onclick = () => purgeOldPosts();
+    const kpiBtn = $('#btn-new-kpi');
+    if (kpiBtn) kpiBtn.onclick = () => openDialog('kpi', Store.list('kpi').find((r) => r.month === today().slice(0, 7)));
+    const blogBtn = $('#btn-blog-check');
+    if (blogBtn) blogBtn.onclick = () => checkBlogPosts(blogBtn);
+    const statsBtn = $('#btn-social-stats');
+    if (statsBtn) statsBtn.onclick = () => loadSocialStats(statsBtn);
     const newCall = $('#btn-new-call');
     if (newCall) newCall.onclick = () => openDialog('calls');
+
+    viewEl.querySelectorAll('[data-goto]').forEach((el) => {
+      el.onclick = () => { state.view = el.dataset.goto; location.hash = '#' + state.view; render(); };
+    });
+    // 스케줄: week navigation, the coach chips and a forced re-read of the months on screen.
+    viewEl.querySelectorAll('[data-week]').forEach((el) => {
+      el.onclick = () => {
+        const step = el.dataset.week;
+        state.weekStart = step === 'today' ? mondayOf(today()) : addDays(state.weekStart || mondayOf(today()), Number(step));
+        render();
+      };
+    });
+    viewEl.querySelectorAll('[data-sched-coach]').forEach((el) => {
+      el.onclick = () => { state.schedCoach = el.dataset.schedCoach; render(); };
+    });
+    const schedBtn = $('#btn-sched-refresh');
+    if (schedBtn) schedBtn.onclick = () => {
+      const start = state.weekStart || mondayOf(today());
+      loadSchedule(Array.from(new Set([0, 6].map((i) => addDays(start, i).slice(0, 7)))), true);
+    };
 
     const q = $('#q');
     if (q) { q.oninput = () => { state.q = q.value; render(); const el = $('#q'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }; }
@@ -880,6 +2143,29 @@
         render();
       };
     });
+    viewEl.querySelectorAll('[data-trend]').forEach((el) => {
+      el.onclick = () => { state.trendMonths = el.dataset.trend === 'all' ? 'all' : +el.dataset.trend; render(); };
+    });
+    viewEl.querySelectorAll('[data-yoy]').forEach((el) => {
+      el.onclick = () => { state.yoyMetric = el.dataset.yoy; render(); };
+    });
+    viewEl.querySelectorAll('[data-rev-range]').forEach((el) => {
+      el.onclick = () => { const v = el.dataset.revRange; state.revMonths = v === 'all' ? 'all' : Number(v); render(); };
+    });
+    viewEl.querySelectorAll('[data-rev-coach]').forEach((el) => {
+      el.onclick = () => { state.revCoach = el.dataset.revCoach; render(); };
+    });
+    viewEl.querySelectorAll('[data-rev-yoy]').forEach((el) => {
+      el.onclick = () => { state.revYoyMetric = el.dataset.revYoy; render(); };
+    });
+    viewEl.querySelectorAll('[data-trend-coach]').forEach((el) => {
+      el.onclick = () => { state.trendCoach = el.dataset.trendCoach; render(); };
+    });
+    viewEl.querySelectorAll('figure.chart').forEach(wireChart);
+    const historyBtn = $('#btn-history');
+    if (historyBtn) historyBtn.onclick = () => rebuildMemberHistory(); // re-counts this month's tabs too, not just the cached table
+    const rebuildBtn = $('#btn-history-rebuild');
+    if (rebuildBtn) rebuildBtn.onclick = () => rebuildMemberHistory();
     const outBtn = $('#btn-out-customers');
     if (outBtn) outBtn.onclick = () => { tbl('members').colFilters = { sessionsLeft: { min: '', max: '0' } }; tbl('members').sort = { k: 'sessionsLeft', dir: 1 }; state.view = 'customers'; location.hash = '#customers'; render(); };
     const clearBtn = $('#btn-clear-filters');
@@ -907,18 +2193,6 @@
     if (importBtn) importBtn.onclick = () => importInquiries(importBtn);
     const smsBtn = $('#btn-smslog');
     if (smsBtn) smsBtn.onclick = () => showSmsLog(smsBtn);
-
-    const bf = $('#brand-form');
-    if (bf) {
-      bf.onsubmit = (e) => {
-        e.preventDefault();
-        Store.setBrand({ tagline: bf.tagline.value.trim(), fonts: { heading: bf.heading.value.trim(), body: bf.body.value.trim() } });
-        render();
-      };
-      viewEl.querySelectorAll('input[type=color]').forEach((inp) => {
-        inp.onchange = () => { const b = Store.all().brand; b.colors[+inp.dataset.i].hex = inp.value; Store.setBrand(b); render(); };
-      });
-    }
   }
 
   $('#tabs').addEventListener('click', (e) => {
@@ -1095,9 +2369,10 @@
   async function mapAllSources() {
     const sources = (Store.settings().sheet.sources || []).slice();
     for (const src of sources) {
-      if (src.mapping && Object.keys(src.mapping).length) continue;
+      // Re-guess when the saved mapping cannot identify a person; Sync refuses such a source.
+      if (hasIdentity(src.mapping)) continue;
       try {
-        const { headers } = Sheets.toTable(await Sheets.fetchCSV(src.url, src.token));
+        const { headers } = Sheets.toTable(await Sheets.fetchCSV(src.url, tokenFor(src.url, src.token)));
         src.mapping = Sheets.guessMapping(headers);
         if (src.kind === 'leads' || src.kind === 'clubdb') delete src.mapping.segment;
         if (src.kind === 'clubdb') delete src.mapping.coach;
