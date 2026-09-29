@@ -255,3 +255,4 @@ dialog h2 { margin: 0 0 14px; font-size: 24px; font-weight: 600; color: var(--pr
 .cal-day { font-size: 11px; color: var(--muted); }
 .cal-cell.on .cal-day { color: var(--ink); font-weight: 600; }
 .cal-time { font-size: 11px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+select.lead-status { border: 0; cursor: pointer; font: inherit; font-size: 12px; padding: 2px 6px; }

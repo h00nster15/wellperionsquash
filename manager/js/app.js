@@ -279,6 +279,11 @@
   const daysLeftHtml = (c) => typeof c.clubDaysLeft === 'number' ? `<span class="${c.clubDaysLeft < 0 ? 'pill bad' : c.clubDaysLeft <= 30 ? 'pill warn' : 'pill ok'}">${c.clubDaysLeft < 0 ? '만료 ' + Math.abs(c.clubDaysLeft) + '일' : c.clubDaysLeft + '일 남음'}</span>` : '—';
   const num = (x) => { const n = Number(String(x ?? '').replace(/[^\d.-]/g, '')); return String(x ?? '').trim() === '' || isNaN(n) ? null : n; };
   const consentIcons = (c) => [c.consentSms && '💬', c.consentCalls && '☎', c.consentMarketing && '✉'].filter(Boolean).join(' ');
+  // Inquiry outcome, set by hand in the 문의 list. Until someone picks one it follows the sheet's
+  // 상태 (등록 → success, 보류/종료 → loss, anything else → in contact); Sync never overwrites a pick.
+  const LEAD_STATUS = ['in contact', 'success', 'loss'];
+  const leadStatusOf = (c) => c.leadStatus || (c.status === 'active' ? 'success' : ['lapsed', 'opted-out'].includes(c.status) ? 'loss' : 'in contact');
+  const leadStatusSelect = (c) => { const v = leadStatusOf(c); return `<select class="lead-status pill ${pillClass(v)}" data-id="${esc(c.id)}" title="Status 변경">${LEAD_STATUS.map((x) => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select>`; };
   const CUSTOMER_COLUMNS = [
     { k: 'name', h: '회원명', t: 'text', v: (c) => labelOf('customers', c), f: (c) => `<strong>${esc(labelOf('customers', c))}</strong>${c.sheetRemovedAt ? ' <span class="pill bad" title="시트에서 삭제된 회원 (통화 기록이 있어 보관)">시트 삭제</span>' : ''}`, always: true },
     { k: 'coach', h: '담당강사', t: 'enum', multi: true, v: (c) => c.coach || '', f: (c) => esc(c.coach) || '—' },
@@ -299,6 +304,7 @@
     { k: 'payment', h: '결제 금액', t: 'num', v: (c) => num(c.payment), f: (c) => esc(c.payment) || '—' },
     { k: 'registration', h: '등록분류', t: 'enum', v: (c) => c.registration || '', f: (c) => esc(c.registration) || '—' },
     { k: 'consent', h: '수신동의', t: 'enum', v: consentIcons, f: (c) => consentIcons(c) || '—' },
+    { k: 'leadStatus', h: 'Status', t: 'enum', v: leadStatusOf, f: leadStatusSelect },
     { k: 'inqDate', h: '문의 접수일', t: 'date', v: (c) => c.inqDate || '', f: (c) => fmtDate(c.inqDate) },
     { k: 'inqProgram', h: '문의 프로그램', t: 'enum', v: (c) => c.inqProgram || '', f: (c) => esc(c.inqProgram) || '—' },
     { k: 'inqAge', h: '연령대', t: 'enum', v: (c) => c.inqAge || '', f: (c) => esc(c.inqAge) || '—' },
@@ -407,7 +413,7 @@
     </div>`;
   }
   // Columns of the 문의 (leads) table under Outreach.
-  const LEAD_COLUMNS = ['leadName', 'inqDate', 'status', 'phone', 'coach', 'inqFirstContact', 'nextFollowUp', 'inqSummary', 'inqLog'];
+  const LEAD_COLUMNS = ['leadName', 'inqDate', 'leadStatus', 'phone', 'coach', 'inqFirstContact', 'nextFollowUp', 'inqSummary', 'inqLog'];
   const CLUB_COLUMNS = ['clubName', 'clubAge', 'clubPlan', 'clubStart', 'clubEnd', 'clubDaysLeft', 'phone', 'squashCoach', 'squashContact', 'clubNotes'];
   // Split a free-text contact log at each date token so every contact is its own line.
   function contactLog(text) {
@@ -683,6 +689,7 @@
   const pillClass = (v) => ({
     active: 'ok', booked: 'ok', live: 'ok', open: 'ok', done: '', posted: 'ok',
     draft: 'warn', scheduled: 'info', dropped: 'bad',
+    success: 'ok', loss: 'bad', 'in contact': 'info',
     'at-risk': 'warn', callback: 'warn', paused: 'warn', full: 'warn', planned: 'info', 'trial-booked': 'info',
     lapsed: 'bad', 'opted-out': 'bad', 'opt-out': 'bad', 'not-interested': 'bad', cancelled: 'bad',
   }[v] || '');
@@ -2109,7 +2116,7 @@
         <div class="cards">
           ${card(cs.filter((c) => c.status === 'active').length, 'Active members')}
           ${card(schedCache ? todaysBookings().length : '—', '오늘 수업')}
-          ${card(cs.filter((c) => isLead(c) && ['new', 'contacted', 'trial-booked'].includes(c.status)).length, 'Open inquiries')}
+          ${card(cs.filter((c) => isLead(c) && leadStatusOf(c) === 'in contact').length, 'Open inquiries')}
           ${card(cp.filter((c) => c.status === 'live').length, 'Live campaigns')}
           ${card(callsThisMonth.length, 'Calls this month')}
           ${card(callsThisMonth.length ? Math.round(100 * booked / callsThisMonth.length) + '%' : '—', 'Call → booking rate')}
@@ -2197,7 +2204,7 @@
       const leadStats = leadsAll.length ? `<div class="stats">
           <div class="stat-group total"><div class="stat-title">문의 · Inquiries</div><div class="big">${leadsAll.length}<span class="sub">건</span></div>${overdue ? `<span class="chip warn" style="cursor:default"><span class="n">${overdue}</span> 연락 예정일 지남</span>` : ''}</div>
           <div class="stat-group"><div class="stat-title">구분</div><div class="chips">${tally((c) => c.segmentLabel).map(([v, n]) => lchip(v, n, 'segment', v)).join('')}</div></div>
-          <div class="stat-group"><div class="stat-title">Status</div><div class="chips">${tally((c) => c.status).map(([v, n]) => lchip(v, n, 'status', v)).join('')}</div></div>
+          <div class="stat-group"><div class="stat-title">Status</div><div class="chips">${tally(leadStatusOf).map(([v, n]) => lchip(v, n, 'leadStatus', v)).join('')}</div></div>
           <div class="stat-group"><div class="stat-title">담당</div><div class="chips">${tally((c) => c.coach).map(([v, n]) => lchip(v, n, 'coach', v)).join('')}</div></div>
         </div>` : '';
       const canSync = (Store.settings().sheet.sources || []).some((x) => x.url);
@@ -2688,6 +2695,14 @@
         if (again && el.tagName !== 'SELECT' && el.type !== 'date') { again.focus(); try { again.setSelectionRange(pos, pos); } catch (e) { /* number inputs */ } }
       };
       if (el.tagName === 'SELECT' || el.type === 'date') el.onchange = apply; else el.oninput = apply;
+    });
+    viewEl.querySelectorAll('select.lead-status').forEach((el) => {
+      el.onclick = (e) => e.stopPropagation(); // choosing a status must not open the row's dialog
+      el.onchange = () => {
+        const c = Store.get('customers', el.dataset.id); if (!c) return;
+        c.leadStatus = el.value; c.leadStatusAt = new Date().toISOString();
+        Store.upsert('customers', c); render();
+      };
     });
     viewEl.querySelectorAll('.chip[data-chip-k]').forEach((el) => {
       el.onclick = () => {
