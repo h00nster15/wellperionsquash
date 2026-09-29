@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>보딩스쿨 스쿼시 가이드 | Glass Court Squash Academy at Wellperion</title>
+    <meta name="description" content="스쿼시를 하는 한국 가정을 위한 미국 보딩스쿨 선택 가이드 — Glass Court Squash Academy at Wellperion.">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <style>
+        :root {
+            --ink: #1D232A;
+            --wall: #F6F7F8;
+            --paper: #FFFFFF;
+            --line: #E1E5EA;
+            --muted: #5F6B78;
+            --navy: #1F2A6B;
+            --glass: #7FA8D9;
+            --ice: #DCE8F6;
+            --red: #C8102E;
+            --font-display: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            --wrap: 1080px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-display);
+            background: var(--wall);
+            color: var(--ink);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+            word-break: keep-all;
+        }
+        a { color: inherit; }
+        .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 20px; }
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: .72rem;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--glass);
+        }
+        h2 { font-size: clamp(1.5rem, 3.2vw, 2.1rem); line-height: 1.3; letter-spacing: -.02em; margin: .5rem 0 1rem; color: var(--navy); }
+        h3 { font-size: 1.1rem; letter-spacing: -.01em; color: var(--navy); }
+        .lead { color: var(--muted); max-width: 720px; font-size: 1.02rem; }
+        section { padding: 4.5rem 0; }
+        section + section { border-top: 1px solid var(--line); }
+
+        /* ---------- header ---------- */
+        .site-header {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(246, 247, 248, .95);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid var(--line);
+        }
+        .site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; padding-bottom: 12px; }
+        .brand { font-weight: 700; font-size: 15px; letter-spacing: -.01em; color: var(--navy); text-decoration: none; }
+        .brand .sub { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 400; letter-spacing: .08em; color: var(--muted); }
+        .nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .nav a {
+            font-size: 13px; font-weight: 600;
+            text-decoration: none; padding: 7px 12px; border: 1px solid var(--line); background: var(--paper);
+        }
+        .nav a.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+        @media (max-width: 560px) { .nav a.hide-sm { display: none; } }
+
+        /* ---------- hero ---------- */
+        .hero { background: var(--navy); color: #fff; padding: 5rem 0 4.5rem; position: relative; overflow: hidden; }
+        .hero::after {
+            content: ""; position: absolute; right: -80px; top: -40px; width: 420px; height: 420px;
+            border: 2px solid rgba(127, 168, 217, .25); transform: rotate(12deg);
+        }
+        .hero h1 { font-size: clamp(2rem, 5.5vw, 3.4rem); line-height: 1.2; letter-spacing: -.03em; margin: .8rem 0 1.2rem; max-width: 760px; }
+        .hero p { color: var(--ice); max-width: 620px; font-size: 1.05rem; }
+        .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2rem; }
+        .btn {
+            display: inline-block; text-decoration: none; font-family: var(--font-display); font-weight: 600; font-size: .92rem;
+            padding: .9rem 1.5rem; border: 1px solid transparent; cursor: pointer;
+        }
+        .btn-light { background: #fff; color: var(--navy); }
+        .btn-ghost { border-color: rgba(255,255,255,.45); color: #fff; }
+        .btn-navy { background: var(--navy); color: #fff; }
+        .hero-meta { margin-top: 2.5rem; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em; color: var(--glass); }
+
+        /* ---------- cards ---------- */
+        .grid { display: grid; gap: 14px; }
+        .g3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+        .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .card { background: var(--paper); border: 1px solid var(--line); padding: 1.5rem; }
+        .card .num { font-family: var(--font-mono); font-size: .75rem; color: var(--glass); letter-spacing: .1em; }
+        .card h3 { margin: .35rem 0 .5rem; }
+        .card p, .card li { color: var(--muted); font-size: .95rem; }
+        .card ul { padding-left: 1.1rem; margin-top: .4rem; }
+        .not-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1.4rem; }
+        .not-list span { font-size: .88rem; padding: .45rem .8rem; background: var(--ice); color: var(--navy); }
+        .not-list span::before { content: "✕ "; color: var(--red); }
+
+        /* author */
+        .author { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 2rem; }
+        @media (min-width: 760px) { .author { grid-template-columns: 1.3fr 1fr; } }
+        .creds { list-style: none; }
+        .creds li { padding: .55rem 0; border-bottom: 1px dashed var(--line); font-size: .95rem; }
+        .creds li b { color: var(--navy); }
+
+        /* profiles */
+        .profile { border-top: 4px solid var(--navy); }
+        .profile:nth-child(2) { border-top-color: #3E5BA9; }
+        .profile:nth-child(3) { border-top-color: var(--glass); }
+        .profile:nth-child(4) { border-top-color: #B9CDE8; }
+        .profile .look { margin-top: .8rem; font-family: var(--font-mono); font-size: .7rem; letter-spacing: .1em; color: var(--ink); }
+        .note { margin-top: 1rem; font-size: .88rem; color: var(--muted); }
+
+        /* timeline */
+        .timeline { list-style: none; margin-top: 2rem; border-left: 2px solid var(--ice); }
+        .timeline li { position: relative; padding: 0 0 1.6rem 1.6rem; }
+        .timeline li::before { content: ""; position: absolute; left: -7px; top: .45rem; width: 12px; height: 12px; background: var(--navy); }
+        .timeline .when { font-family: var(--font-mono); font-size: .75rem; letter-spacing: .08em; color: var(--glass); }
+        .timeline h3 { margin: .15rem 0 .25rem; }
+        .timeline p { color: var(--muted); font-size: .95rem; }
+
+        /* ---------- school browser ---------- */
+        #schools { background: var(--paper); }
+        .filters { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 2rem 0 1rem; }
+        @media (min-width: 760px) { .filters { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; } }
+        .rt { background: var(--paper); border: 1px solid var(--line); padding: .6rem .75rem; }
+        .rt-head { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .08em; color: var(--navy); margin-bottom: .3rem; }
+        .rt-head span { color: var(--muted); }
+        .rt table { width: 100%; border-collapse: collapse; font-size: .86rem; font-variant-numeric: tabular-nums; }
+        .rt th { font-weight: 500; color: var(--muted); font-size: .72rem; text-align: right; padding: .1rem .3rem; }
+        .rt th:first-child, .rt tbody th { text-align: left; }
+        .rt td { text-align: right; padding: .1rem .3rem; font-weight: 600; color: var(--navy); cursor: help; }
+        .rt td.na { color: var(--line); font-weight: 400; cursor: default; }
+        .more-wrap { text-align: center; margin-top: 1.6rem; }
+        .more-wrap .btn[hidden] { display: none; }
+        .rt-none { font-size: .78rem; color: var(--muted); }
+        .filters input, .filters select {
+            font: inherit; font-size: .95rem; padding: .7rem .8rem; border: 1px solid var(--line);
+            background: var(--wall); color: var(--ink); width: 100%;
+        }
+        .filters input:focus, .filters select:focus { outline: 2px solid var(--glass); outline-offset: -1px; }
+        .count { font-family: var(--font-mono); font-size: .75rem; letter-spacing: .06em; color: var(--muted); margin-bottom: 1rem; }
+        .school-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+        .school {
+            background: var(--wall); border: 1px solid var(--line); padding: 1.2rem 1.25rem; display: flex; flex-direction: column; gap: .6rem;
+        }
+        .school header { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+        .school h3 { font-size: 1.02rem; line-height: 1.35; flex: 1; }
+        .school .logo { width: 40px; height: 40px; object-fit: contain; flex: none; }
+        .school .ko { display: block; font-size: .82rem; color: var(--muted); font-weight: 500; }
+        .state { font-family: var(--font-mono); font-size: .72rem; padding: .2rem .45rem; background: var(--navy); color: #fff; white-space: nowrap; }
+        .facts { display: grid; grid-template-columns: auto 1fr; gap: .2rem .8rem; font-size: .86rem; }
+        .facts dt { color: var(--muted); font-family: var(--font-mono); font-size: .72rem; letter-spacing: .04em; padding-top: .15rem; }
+        .facts dd { color: var(--ink); }
+        .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+        .pill { font-size: .74rem; padding: .15rem .5rem; background: var(--ice); color: var(--navy); }
+        .school .desc { font-size: .86rem; color: var(--muted); }
+        .school .links { margin-top: auto; display: flex; gap: 12px; font-size: .82rem; font-weight: 600; }
+        .school .links a { color: var(--navy); }
+        .alum { border: 2px solid var(--navy); }
+        .alum-tag { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; color: var(--red); }
+        .empty { padding: 2rem; text-align: center; color: var(--muted); border: 1px dashed var(--line); }
+        .disclaimer { margin-top: 1.4rem; font-size: .8rem; color: var(--muted); }
+
+        /* ---------- support / cta ---------- */
+        .cta-band { background: var(--navy); color: #fff; }
+        .cta-band h2 { color: #fff; }
+        .cta-band .lead { color: var(--ice); }
+        .cta-band .card { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.15); }
+        .cta-band .card h3 { color: #fff; }
+        .cta-band .card p { color: var(--ice); }
+        .quote { font-size: clamp(1.2rem, 2.6vw, 1.6rem); line-height: 1.5; letter-spacing: -.02em; color: var(--navy); max-width: 820px; }
+        footer { padding: 2.5rem 0 3rem; font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); }
+        footer a { color: var(--navy); }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="wrap">
+        <a class="brand" href="guide.html">GLASS COURT<span class="sub">SQUASH ACADEMY AT WELLPERION</span></a>
+        <nav class="nav">
+            <a href="#guide" class="hide-sm">가이드</a>
+            <a href="#schools">학교 탐색</a>
+            <a href="./" class="hide-sm">웰페리온</a>
+            <a href="http://wellperion.com/ko/inquiry-form/?type=youth" class="primary">상담 신청</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+<!-- HERO -->
+<div class="hero">
+    <div class="wrap">
+        <span class="eyebrow">US Boarding School Squash Guide · 2026</span>
+        <h1>‘스쿼시가 가장 강한 학교’가 아니라,<br>우리 아이에게 맞는 4년.</h1>
+        <p>스쿼시를 하는 한국 가정을 위한 미국 보딩스쿨 선택 가이드입니다. 팀 구조, 선수 유형, 지원 일정, 그리고 스쿼시 팀이 있는 보딩스쿨을 한곳에서 살펴보세요.</p>
+        <div class="btns">
+            <a href="#schools" class="btn btn-light">학교 <span id="heroCount"></span>곳 둘러보기</a>
+            <a href="#profiles" class="btn btn-ghost">우리 아이 유형 보기</a>
+        </div>
+        <div class="hero-meta">WRITTEN BY COACH SANGHOON LEE · PHILLIPS EXETER ’13 · BROWN SQUASH · PSA PRO</div>
+    </div>
+</div>
+
+<!-- WHY -->
+<section id="guide">
+    <div class="wrap">
+        <span class="eyebrow">Why this guide</span>
+        <h2>보딩스쿨 선택은 ‘랭킹’보다 ‘환경’의 문제입니다</h2>
+        <p class="lead">학교 이름이나 팀 성적만으로는 아이가 4년 동안 어떤 경험을 하게 될지 알 수 없습니다. 학업, 훈련, 팀, 기숙 생활, 그리고 스스로 성장하는 힘이 하나의 환경으로 맞물리는지 — 그것이 이 가이드가 함께 살펴보려는 질문입니다.</p>
+        <div class="not-list">
+            <span>학교 순위를 매기지 않습니다</span>
+            <span>체육 특기 합격을 보장하지 않습니다</span>
+            <span>한 시즌 성적으로 학교를 평가하지 않습니다</span>
+        </div>
+
+        <div class="author">
+            <div class="card">
+                <span class="num">FROM THE COACH</span>
+                <h3>직접 거쳐 온 길을 기준으로 정리했습니다</h3>
+                <p>저는 한국에서 스쿼시를 시작해 Phillips Exeter Academy에서 보딩스쿨 스쿼시를, Brown University에서 대학 varsity 스쿼시를 경험했습니다. 지금은 프로(PSA) 선수이자 웰페리온에서 주니어를 가르치는 코치로서, 매년 보딩스쿨을 준비하는 가정과 같은 질문을 나눕니다. 그 대화를 한 페이지로 정리한 것이 이 가이드입니다.</p>
+            </div>
+            <div class="card">
+                <ul class="creds">
+                    <li><b>이상훈</b> · Glass Court 대표 코치</li>
+                    <li>Phillips Exeter Academy ’13</li>
+                    <li>Brown University Varsity Squash</li>
+                    <li>서울대학교 자유전공학부</li>
+                    <li>PSA 프로 선수 · 커리어 하이 세계 300위</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TEAM SYSTEM -->
+<section>
+    <div class="wrap">
+        <span class="eyebrow">How school squash works</span>
+        <h2>미국 보딩스쿨 스쿼시, 이렇게 운영됩니다</h2>
+        <p class="lead">스쿼시는 대부분의 보딩스쿨에서 겨울 시즌(11월 말–2월) 종목입니다. 학교 대항전은 사다리(ladder) 순서대로 여러 명이 동시에 경기하는 팀 경기이며, 팀 안에서의 순위가 곧 출전 기회를 결정합니다.</p>
+        <div class="grid g3" style="margin-top:2rem">
+            <div class="card">
+                <span class="num">01</span>
+                <h3>팀 구조</h3>
+                <p>대부분 Varsity(1군)와 JV(2군)로 나뉘고, 일부 학교는 Thirds·Development 팀을 둡니다. 남·여 팀 구성은 학교마다 다릅니다.</p>
+            </div>
+            <div class="card">
+                <span class="num">02</span>
+                <h3>프로그램 환경</h3>
+                <p>코치진, 주간 훈련 시간, 교내 코트 수, 리그(NEPSAC, MAPL 등)와 경기 일정, 그리고 팀 문화가 실제 경험을 좌우합니다.</p>
+            </div>
+            <div class="card">
+                <span class="num">03</span>
+                <h3>성장 경로</h3>
+                <p>입학 시 사다리 위치 → 팀 내 챌린지 매치 → 시즌별 훈련과 경기 → 4년간의 성장. 어느 단계에서 시작해 어디까지 갈 수 있는지를 봐야 합니다.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PROFILES -->
+<section id="profiles">
+    <div class="wrap">
+        <span class="eyebrow">Four player profiles</span>
+        <h2>우리 아이는 지금 어떤 유형일까요?</h2>
+        <p class="lead">아래 유형은 아이에게 붙이는 꼬리표가 아니라, 학교를 살펴볼 때의 관점입니다. 아이가 성장하면 유형도 바뀝니다.</p>
+        <div class="grid g2" style="margin-top:2rem">
+            <div class="card profile">
+                <span class="num">TYPE A</span>
+                <h3>하이 퍼포먼스형</h3>
+                <p>국내외 주니어 대회 입상 경험이 있고, 고교에서도 최상위 레벨의 경쟁을 원합니다.</p>
+                <div class="look">이런 점을 확인하세요</div>
+                <ul><li>입학 즉시 Varsity 상위권 가능성</li><li>코치의 수준과 1:1 훈련 여건</li><li>팀 내 연습 상대의 수준</li><li>대학 스쿼시 진학 실적</li></ul>
+            </div>
+            <div class="card profile">
+                <span class="num">TYPE B</span>
+                <h3>성장 경쟁형</h3>
+                <p>체계적인 훈련 기반이 있고, 고교 4년 동안 크게 성장하는 것이 목표입니다.</p>
+                <div class="look">이런 점을 확인하세요</div>
+                <ul><li>JV → Varsity로 올라가는 실제 경로</li><li>주당 훈련 횟수와 경기 수</li><li>시즌 외(가을·봄) 훈련 기회</li></ul>
+            </div>
+            <div class="card profile">
+                <span class="num">TYPE C</span>
+                <h3>학업 우선형</h3>
+                <p>학업과 학교 환경이 먼저이고, 스쿼시는 의미 있게 꾸준히 이어가고 싶습니다.</p>
+                <div class="look">이런 점을 확인하세요</div>
+                <ul><li>학업 부담과 훈련 시간의 균형</li><li>팀 분위기와 소속감</li><li>4년간 꾸준히 뛸 수 있는 팀 규모</li></ul>
+            </div>
+            <div class="card profile">
+                <span class="num">TYPE D</span>
+                <h3>입문·관심형</h3>
+                <p>스쿼시는 지원서의 중심은 아니지만, 운동과 팀 생활을 즐기고 싶습니다.</p>
+                <div class="look">이런 점을 확인하세요</div>
+                <ul><li>JV·Thirds 등 입문자가 뛸 수 있는 팀</li><li>교내 커뮤니티와의 연결</li><li>친구 관계와 리더십 기회</li></ul>
+            </div>
+        </div>
+        <p class="note">어느 유형인지 확신이 서지 않는다면, 웰페리온에서 레벨 평가를 받아보세요. 코트에서 보는 것이 가장 정확합니다.</p>
+    </div>
+</section>
+
+<!-- TIMELINE -->
+<section>
+    <div class="wrap">
+        <span class="eyebrow">Research & application timeline</span>
+        <h2>세 가지 질문으로 시작하세요</h2>
+        <div class="grid g3" style="margin-top:1.5rem">
+            <div class="card"><span class="num">Q1</span><h3>언제 지원하나요?</h3><p>현재 학년, 입학 희망 학년(9학년 또는 10학년 재입학), 기숙 여부와 지원 경로를 먼저 확인합니다.</p></div>
+            <div class="card"><span class="num">Q2</span><h3>앞으로 4년, 스쿼시는 얼마나 중요한가요?</h3><p>팀 구조, 연습 상대, 성장 경로, 경기 환경을 아이의 목표에 비추어 봅니다.</p></div>
+            <div class="card"><span class="num">Q3</span><h3>학교 전체가 아이에게 맞나요?</h3><p>학업, 기숙 생활, 팀 문화, 장기적인 성장을 함께 놓고 판단합니다.</p></div>
+        </div>
+        <ol class="timeline">
+            <li><span class="when">지원 2–3년 전</span><h3>경기 기록 쌓기</h3><p>국내 주니어 대회와 해외 대회 출전으로 객관적인 기록을 만듭니다. US Squash 주니어 대회 결과는 미국 코치가 가장 쉽게 확인할 수 있는 자료입니다.</p></li>
+            <li><span class="when">지원 전년도 봄–여름</span><h3>학교 리서치 & 캠퍼스 방문</h3><p>아래 학교 목록으로 후보를 좁히고, 가능하면 방문해 스쿼시 코치와 직접 만납니다.</p></li>
+            <li><span class="when">가을 (9–12월)</span><h3>코치 연락 & 스쿼시 프로필</h3><p>경기 영상, 대회 기록, 훈련 이력을 담은 프로필을 코치에게 보냅니다. SSAT·TOEFL 등 시험과 인터뷰도 이 시기에 진행됩니다.</p></li>
+            <li><span class="when">1월 중순 전후</span><h3>원서 마감</h3><p>대부분의 보딩스쿨 원서 마감 시기입니다. 학교별 마감일은 반드시 공식 홈페이지에서 확인하세요.</p></li>
+            <li><span class="when">3월 10일 전후</span><h3>합격 발표</h3><p>많은 보딩스쿨이 같은 날 결과를 발표하며, 4월 초까지 등록 여부를 결정합니다.</p></li>
+        </ol>
+    </div>
+</section>
+
+<!-- SCHOOL BROWSER -->
+<section id="schools">
+    <div class="wrap">
+        <span class="eyebrow">School browser</span>
+        <h2>스쿼시 팀이 있는 미국 보딩스쿨</h2>
+        <p class="lead">학교 이름, 주(州), 리그로 찾아보세요. 모든 정보는 각 학교 공식 홈페이지 기준이며, 확인되지 않은 항목은 비워 두었습니다.</p>
+        <div class="filters">
+            <input id="q" type="search" placeholder="학교 이름 검색 (예: Exeter, 초트)" aria-label="학교 이름 검색">
+            <select id="state" aria-label="주 선택"><option value="">모든 주</option></select>
+            <select id="league" aria-label="리그 선택"><option value="">모든 리그</option></select>
+            <select id="gender" aria-label="팀 선택">
+                <option value="">남·여 팀 전체</option>
+                <option value="boys">남자 팀 있음</option>
+                <option value="girls">여자 팀 있음</option>
+            </select>
+            <select id="sort" aria-label="정렬">
+                <option value="">이름순</option>
+                <option value="rating">최근 레이팅 높은 순</option>
+            </select>
+        </div>
+        <div class="count" id="count"></div>
+        <div class="school-list" id="list"></div>
+        <div class="more-wrap"><button type="button" id="more" class="btn btn-navy" hidden></button></div>
+        <p class="disclaimer">정보 확인 기준: 2026년 9월, 각 학교 공식 홈페이지. 팀 구성과 시설은 매년 바뀔 수 있으니 지원 전 학교에 직접 확인하세요. 이 목록은 순위가 아니며 기본적으로 알파벳 순으로 정렬되어 있습니다.<br>
+        Varsity 레이팅: US Squash(ClubLocker) 리그 로스터 기준, 팀 사다리 상위 9명의 US Squash 레이팅 중앙값입니다(숫자 위에 마우스를 올리면 평균과 인원 표시). 레이팅은 2026년 9월 현재 값이므로, 졸업생이 포함된 이전 시즌일수록 실제 당시 수준과 차이가 있을 수 있습니다. 레이팅은 팀의 한 단면일 뿐, 학교나 프로그램의 가치를 평가하는 지표가 아닙니다.</p>
+    </div>
+</section>
+
+<!-- QUOTE -->
+<section>
+    <div class="wrap">
+        <p class="quote">중요한 질문은 “어느 학교 스쿼시가 제일 강한가”가 아닙니다.<br>“어떤 학교와 스쿼시 환경이 이 아이의 다음 4년에 가장 잘 맞는가”입니다.</p>
+    </div>
+</section>
+
+<!-- SUPPORT / CTA -->
+<section class="cta-band">
+    <div class="wrap">
+        <span class="eyebrow">How Glass Court helps</span>
+        <h2>보딩스쿨 준비, 코트 위에서부터 함께합니다</h2>
+        <p class="lead">Glass Court Squash Academy는 웰페리온 스포츠센터에서 주니어 선수의 보딩스쿨 스쿼시 준비를 돕습니다.</p>
+        <div class="grid g3" style="margin-top:2rem">
+            <div class="card"><span class="num">01</span><h3>레벨 평가 & 유형 진단</h3><p>현재 실력과 목표를 바탕으로 아이의 유형과 맞는 학교군을 함께 정리합니다.</p></div>
+            <div class="card"><span class="num">02</span><h3>훈련 & 대회 로드맵</h3><p>개인·그룹 레슨, 주니어 집중 트레이닝, 국내외 대회 출전 계획을 지원 일정에 맞춰 설계합니다.</p></div>
+            <div class="card"><span class="num">03</span><h3>스쿼시 프로필 & 코치 소통</h3><p>경기 영상과 기록을 정리하고, 미국 코치에게 보낼 스쿼시 프로필 준비를 돕습니다.</p></div>
+        </div>
+        <div class="btns">
+            <a href="http://wellperion.com/ko/inquiry-form/?type=youth" class="btn btn-light">주니어 상담 신청</a>
+            <a href="./" class="btn btn-ghost">웰페리온 주니어 프로그램 보기</a>
+        </div>
+    </div>
+</section>
+</main>
+
+<footer>
+    <div class="wrap">
+        Glass Court Squash Academy at Wellperion · 서울 한남동 웰페리온 스포츠센터<br>
+        <a href="https://instagram.com/glass_court">Instagram @glass_court</a> · <a href="./">wellperionsquash</a><br>
+        본 가이드는 정보 제공 목적이며, 특정 학교의 합격이나 체육 특기 선발을 보장하지 않습니다.
+    </div>
+</footer>
+
+<script>
+const SCHOOLS = /*SCHOOLS_DATA*/[{"id":"phillips-exeter-academy","name":"Phillips Exeter Academy","nameKo":"필립스 엑세터 아카데미","town":"Exeter","state":"NH","grades":"9–12, PG","boarding":"약 1,100명 · 기숙 81%","league":"NEPSAC","courts":14,"facility":"Love Gym 내 Fisher Squash Center — 코트 14면, 관중석 300석","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"남·여 각각 약 20명이 Varsity·JV 사다리를 함께 구성합니다.","url":"https://weareexeter.com/sports/mens-squash","logo":"exeter_logo.png","ratings":{"boys":[{"season":"2023-24","mean":4.94,"median":4.96,"n":8},{"season":"2024-25","mean":5.17,"median":5.21,"n":8},{"season":"2025-26","mean":5.13,"median":5.18,"n":8}],"girls":[{"season":"2023-24","mean":3.88,"median":3.89,"n":7},{"season":"2024-25","mean":3.83,"median":3.89,"n":7},{"season":"2025-26","mean":3.66,"median":3.64,"n":8}]}},{"id":"phillips-academy-andover","name":"Phillips Academy Andover","nameKo":"필립스 아카데미 앤도버","town":"Andover","state":"MA","grades":"9–12, PG","boarding":"약 1,100명 · 기숙생 800명 이상","league":"NEPSAC","courts":12,"facility":"Snyder Center(2018년 개관) — 국제 규격 코트 12면, Mead 전시 코트 포함","teams":{"boys":["Varsity","JV1","JV2"],"girls":["Varsity","JV1","JV2"]},"notes":"8–10명 규모의 스쿼시 팀 6개를 운영하며, 대항전·New England 대회·US Squash 고교 전국선수권에 출전합니다.","url":"https://athletics.andover.edu/sport/squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":5.7,"median":5.72,"n":8},{"season":"2024-25","mean":5.73,"median":5.63,"n":8},{"season":"2025-26","mean":5.68,"median":5.51,"n":9}],"girls":[{"season":"2023-24","mean":4.47,"median":4.28,"n":9},{"season":"2024-25","mean":4.66,"median":4.44,"n":9},{"season":"2025-26","mean":4.93,"median":4.99,"n":9}]}},{"id":"choate-rosemary-hall","name":"Choate Rosemary Hall","nameKo":"초트 로즈메리 홀","town":"Wallingford","state":"CT","grades":"9–12, PG","boarding":"약 860명 · 기숙 75%","league":"NEPSAC / Founders League","courts":10,"facility":"Worthington Johnson Athletic Center — 글래스백 국제 규격 코트 10면(쇼코트 2면 포함)","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV","Thirds"]},"notes":"남자 Varsity 2023년 New England Class B 우승, 2024년 New England 선수권 7위.","url":"https://www.choate.edu/athletics/teams-programs/team/team-page/~athletics-team-id/266","logo":"choate_rosemary_hall_logo.png","ratings":{"boys":[{"season":"2023-24","mean":5.56,"median":5.79,"n":9},{"season":"2024-25","mean":5.42,"median":5.52,"n":9},{"season":"2025-26","mean":5.27,"median":4.91,"n":9}],"girls":[{"season":"2023-24","mean":4.32,"median":4.36,"n":9},{"season":"2024-25","mean":4.29,"median":4.36,"n":9},{"season":"2025-26","mean":4.25,"median":4.36,"n":9}]}},{"id":"deerfield-academy","name":"Deerfield Academy","nameKo":"디어필드 아카데미","town":"Deerfield","state":"MA","grades":"9–12, PG","boarding":"약 650명 · 기숙 88%","league":"NEPSAC","courts":15,"facility":"Dewey Squash Center(2007년) — 국제 규격 10면 + 하드볼 코트 5면","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV","Thirds"]},"notes":"2024–25 남자 Varsity 12승 2패, 2025년 US 고교 팀 선수권 출전.","url":"https://deerfield.edu/athletics/sports/squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":5.92,"median":5.84,"n":7},{"season":"2024-25","mean":5.68,"median":5.81,"n":9},{"season":"2025-26","mean":5.63,"median":5.64,"n":8}],"girls":[{"season":"2023-24","mean":4.17,"median":4.11,"n":8},{"season":"2024-25","mean":4.35,"median":4.28,"n":9},{"season":"2025-26","mean":4.45,"median":4.28,"n":8}]}},{"id":"hotchkiss-school","name":"The Hotchkiss School","nameKo":"호치키스 스쿨","town":"Lakeville","state":"CT","grades":"9–12, PG","boarding":"약 600명 · 기숙 96%","league":"NEPSAC / Founders League","courts":8,"facility":"Mars Athletic Center 내 Cullman Squash Courts(2002년) — 국제 규격 8면","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"여자 Varsity 2020년 New England Class B 우승, 같은 해 US 고교 팀 선수권 Division II 3위.","url":"https://www.hotchkiss.org/athletics/our-teams/boys-squash","logo":"hotchkiss_logo.png","ratings":{"boys":[{"season":"2023-24","mean":6.04,"median":5.82,"n":9},{"season":"2024-25","mean":5.87,"median":5.99,"n":9},{"season":"2025-26","mean":6.13,"median":6.06,"n":9}],"girls":[{"season":"2023-24","mean":5.09,"median":5.12,"n":9},{"season":"2024-25","mean":5.13,"median":5.26,"n":9},{"season":"2025-26","mean":5.26,"median":5.3,"n":9}]}},{"id":"loomis-chaffee","name":"The Loomis Chaffee School","nameKo":"루미스 채피 스쿨","town":"Windsor","state":"CT","grades":"9–12, PG","boarding":"약 750명 · 기숙 70%","league":"NEPSAC / Founders League","courts":8,"facility":"Athletics Center 내 코트 8면","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"학교 발표 기준 남자 Varsity 2017년 US 고교 팀 선수권 Division IV 우승, NEPSAC Class C 우승 이력.","url":"https://www.loomischaffee.org/athletics/teams/winter/squash","logo":"loomis_logo.png","ratings":{"boys":[{"season":"2023-24","mean":4.89,"median":5.04,"n":9},{"season":"2024-25","mean":4.91,"median":4.89,"n":8},{"season":"2025-26","mean":4.93,"median":4.91,"n":9}],"girls":[{"season":"2023-24","mean":3.74,"median":3.63,"n":9},{"season":"2024-25","mean":3.55,"median":3.52,"n":9},{"season":"2025-26","mean":3.32,"median":3.48,"n":9}]}},{"id":"taft","name":"The Taft School","nameKo":"태프트 스쿨","town":"Watertown","state":"CT","grades":"9–12","boarding":"약 590명 · 기숙 84%","league":"NEPSAC / Founders League","courts":8,"facility":"코트 8면 — McCullough Athletic Center 5면, Cruikshank Athletic Center 3면","teams":{"boys":["Varsity","JV","III"],"girls":["Varsity","JV","III"]},"notes":"여자 Varsity US 고교 전국선수권 우승: Division III(2022–23), Division II(2015–16, 2007–08).","url":"https://www.taftschool.org/athletics/teams","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":6.13,"median":6.44,"n":6},{"season":"2024-25","mean":6.1,"median":6.39,"n":9},{"season":"2025-26","mean":4.86,"median":4.4,"n":9}],"girls":[{"season":"2023-24","mean":4.04,"median":3.71,"n":9},{"season":"2024-25","mean":4.06,"median":4.06,"n":9},{"season":"2025-26","mean":3.91,"median":4.06,"n":9}]}},{"id":"hill-school","name":"The Hill School","nameKo":"더 힐 스쿨","town":"Pottstown","state":"PA","grades":"9–12, PG","boarding":"약 540명 · 기숙 77%","league":"MAPL","courts":7,"facility":"Mercer Fieldhouse 내 Jerry Day Squash Center — 코트 7면(글래스 스타디움 코트 포함)","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"여자 팀 2022년 US 고교 전국선수권 Division V 우승.","url":"https://www.thehill.org/athletics/team-pages/boys/squash","logo":"hill_school_logo.png","ratings":null},{"id":"mercersburg","name":"Mercersburg Academy","nameKo":"머서스버그 아카데미","town":"Mercersburg","state":"PA","grades":"9–12, PG","boarding":"약 435명 · 기숙 85%","league":"MAPL","courts":10,"facility":"Davenport Squash Center — 코트 10면(2025년 리뉴얼), 1972년부터 Flanagan 인비테이셔널 개최","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"학교 발표 기준 남자 Varsity 2024–25 MASO 대회 및 Flanagan 인비테이셔널 우승.","url":"https://www.mercersburg.edu/athletics/winter-sports/boys-squash","logo":"mercersberg_academy_logo.png","ratings":{"boys":[{"season":"2023-24","mean":5.34,"median":4.96,"n":9},{"season":"2024-25","mean":5.35,"median":5.4,"n":9},{"season":"2025-26","mean":5.56,"median":5.5,"n":9}],"girls":[{"season":"2023-24","mean":4.08,"median":3.69,"n":7},{"season":"2024-25","mean":3.68,"median":3.35,"n":9},{"season":"2025-26","mean":2.87,"median":2.86,"n":9}]}},{"id":"westminster-ct","name":"Westminster School","nameKo":"웨스트민스터 스쿨","town":"Simsbury","state":"CT","grades":"9–12, PG","boarding":"약 425명 · 기숙 75%","league":"NEPSAC / Founders League","courts":8,"facility":"Kohn Squash Pavilion(2000년) — 국제 규격 8면","teams":{"boys":["Varsity","JV","Third","Fourth"],"girls":["Varsity","JV","Third","Fourth"]},"notes":"여자 Varsity 2019년 US 고교 전국선수권 Division III 우승, New England Class B 우승(2011, 2016).","url":"https://www.westminster-school.org/athletics/team-pages","logo":"westminster_logo.png","ratings":{"boys":[{"season":"2023-24","mean":4.88,"median":4.94,"n":9},{"season":"2024-25","mean":4.52,"median":4.45,"n":9},{"season":"2025-26","mean":3.97,"median":3.95,"n":7}],"girls":[{"season":"2023-24","mean":3.65,"median":3.51,"n":9},{"season":"2024-25","mean":3.69,"median":3.57,"n":8},{"season":"2025-26","mean":3.77,"median":3.6,"n":8}]}},{"id":"groton-school","name":"Groton School","nameKo":"그로튼 스쿨","town":"Groton","state":"MA","grades":"8–12","boarding":"약 380명 · 기숙 84%","league":"NEPSAC / ISL","courts":12,"facility":"글래스백 코트 12면 — US 전국선수권·고교 전국선수권 개최 이력","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV","Thirds"]},"notes":"여자 팀 2025년 US 고교 팀 선수권 Division 2 1번 시드, 결승 3–4 준우승.","url":"https://www.groton.org/athletics/teams/boys-squash-varsity","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":5.07,"median":5.08,"n":8},{"season":"2024-25","mean":4.87,"median":4.83,"n":9},{"season":"2025-26","mean":5,"median":5.07,"n":9}],"girls":[{"season":"2023-24","mean":4.15,"median":4.12,"n":9},{"season":"2024-25","mean":4.39,"median":4.26,"n":9},{"season":"2025-26","mean":4.27,"median":4.13,"n":9}]}},{"id":"middlesex-school","name":"Middlesex School","nameKo":"미들섹스 스쿨","town":"Concord","state":"MA","grades":"9–12","boarding":"약 430명 · 기숙 70%","league":"NEPSAC / ISL","courts":null,"facility":"Atkins Field House 내 스쿼시 코트","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV","Thirds"]},"notes":"남자 팀 2025년 US 고교 팀 선수권 Division 5 우승.","url":"https://athletics.mxschool.edu/sports/mens-squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.65,"median":4.66,"n":9},{"season":"2024-25","mean":4.49,"median":4.4,"n":9},{"season":"2025-26","mean":4.39,"median":4.3,"n":9}],"girls":[{"season":"2023-24","mean":3.95,"median":3.85,"n":9},{"season":"2024-25","mean":3.86,"median":3.81,"n":9},{"season":"2025-26","mean":3.89,"median":3.81,"n":9}]}},{"id":"st-pauls-school","name":"St. Paul's School","nameKo":"세인트 폴스 스쿨","town":"Concord","state":"NH","grades":"9–12","boarding":"약 540명 · 기숙 100%","league":"NEPSAC","courts":10,"facility":"McLane Squash Courts — 1880년대 미국 최초의 스쿼시 코트를 만든 학교","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"학교 발표 기준 New England 팀 타이틀 11회, 개인 타이틀 11회.","url":"https://athletics.sps.edu/sports/boys-squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":5.49,"median":5.48,"n":9},{"season":"2024-25","mean":5.31,"median":5.4,"n":9}],"girls":[{"season":"2023-24","mean":4.59,"median":4.5,"n":9},{"season":"2024-25","mean":3.96,"median":4.01,"n":9},{"season":"2025-26","mean":3.73,"median":3.65,"n":9}]}},{"id":"st-georges-school","name":"St. George's School","nameKo":"세인트 조지스 스쿨","town":"Middletown","state":"RI","grades":"9–12","boarding":"약 400명 · 기숙 80%","league":"NEPSAC / ISL","courts":null,"facility":"Hoopes Squash Center — 홈 경기 생중계","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"남자 팀 2025년 US 고교 팀 선수권 Division 4 우승.","url":"https://www.stgeorges.edu/athletics/teams/winter/squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.96,"median":4.97,"n":7},{"season":"2024-25","mean":4.72,"median":4.79,"n":8},{"season":"2025-26","mean":4.27,"median":3.93,"n":9}],"girls":[{"season":"2023-24","mean":3.77,"median":3.82,"n":9},{"season":"2024-25","mean":3.43,"median":3.04,"n":9},{"season":"2025-26","mean":3.41,"median":2.99,"n":10}]}},{"id":"milton-academy","name":"Milton Academy","nameKo":"밀턴 아카데미","town":"Milton","state":"MA","grades":"9–12","boarding":"약 700명 · 기숙 50%","league":"NEPSAC / ISL","courts":7,"facility":"Williams Squash Courts(1964년, 이후 3차례 증축)","teams":{"boys":["1st Team","2nd Team"],"girls":["1st Team","2nd Team"]},"notes":"학교 발표 기준 남자 팀 2025–26 NEPSAC Class C 우승, 여자 팀 2026년 고교 전국선수권 디비전 우승.","url":"https://www.milton.edu/upperschoolathletics/winter-sports/boys-squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":5.22,"median":5.1,"n":9},{"season":"2024-25","mean":5.02,"median":4.94,"n":8},{"season":"2025-26","mean":4.86,"median":4.83,"n":9}],"girls":[{"season":"2023-24","mean":4.05,"median":3.96,"n":9},{"season":"2024-25","mean":3.85,"median":3.67,"n":8},{"season":"2025-26","mean":3.92,"median":3.4,"n":9}]}},{"id":"brooks-school","name":"Brooks School","nameKo":"브룩스 스쿨","town":"North Andover","state":"MA","grades":"9–12","boarding":"약 340명 · 기숙 70%","league":"NEPSAC / ISL","courts":9,"facility":"캠퍼스 내 스쿼시 코트 — US Junior Open, 대학 팀 전국선수권 개최 이력","teams":{"boys":["1st (Varsity)","2nd","3rd"],"girls":["1st (Varsity)","2nd","3rd"]},"notes":"여자 1군 2025년 NEPSAC Class D 우승, US 고교 팀 선수권 Division 5 준우승.","url":"https://www.brooksschool.org/fs/pages/2554","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.43,"median":4.51,"n":7},{"season":"2024-25","mean":4.49,"median":4.63,"n":7},{"season":"2025-26","mean":4.18,"median":4.31,"n":8}],"girls":[{"season":"2023-24","mean":3.37,"median":3.34,"n":9},{"season":"2024-25","mean":3.4,"median":3.3,"n":8},{"season":"2025-26","mean":3.01,"median":3.06,"n":8}]}},{"id":"pomfret-school","name":"Pomfret School","nameKo":"폼프렛 스쿨","town":"Pomfret","state":"CT","grades":"9–12, PG","boarding":"약 350명 · 기숙 85%","league":"NEPSAC","courts":8,"facility":"Corzine Athletic Center(2003년) — 글래스백 국제 규격 8면","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"남자 팀 2004년 New England Class B 우승, 2014년 결승 진출.","url":"https://www.pomfret.org/athletics/teams-schedules/squash-boys","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.44,"median":4.44,"n":9},{"season":"2024-25","mean":4.37,"median":4.56,"n":5},{"season":"2025-26","mean":4.32,"median":4.35,"n":8}],"girls":[{"season":"2023-24","mean":2.97,"median":3.16,"n":9},{"season":"2024-25","mean":3.29,"median":3.18,"n":8},{"season":"2025-26","mean":3.07,"median":2.93,"n":7}]}},{"id":"kent-school","name":"Kent School","nameKo":"켄트 스쿨","town":"Kent","state":"CT","grades":"9–12, PG","boarding":"약 520명 · 기숙 93%","league":"NEPSAC / Founders League","courts":8,"facility":"스쿼시 센터(2017년 개관) — 국제 규격 8면, 전시 코트 2면 포함","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV"]},"notes":"남자 팀 US 고교 팀 선수권 Division I 우승(2022, 2023), 여자 Varsity 2023년 Division IV 우승.","url":"https://www.kent-school.edu/athletics/teams-schedules/boys-squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":5.95,"median":5.98,"n":9},{"season":"2024-25","mean":5.74,"median":5.98,"n":9},{"season":"2025-26","mean":5.28,"median":5.43,"n":9}],"girls":[{"season":"2023-24","mean":4.16,"median":3.59,"n":7},{"season":"2024-25","mean":4.01,"median":3.64,"n":10},{"season":"2025-26","mean":3.74,"median":3.32,"n":8}]}},{"id":"avon-old-farms","name":"Avon Old Farms School","nameKo":"에이번 올드 팜스 스쿨","town":"Avon","state":"CT","grades":"9–12, PG","boarding":"약 405명 · 기숙 71%","league":"NEPSAC / Founders League","courts":7,"facility":"Gaynor Squash Pavilion(2007년) — 국제 규격 6면 + 3면 글래스 전시 코트","teams":{"boys":["Varsity","JV","Thirds"],"girls":[]},"notes":"남학교 · 2014년 US 고교 팀 선수권 Division I 우승.","url":"https://www.avonoldfarms.com/squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4,"median":4.18,"n":7},{"season":"2024-25","mean":4.15,"median":4.08,"n":9},{"season":"2025-26","mean":4.08,"median":4,"n":9}]}},{"id":"salisbury-school","name":"Salisbury School","nameKo":"솔즈베리 스쿨","town":"Salisbury","state":"CT","grades":"9–12","boarding":null,"league":"NEPSAC","courts":8,"facility":"Flood Athletic Center — 코트 8면","teams":{"boys":["Varsity","JV","Thirds"],"girls":[]},"notes":"남학교 · 최근 US 고교 팀 선수권 Division 3 8강 진출(학교 발표).","url":"https://www.salisburyschool.org/athletics/teams-schedules/our-crimson-knights/~athletics-team-id/134","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.73,"median":4.79,"n":9},{"season":"2024-25","mean":4.72,"median":4.78,"n":8},{"season":"2025-26","mean":4.66,"median":4.76,"n":9}]}},{"id":"berkshire-school","name":"Berkshire School","nameKo":"버크셔 스쿨","town":"Sheffield","state":"MA","grades":"9–12, PG","boarding":"약 430명 · 기숙 87–90%","league":"NEPSAC","courts":10,"facility":"Soffer Athletic Center 내 스쿼시 센터 — 코트 10면, 전 세계 1위 Nick Matthew가 Director of Squash","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV","Thirds"]},"notes":"남자 Varsity 2026년 US 고교 팀 선수권 Division III 우승(2018년 Division IV 우승).","url":"https://www.berkshireschool.org/athletics/our-teams/team-landing-pages/~athletics-team-id/25","logo":null,"ratings":{"girls":[{"season":"2023-24","mean":3.89,"median":3.72,"n":7},{"season":"2024-25","mean":3.5,"median":3.49,"n":9},{"season":"2025-26","mean":3.69,"median":4.04,"n":8}],"boys":[{"season":"2024-25","mean":4.62,"median":4.64,"n":9},{"season":"2025-26","mean":4.99,"median":4.65,"n":8}]}},{"id":"lawrenceville-school","name":"The Lawrenceville School","nameKo":"로렌스빌 스쿨","town":"Lawrenceville","state":"NJ","grades":"9–12","boarding":"약 820–830명 · 기숙 70%","league":"MAPL","courts":null,"facility":null,"teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"US 고교 팀 선수권: 2024년 여자 2위·남자 8위, 2025년 여자 4위·남자 9위.","url":"https://athletics.lawrenceville.org/","logo":null,"ratings":null},{"id":"episcopal-high-school","name":"Episcopal High School","nameKo":"에피스코펄 하이 스쿨","town":"Alexandria","state":"VA","grades":"9–12","boarding":"약 440명 · 기숙 100%","league":null,"courts":9,"facility":"Goodman Squash Center — 국제 규격 9면","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":null,"url":"https://www.episcopalhighschool.org/boys-squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.51,"median":4.56,"n":8},{"season":"2024-25","mean":4.1,"median":4.16,"n":9},{"season":"2025-26","mean":3.9,"median":3.84,"n":8}],"girls":[{"season":"2023-24","mean":3.61,"median":3.6,"n":8},{"season":"2024-25","mean":3.55,"median":3.47,"n":9},{"season":"2025-26","mean":3.2,"median":3.32,"n":9}]}},{"id":"canterbury-school","name":"Canterbury School","nameKo":"캔터베리 스쿨","town":"New Milford","state":"CT","grades":"9–12, PG","boarding":"약 330명 · 기숙 70%","league":"NEPSAC","courts":5,"facility":"Saxe-Castellini Squash Pavilion — 리뉴얼된 코트 5면, 매치 트래킹 시스템","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"남자 Varsity 2026년 US 고교 팀 선수권 Division VIII 우승, 여자 Varsity NEPSAC Class E 우승(2023, 2025).","url":"https://www.cbury.org/athletics/teams/winter-teams/boys-varsity-squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":3.87,"median":3.84,"n":8},{"season":"2024-25","mean":3.83,"median":3.85,"n":9},{"season":"2025-26","mean":3.35,"median":3.27,"n":9}],"girls":[{"season":"2023-24","mean":2.9,"median":2.77,"n":7},{"season":"2024-25","mean":2.99,"median":2.87,"n":8},{"season":"2025-26","mean":2.7,"median":2.47,"n":8}]}},{"id":"suffield-academy","name":"Suffield Academy","nameKo":"서필드 아카데미","town":"Suffield","state":"CT","grades":"9–12, PG","boarding":"약 420명 · 기숙 70%","league":"NEPSAC","courts":null,"facility":"Tisch Squash Courts, Ulrich Squash Courts","teams":{"boys":["Varsity","JV","Tiger A"],"girls":["Varsity","JV"]},"notes":null,"url":"https://www.suffieldacademy.org/athletics/teams/boyssquash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.56,"median":4.47,"n":8},{"season":"2024-25","mean":4.37,"median":4.27,"n":9},{"season":"2025-26","mean":3.96,"median":4.23,"n":9}],"girls":[{"season":"2023-24","mean":3.09,"median":3.34,"n":9},{"season":"2024-25","mean":3.2,"median":3.34,"n":9},{"season":"2025-26","mean":2.83,"median":2.65,"n":8}]}},{"id":"williston-northampton-school","name":"Williston Northampton School","nameKo":"윌리스턴 노샘프턴 스쿨","town":"Easthampton","state":"MA","grades":"9–12","boarding":"약 458명 · 기숙 62%","league":"NEPSAC","courts":4,"facility":"Cain Family Athletic Center — 국제 규격 4면(글래스 갤러리 코트 포함), 1954년부터 Varsity 종목","teams":{"boys":["Varsity","JV","Thirds (co-ed)"],"girls":["Varsity","JV","Thirds (co-ed)"]},"notes":"2025년 남·여 Varsity 모두 NEPSAC 대회 준우승.","url":"https://www.williston.com/athletics/teams-schedules/boys-varsity-squash/","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.12,"median":4.15,"n":9},{"season":"2024-25","mean":4.1,"median":4.12,"n":9},{"season":"2025-26","mean":3.69,"median":3.9,"n":9}],"girls":[{"season":"2023-24","mean":2.76,"median":2.77,"n":9},{"season":"2024-25","mean":2.82,"median":2.98,"n":9},{"season":"2025-26","mean":2.63,"median":2.53,"n":9}]}},{"id":"tabor-academy","name":"Tabor Academy","nameKo":"테이버 아카데미","town":"Marion","state":"MA","grades":"9–12","boarding":"약 517명 · 기숙 70%","league":"NEPSAC / ISL","courts":5,"facility":"Stone Gymnasium — 국제 규격 5면","teams":{"boys":["Varsity","JV"],"girls":["Varsity","JV"]},"notes":"남자 팀 2022년 NEPSAC Class B 우승.","url":"https://www.taboracademy.org/athletics/teams/team-details/~athletics-team-id/142","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.86,"median":4.88,"n":6},{"season":"2024-25","mean":5.22,"median":5.01,"n":9},{"season":"2025-26","mean":5.37,"median":5.13,"n":9}],"girls":[{"season":"2023-24","mean":4.62,"median":4.16,"n":9},{"season":"2024-25","mean":4.53,"median":4.16,"n":9},{"season":"2025-26","mean":3.21,"median":2.84,"n":8}]}},{"id":"st-marks-school","name":"St. Mark's School","nameKo":"세인트 마크스 스쿨","town":"Southborough","state":"MA","grades":"9–12","boarding":"약 372명 · 기숙 75%","league":"NEPSAC / ISL","courts":6,"facility":"국제 규격 코트 6면","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV","Thirds"]},"notes":"남자 Varsity NEPSAC 우승(2016, 2025, 2026).","url":"https://www.stmarksschool.org/athletics/teams/team-details/~athletics-team-id/158","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.93,"median":4.73,"n":9},{"season":"2024-25","mean":4.77,"median":4.73,"n":8},{"season":"2025-26","mean":3.99,"median":3.82,"n":8}],"girls":[{"season":"2023-24","mean":3.73,"median":3.7,"n":9},{"season":"2024-25","mean":3.61,"median":3.67,"n":9},{"season":"2025-26","mean":3.27,"median":3.11,"n":9}]}},{"id":"blair-academy","name":"Blair Academy","nameKo":"블레어 아카데미","town":"Blairstown","state":"NJ","grades":"9–12","boarding":"약 484명 · 기숙 85%","league":"MAPL","courts":7,"facility":"Tracy Hall — 국제 규격 7면, 1993년 프로그램 창설","teams":{"boys":["Varsity","JV","Thirds"],"girls":["Varsity","JV","Thirds"]},"notes":"2025–26 MAPL 선수권 여자 Varsity 2위, 남자 Varsity 3위.","url":"https://www.blair.edu/athletics/winter-sports/boys-squash","logo":null,"ratings":null},{"id":"portsmouth-abbey-school","name":"Portsmouth Abbey School","nameKo":"포츠머스 애비 스쿨","town":"Portsmouth","state":"RI","grades":"9–12","boarding":null,"league":"NEPSAC / EIL","courts":8,"facility":"국제 규격 코트 8면","teams":{"boys":["Varsity"],"girls":["Varsity"]},"notes":"남자 Varsity Eastern Independent League 우승(2015–2017).","url":"https://www.portsmouthabbey.org/boys-varsity-squash","logo":null,"ratings":{"boys":[{"season":"2023-24","mean":4.4,"median":4.24,"n":9},{"season":"2024-25","mean":4.25,"median":4.13,"n":7},{"season":"2025-26","mean":3.54,"median":3.53,"n":9}],"girls":[{"season":"2023-24","mean":3.51,"median":3.3,"n":7},{"season":"2024-25","mean":2.79,"median":2.89,"n":8},{"season":"2025-26","mean":2.85,"median":2.8,"n":8}]}}]/*END_SCHOOLS_DATA*/;
+const ALUM = 'phillips-exeter-academy';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const leagueKey = s => (s.league || '').split('/').pop().trim();
+
+function fillSelect(el, values) {
+    [...new Set(values.filter(Boolean))].sort().forEach(v => el.add(new Option(v, v)));
+}
+
+function teamLine(list) {
+    return list && list.length ? list.join(' · ') : null;
+}
+
+const SEASONS = ['2023-24', '2024-25', '2025-26'];
+
+function ratingTable(s) {
+    if (!s.ratings) return '<p class="rt-none">Varsity 레이팅: US Squash 공개 데이터 없음 (MAPL 리그)</p>';
+    const row = (g, label) => {
+        const list = s.ratings[g];
+        if (!list) return '';
+        return `<tr><th>${label}</th>${SEASONS.map(se => {
+            const x = list.find(r => r.season === se);
+            return x ? `<td title="평균 ${x.mean.toFixed(2)} · ${x.n}명">${x.median.toFixed(2)}</td>` : '<td class="na">—</td>';
+        }).join('')}</tr>`;
+    };
+    return `<div class="rt">
+        <div class="rt-head">VARSITY 레이팅 중앙값 <span>US Squash</span></div>
+        <table><thead><tr><th></th>${SEASONS.map(se => `<th>${se.replace('20', "'")}</th>`).join('')}</tr></thead>
+        <tbody>${row('boys', '남')}${row('girls', '여')}</tbody></table>
+    </div>`;
+}
+
+function latestMedian(s, g) {
+    const list = s.ratings && (g ? s.ratings[g] : [...(s.ratings.boys || []), ...(s.ratings.girls || [])]);
+    if (!list || !list.length) return -1;
+    return Math.max(...SEASONS.slice().reverse().map(se => list.filter(r => r.season === se).map(r => r.median)).find(a => a.length) || [-1]);
+}
+
+function card(s) {
+    const boys = teamLine(s.teams && s.teams.boys);
+    const girls = teamLine(s.teams && s.teams.girls);
+    const facts = [
+        ['위치', [s.town, s.state].filter(Boolean).join(', ')],
+        ['학년', s.grades],
+        ['규모', s.boarding],
+        ['리그', s.league],
+        ['코트', s.courts ? s.courts + '면' : null],
+        ['시설', s.facility],
+    ].filter(f => f[1]);
+    const alum = s.id === ALUM;
+    return `<article class="school${alum ? ' alum' : ''}">
+        <header>
+            ${s.logo ? `<img class="logo" src="${esc(s.logo)}" alt="">` : ''}
+            <h3>${esc(s.name)}<span class="ko">${esc(s.nameKo)}</span></h3>
+            ${s.state ? `<span class="state">${esc(s.state)}</span>` : ''}
+        </header>
+        ${alum ? '<span class="alum-tag">★ 이상훈 코치 모교</span>' : ''}
+        <dl class="facts">${facts.map(f => `<dt>${f[0]}</dt><dd>${esc(f[1])}</dd>`).join('')}</dl>
+        <div class="pills">
+            ${boys ? `<span class="pill">남 ${esc(boys)}</span>` : ''}
+            ${girls ? `<span class="pill">여 ${esc(girls)}</span>` : ''}
+        </div>
+        ${ratingTable(s)}
+        ${s.notes ? `<p class="desc">${esc(s.notes)}</p>` : ''}
+        ${s.url ? `<div class="links"><a href="${esc(s.url)}" target="_blank" rel="noopener">스쿼시 팀 페이지 ↗</a></div>` : ''}
+    </article>`;
+}
+
+function render() {
+    const q = $('q').value.trim().toLowerCase();
+    const st = $('state').value, lg = $('league').value, g = $('gender').value;
+    const hits = SCHOOLS.filter(s =>
+        (!q || (s.name + ' ' + (s.nameKo || '') + ' ' + (s.town || '')).toLowerCase().includes(q)) &&
+        (!st || s.state === st) &&
+        (!lg || leagueKey(s) === lg) &&
+        (!g || (s.teams && s.teams[g] && s.teams[g].length))
+    );
+    if ($('sort').value === 'rating') hits.sort((a, b) => latestMedian(b, g) - latestMedian(a, g));
+    $('count').textContent = `${hits.length} / ${SCHOOLS.length} SCHOOLS`;
+    const shown = hits.slice(0, visible);
+    $('list').innerHTML = hits.length ? shown.map(card).join('') : '<div class="empty">조건에 맞는 학교가 없습니다. 필터를 바꿔 보세요.</div>';
+    const left = hits.length - shown.length;
+    $('more').hidden = left <= 0;
+    $('more').textContent = `학교 더 보기 (${Math.min(PAGE, left)}곳 더 · 남은 ${left}곳)`;
+}
+
+const PAGE = 6;
+let visible = PAGE;
+
+SCHOOLS.sort((a, b) => a.name.replace(/^The /, '').localeCompare(b.name.replace(/^The /, '')));
+$('heroCount').textContent = SCHOOLS.length;
+fillSelect($('state'), SCHOOLS.map(s => s.state));
+fillSelect($('league'), SCHOOLS.map(leagueKey));
+['q', 'state', 'league', 'gender', 'sort'].forEach(id => $(id).addEventListener('input', () => { visible = PAGE; render(); }));
+$('more').addEventListener('click', () => { visible += PAGE; render(); });
+render();
+</script>
+</body>
+</html>
