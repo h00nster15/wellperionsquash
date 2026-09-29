@@ -279,7 +279,9 @@ const Sheets = (() => {
     if (c.email) k.push('e:' + c.email.toLowerCase().trim());
     if (digits(c.phone).length >= 7) k.push('p:' + digits(c.phone).slice(-9));
     const n = normName(`${c.firstName || ''} ${c.lastName || ''}`);
-    if (n) k.push('n:' + n);
+    // '(무기명)' is Inquiries.gs's placeholder for "no name given", not a name: keying on it
+    // folded every nameless inquiry into one record (a phone-less one matches them all).
+    if (n && !/^\(?무기명\)?$/.test(n)) k.push('n:' + n);
     return k;
   }
 
