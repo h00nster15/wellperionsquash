@@ -282,7 +282,8 @@
   // Inquiry outcome, set by hand in the 문의 list. Until someone picks one it follows the sheet's
   // 상태 (등록 → success, 보류/종료 → loss, anything else → in contact); Sync never overwrites a pick.
   const LEAD_STATUS = ['in contact', 'success', 'loss'];
-  const leadStatusOf = (c) => c.leadStatus || (c.status === 'active' ? 'success' : ['lapsed', 'opted-out'].includes(c.status) ? 'loss' : 'in contact');
+  // The sheet's guess reads "등록" anywhere in the log, so "미등록", "등록예정", "시작일 조율중" are not a success yet.
+  const leadStatusOf = (c) => c.leadStatus || (['lapsed', 'opted-out'].includes(c.status) || /미등록/.test(c.inqLog || '') ? 'loss' : c.status === 'active' && !/예정|조율|상담|문의/.test(c.inqLog || '') ? 'success' : 'in contact');
   const leadStatusSelect = (c) => { const v = leadStatusOf(c); return `<select class="lead-status pill ${pillClass(v)}" data-id="${esc(c.id)}" title="Status 변경">${LEAD_STATUS.map((x) => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select>`; };
   const CUSTOMER_COLUMNS = [
     { k: 'name', h: '회원명', t: 'text', v: (c) => labelOf('customers', c), f: (c) => `<strong>${esc(labelOf('customers', c))}</strong>${c.sheetRemovedAt ? ' <span class="pill bad" title="시트에서 삭제된 회원 (통화 기록이 있어 보관)">시트 삭제</span>' : ''}`, always: true },
