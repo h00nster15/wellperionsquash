@@ -285,6 +285,30 @@
   // The sheet's guess reads "등록" anywhere in the log, so "미등록", "등록예정", "시작일 조율중" are not a success yet.
   const leadStatusOf = (c) => c.leadStatus || (['lapsed', 'opted-out'].includes(c.status) || /미등록/.test(c.inqLog || '') ? 'loss' : c.status === 'active' && !/예정|조율|상담|문의/.test(c.inqLog || '') ? 'success' : 'in contact');
   const leadStatusSelect = (c) => { const v = leadStatusOf(c); return `<select class="lead-status pill ${pillClass(v)}" data-id="${esc(c.id)}" title="Status 변경">${LEAD_STATUS.map((x) => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select>`; };
+  // 전환 리포트: inquiries by month / by coach → success, loss, still in contact; plus the 미등록 reasons.
+  // Works on the rows the 문의 list currently shows, so the column filters (구분, 담당…) narrow it too.
+  const lossReason = (c) => { const m = String(c.inqLog || '').match(/미등록\s*사유\s*[:：]\s*([^/\n]+)/); return m ? m[1].trim().replace(/\s+/g, ' ') : ''; };
+  function conversionReport(rows) {
+    if (!rows.length) return '';
+    const blank = () => ({ n: 0, success: 0, loss: 0, 'in contact': 0 });
+    const tallyBy = (keyOf) => { const m = new Map(); for (const c of rows) { const k = keyOf(c); if (!k) continue; const t = m.get(k) || blank(); t.n++; t[leadStatusOf(c)]++; m.set(k, t); } return m; };
+    const pct = (a, b) => (b ? Math.round((a / b) * 100) + '%' : '—');
+    const bar = (t) => `<div class="conv-bar" title="success ${t.success} · loss ${t.loss} · in contact ${t['in contact']}"><i class="s" style="width:${(t.success / t.n) * 100}%"></i><i class="l" style="width:${(t.loss / t.n) * 100}%"></i></div>`;
+    const tableOf = (label, entries) => `<table class="conv"><thead><tr><th>${label}</th><th>문의</th><th>success</th><th>loss</th><th>in contact</th><th>전환율</th><th></th></tr></thead><tbody>${entries.map(([k, t]) => `<tr><td>${esc(k)}</td><td>${t.n}</td><td>${t.success}</td><td>${t.loss}</td><td>${t['in contact']}</td><td><strong>${pct(t.success, t.n)}</strong></td><td>${bar(t)}</td></tr>`).join('')}</tbody></table>`;
+    const months = Array.from(tallyBy((c) => (c.inqDate || '').slice(0, 7)).entries()).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
+    const coaches = Array.from(tallyBy((c) => c.coach || '(미배정)').entries()).sort((a, b) => b[1].n - a[1].n);
+    const reasons = new Map(); let lossN = 0;
+    for (const c of rows) { if (leadStatusOf(c) !== 'loss') continue; lossN++; const r = lossReason(c) || '(사유 미기재)'; reasons.set(r, (reasons.get(r) || 0) + 1); }
+    const topReasons = Array.from(reasons.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const all = blank(); for (const c of rows) { all.n++; all[leadStatusOf(c)]++; }
+    return `<details class="conv-report" ${state.convOpen ? 'open' : ''}><summary>전환 리포트 · Conversion — 문의 ${all.n}건 중 success ${all.success} (${pct(all.success, all.n)}) · loss ${all.loss} · in contact ${all['in contact']}</summary>
+      <p class="conv-note">전환율 = success ÷ 문의. 위 목록의 필터(구분·담당·Status…)가 그대로 적용되고, Status를 바꾸면 바로 반영됩니다.</p>
+      <div class="conv-grid">
+        <div class="panel"><h2>월별</h2>${tableOf('월', months)}</div>
+        <div class="panel"><h2>담당 강사별</h2>${tableOf('담당', coaches)}</div>
+        <div class="panel"><h2>미등록 사유</h2>${topReasons.length ? `<table class="conv"><thead><tr><th>사유</th><th>건</th><th>비율</th></tr></thead><tbody>${topReasons.map(([r, n]) => `<tr><td>${esc(r)}</td><td>${n}</td><td>${pct(n, lossN)}</td></tr>`).join('')}</tbody></table>` : '<p class="empty">loss 문의가 아직 없습니다.</p>'}</div>
+      </div></details>`;
+  }
   const CUSTOMER_COLUMNS = [
     { k: 'name', h: '회원명', t: 'text', v: (c) => labelOf('customers', c), f: (c) => `<strong>${esc(labelOf('customers', c))}</strong>${c.sheetRemovedAt ? ' <span class="pill bad" title="시트에서 삭제된 회원 (통화 기록이 있어 보관)">시트 삭제</span>' : ''}`, always: true },
     { k: 'coach', h: '담당강사', t: 'enum', multi: true, v: (c) => c.coach || '', f: (c) => esc(c.coach) || '—' },
@@ -2211,6 +2235,7 @@
       const canSync = (Store.settings().sheet.sources || []).some((x) => x.url);
       const leadsBlock = head('문의 · Inquiries', `${nf ? `<button class="ghost" id="btn-clear-lead-filters" data-tbl="leads">필터 해제 (${nf})</button>` : ''}<span style="font-size:12px;color:var(--muted)">문의-주니어 / 문의-시니어 시트 · 행 클릭 = 상세 · 통화는 아래 Call log에 기록</span><button class="ghost" id="btn-import-inquiries" title="웰페리온 문의 DB 시트 → 문의-주니어/시니어 탭 재생성 후 Sync (Apps Script buildInquiryTabs)" ${canSync ? '' : 'disabled'}>문의 DB 가져오기</button><button class="ghost" id="btn-sync-leads" title="Pull members and inquiries from the Google Sheets" ${canSync ? '' : 'disabled'}>Sync</button>`)
         + leadStats
+        + conversionReport(leads)
         + table(lcols, leads.slice(0, ts.limit), (id) => openDialog('customers', Store.get('customers', id)), leadsAll.length ? '조건에 맞는 문의가 없습니다.' : '아직 문의 데이터가 없습니다. 문의 DB 가져오기 또는 Members → Google Sheet에서 문의 시트를 추가하고 Sync 하세요.', { tbl: 'leads', sort: ts.sort, filterRow: filterRow(lcols, leadsAll, ts), footer: `${pageFooter(ts, Math.min(ts.limit, leads.length), leads.length, 'leads', '건')}${leads.length !== leadsAll.length ? ` (전체 ${leadsAll.length}건 중 필터 적용)` : ''}` });
       // 웰페리온 회원 DB: every club member (all sports); the ones with a 스쿼시 담당자 are the squash lead pool.
       const cts = tbl('club');
@@ -2697,6 +2722,8 @@
       };
       if (el.tagName === 'SELECT' || el.type === 'date') el.onchange = apply; else el.oninput = apply;
     });
+    const conv = viewEl.querySelector('details.conv-report');
+    if (conv) conv.ontoggle = () => { state.convOpen = conv.open; };
     viewEl.querySelectorAll('select.lead-status').forEach((el) => {
       el.onclick = (e) => e.stopPropagation(); // choosing a status must not open the row's dialog
       el.onchange = () => {

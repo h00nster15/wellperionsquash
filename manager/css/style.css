@@ -256,3 +256,13 @@ dialog h2 { margin: 0 0 14px; font-size: 24px; font-weight: 600; color: var(--pr
 .cal-cell.on .cal-day { color: var(--ink); font-weight: 600; }
 .cal-time { font-size: 11px; line-height: 1.45; font-variant-numeric: tabular-nums; }
 select.lead-status { border: 0; cursor: pointer; font: inherit; font-size: 12px; padding: 2px 6px; }
+details.conv-report { margin: 0 0 14px; }
+details.conv-report > summary { cursor: pointer; font-weight: 600; color: var(--primary); padding: 8px 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.conv-note { font-size: 12px; color: var(--muted); margin: 8px 2px; }
+.conv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; }
+table.conv th, table.conv td { padding: 4px 6px; font-size: 13px; text-align: right; }
+table.conv th:first-child, table.conv td:first-child { text-align: left; }
+.conv-bar { display: flex; width: 90px; height: 8px; border-radius: 4px; overflow: hidden; background: #e2e6f1; }
+.conv-bar i { display: block; height: 100%; }
+.conv-bar i.s { background: var(--ok); }
+.conv-bar i.l { background: var(--bad); }
