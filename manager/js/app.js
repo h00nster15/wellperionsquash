@@ -55,11 +55,13 @@
         { k: 'payment', label: 'Payment (결제 금액)' },
         { k: 'registration', label: 'Registration (등록분류: 신규/재등록)' },
         { k: 'lessonType', label: '레슨구분 (auto: 이름에 "단체" → 단체레슨)' },
-        { k: 'coach', label: 'Coach in charge (담당강사)' },
+        { k: 'coach', label: 'Coach in charge (담당강사 · 담당자)' },
         { k: 'consentMarketing', label: 'Marketing consent', type: 'checkbox' },
         { k: 'consentCalls', label: 'Call consent', type: 'checkbox' },
         { k: 'consentSms', label: 'SMS consent (문자 수신동의)', type: 'checkbox' },
         { k: 'nextFollowUp', label: 'Next follow-up', type: 'date' },
+        { k: 'inqMessage', label: '문의 내용', type: 'textarea', full: true, when: (r) => inquired(r) },
+        { k: 'inqMemo', label: '비고', type: 'textarea', full: true, when: (r) => inquired(r) },
         { k: 'notes', label: 'Notes', type: 'textarea', full: true },
       ],
     },
@@ -152,7 +154,7 @@
     $('#dlg-title').textContent = (isNew ? 'New ' : 'Edit ') + schema.title;
     $('#dlg-delete').hidden = isNew;
     $('#dlg-delete').textContent = 'Delete';
-    dlgFields.innerHTML = schema.fields.map((f) => {
+    dlgFields.innerHTML = schema.fields.filter((f) => !f.when || f.when(rec)).map((f) => {
       const val = rec[f.k] ?? (typeof f.def === 'function' ? f.def() : f.def) ?? '';
       const cls = f.full ? 'full' : '';
       const req = f.required ? 'required' : '';
@@ -188,12 +190,18 @@
     e.preventDefault();
     if (dlgState.onSave) { if (dlgState.onSave() !== false) { dlg.close(); render(); } return; }
     const { col, rec } = dlgState;
+    const orig = { ...rec };
     for (const f of schemas[col].fields) {
       const el = dlgForm.elements[f.k];
       if (!el) continue;
       if (f.type === 'checkbox') rec[f.k] = el.checked;
       else if (f.type === 'number') rec[f.k] = el.value === '' ? null : Number(el.value);
       else rec[f.k] = el.value.trim();
+    }
+    // Fields changed by hand here are not overwritten by the next Sync (Sheets.fill skips localEdits).
+    if (col === 'customers') {
+      const changed = schemas.customers.fields.map((f) => f.k).filter((k) => dlgForm.elements[k] && String(orig[k] ?? '') !== String(rec[k] ?? ''));
+      if (changed.length) rec.localEdits = Array.from(new Set([...(rec.localEdits || []), ...changed]));
     }
     // Club member: push 담당자 / new contact entry to the sheet first; keep the dialog
     // open with the error if Google cannot be reached, so nothing typed is lost.
@@ -353,8 +361,8 @@
       f: (c) => `<div class="log">${c.clubNote ? `<div>${esc(c.clubNote)}</div>` : ''}${c.clubRenewalNote ? `<div><b>재등록상담${c.clubRenewalDate ? ' ' + esc(c.clubRenewalDate) : ''}</b> ${esc(c.clubRenewalNote)}</div>` : ''}${c.clubEndReason ? `<div class="sub">종료사유: ${esc(c.clubEndReason)}</div>` : ''}${!c.clubNote && !c.clubRenewalNote && !c.clubEndReason ? '—' : ''}</div>` },
     // Compact lead cells: name + facts on a second line; inquiry text + program/wish + earlier inquiries in one cell.
     { k: 'leadName', h: '회원명', t: 'text', v: (c) => labelOf('customers', c), f: (c) => `<strong>${esc(labelOf('customers', c))}</strong><div class="sub">${[c.inqAge, c.inqAgeText, c.inqRegion, c.segmentLabel].filter(Boolean).map(esc).join(' · ') || '—'}</div>` },
-    { k: 'inqSummary', h: '문의 내용', t: 'text', v: (c) => `${c.inqProgram || ''} ${c.inqWish || ''} ${c.inqMessage || ''} ${c.inqHistory || ''}`.trim(), log: true,
-      f: (c) => `<div class="log">${c.inqProgram || c.inqWish ? `<div class="sub">${esc([c.inqProgram, c.inqWish].filter(Boolean).join(' · '))}</div>` : ''}${c.inqMessage ? `<div>${esc(c.inqMessage)}</div>` : ''}${c.inqHistory ? `<div class="sub" title="이전 문의 내역">${String(c.inqHistory).split(/\n+/).map((l) => '↩ ' + esc(l)).join('<br>')}</div>` : ''}${!c.inqMessage && !c.inqHistory && !c.inqProgram ? '—' : ''}</div>` },
+    { k: 'inqSummary', h: '문의 내용', t: 'text', v: (c) => `${c.inqProgram || ''} ${c.inqWish || ''} ${c.inqMessage || ''} ${c.inqMemo || ''} ${c.inqHistory || ''}`.trim(), log: true,
+      f: (c) => `<div class="log">${c.inqProgram || c.inqWish ? `<div class="sub">${esc([c.inqProgram, c.inqWish].filter(Boolean).join(' · '))}</div>` : ''}${c.inqMessage ? `<div>${esc(c.inqMessage)}</div>` : ''}${c.inqMemo ? `<div class="sub">비고: ${esc(c.inqMemo)}</div>` : ''}${c.inqHistory ? `<div class="sub" title="이전 문의 내역">${String(c.inqHistory).split(/\n+/).map((l) => '↩ ' + esc(l)).join('<br>')}</div>` : ''}${!c.inqMessage && !c.inqHistory && !c.inqProgram && !c.inqMemo ? '—' : ''}</div>` },
     // 연락내용: the contact log, one dated entry per line ("08/28 09:00 …", "9/1 …").
     { k: 'inqLog', h: '연락내용', t: 'text', v: (c) => c.inqLog || '', f: (c) => contactLog(c.inqLog), log: true },
     { k: 'inqRegion', h: '지역', t: 'enum', v: (c) => c.inqRegion || '', f: (c) => esc(c.inqRegion) || '—' },
@@ -731,11 +739,12 @@
       : `<th>${esc(c.h)}</th>`;
     const thead = `<thead><tr>${cols.map(th).join('')}</tr>${opts.filterRow ? `<tr class="filters">${opts.filterRow}</tr>` : ''}</thead>`;
     rowHandlers.push(onRow);
+    const rh = rowHandlers.length - 1; // render() wires rows by this index — other tables on the page (e.g. 전환 리포트) have none
     if (!rows.length) {
       if (!opts.filterRow) { rowHandlers.pop(); return `<div class="table-wrap"><div class="empty">${esc(emptyMsg || 'Nothing here yet.')}</div></div>`; }
       return `<div class="table-wrap" data-tbl="${opts.tbl || ''}"><table>${thead}</table><div class="empty">${esc(emptyMsg || 'Nothing here yet.')}</div></div>`;
     }
-    return `<div class="table-wrap" data-tbl="${opts.tbl || ''}"><table>${thead}
+    return `<div class="table-wrap" data-tbl="${opts.tbl || ''}"><table data-rh="${rh}">${thead}
       <tbody>${rows.map((r) => `<tr data-id="${esc(r.id)}">${cols.map((c) => `<td class="${c.log ? 'logcell' : c.wrap ? 'wrap' : ''}">${c.f(r)}</td>`).join('')}</tr>`).join('')}</tbody>${opts.footer ? `<tfoot><tr><td colspan="${cols.length}">${opts.footer}</td></tr></tfoot>` : ''}</table></div>`;
   }
   let rowHandlers = [];
@@ -2635,8 +2644,9 @@
     document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === state.view));
 
     // Row click handlers: tables are rendered in order, one handler per table.
-    viewEl.querySelectorAll('table').forEach((tbl, i) => {
-      const handler = rowHandlers[i];
+    viewEl.querySelectorAll('table[data-rh]').forEach((tbl) => {
+      const handler = rowHandlers[+tbl.dataset.rh];
+      if (typeof handler !== 'function') return;
       tbl.querySelectorAll('tbody tr[data-id]').forEach((tr) => { tr.onclick = () => handler(tr.dataset.id); });
     });
 

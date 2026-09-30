@@ -330,7 +330,7 @@ const Sheets = (() => {
         const before = JSON.stringify(hit);
         // Sheet-derived facts (aliases, coach) are rebuilt from scratch on each Sync run so
         // renamed rows or a coach change in the sheet do not leave stale traces behind.
-        if (opts.coach && hit.sheetRunAt !== now) { hit.coach = ''; delete hit.aliases; hit.sheetRunAt = now; }
+        if (opts.coach && hit.sheetRunAt !== now) { if (!(hit.localEdits || []).includes('coach')) hit.coach = ''; delete hit.aliases; hit.sheetRunAt = now; }
         const coaches = splitList(hit.coach);
         fill(hit, c, true);
         if (c.coach && coaches.length && !coaches.includes(c.coach)) hit.coach = coaches.concat(c.coach).join(', ');
@@ -394,7 +394,7 @@ const Sheets = (() => {
         if (c.notes && !(hit.notes || '').includes(c.notes)) hit.notes = hit.notes ? `${hit.notes} / ${c.notes}` : c.notes;
         // Keep the inquiry itself too, so the member also shows in the 문의 list (as a converted lead).
         const newer = !hit.inqDate || (c.inqDate && c.inqDate >= hit.inqDate);
-        for (const k of INQ_FIELDS) if (c[k] && (newer || !hit[k])) hit[k] = c[k];
+        for (const k of INQ_FIELDS) if (c[k] && (newer || !hit[k]) && !(hit.localEdits || []).includes(k)) hit[k] = c[k];
         if (newer || !hit.inqLabel) hit.inqLabel = c.segmentLabel;
         hit.inquirySyncedAt = now;
         if (JSON.stringify(hit) !== before) { updated++; store.upsert('customers', hit); }
@@ -495,6 +495,7 @@ const Sheets = (() => {
     for (const [k, v] of Object.entries(src)) {
       const has = v !== '' && v !== null && v !== undefined;
       if (!has) continue;
+      if (dst.localEdits && dst.localEdits.includes(k)) continue; // changed by hand in the app
       if (overwrite || dst[k] === '' || dst[k] == null) dst[k] = v;
     }
   }
