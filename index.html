@@ -827,6 +827,18 @@
             flex-shrink: 0;
         }
 
+        /* 📚 JUNIOR RESOURCES (guide / players / colleges pages) */
+        .resource-section { margin: 56px 0 8px; }
+        .resource-section .pathway-badge { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; color: var(--exeter-crimson); }
+        .resource-section h3 { font-size: 1.5rem; letter-spacing: -.02em; margin: 6px 0 18px; }
+        .resource-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+        .resource-card { display: flex; flex-direction: column; gap: 6px; padding: 20px; background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--exeter-crimson); text-decoration: none; color: var(--ink); transition: transform .15s ease, box-shadow .15s ease; }
+        .resource-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.06); }
+        .resource-card .rc-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; color: #8a8a8d; }
+        .resource-card b { font-size: 1.08rem; }
+        .resource-card p { font-size: .9rem; color: #555; line-height: 1.6; }
+        .resource-card .rc-go { margin-top: auto; padding-top: 6px; font-size: .85rem; font-weight: 700; color: var(--exeter-crimson); }
+
         /* 🏆 SECTION 3: WELLPERION JUNIOR SQUASH PATHWAY (FLOWCHART) */
         .pathway-section {
             margin-top: 4.5rem;
@@ -1323,6 +1335,7 @@
             <a href="rankings.html" class="header-cta" style="border-style:dashed">RANKINGS</a>
             <a href="events.html" class="header-cta" style="border-style:dashed">EVENTS</a>
             <a href="guide.html" class="header-cta" style="border-style:dashed">GUIDE</a>
+            <a href="players.html" class="header-cta" style="border-style:dashed">PLAYERS</a>
             <a href="colleges.html" class="header-cta" style="border-style:dashed">COLLEGES</a>
             <a href="http://wellperion.com/ko/" class="header-cta">INQUIRE</a>
         </div>
@@ -1661,6 +1674,32 @@
                 </div>
             </div>
 
+            <!-- JUNIOR RESOURCES: links to guide / players / colleges pages -->
+            <div class="resource-section">
+                <span class="pathway-badge">BOARDING SCHOOL → COLLEGE</span>
+                <h3>보딩스쿨·대학 스쿼시 리서치</h3>
+                <div class="resource-grid">
+                    <a href="guide.html" class="resource-card">
+                        <span class="rc-tag">01 · GUIDE</span>
+                        <b>보딩스쿨 스쿼시 가이드</b>
+                        <p>스쿼시 팀이 있는 미국 보딩스쿨 30곳 — 팀 구조, 선수 유형, 지원 일정, 학교별 varsity 레이팅.</p>
+                        <span class="rc-go">가이드 보기 →</span>
+                    </a>
+                    <a href="players.html" class="resource-card">
+                        <span class="rc-tag">02 · PLAYERS</span>
+                        <b>보딩스쿨 선수 티어</b>
+                        <p>보딩스쿨 varsity 선수들의 US Squash 레이팅과 대회 성적 — 월드클래스부터 성장 단계까지 6단계.</p>
+                        <span class="rc-go">티어 보기 →</span>
+                    </a>
+                    <a href="colleges.html" class="resource-card">
+                        <span class="rc-tag">03 · COLLEGES</span>
+                        <b>미국 대학 스쿼시</b>
+                        <p>varsity 스쿼시 팀이 있는 대학 37곳 — 디비전, 팀 레이팅, 시설, 우승 기록.</p>
+                        <span class="rc-go">대학 보기 →</span>
+                    </a>
+                </div>
+            </div>
+
             <!-- TAB 3: JUNIOR VIDEO SHOWCASE SECTION -->
             <div class="video-showcase-section">
                 <h3 class="video-showcase-title">주니어 엘리트 전술 드릴 및 코트 트레이닝 실전 영상</h3>
@@ -1703,6 +1742,7 @@
         <div class="foot-name">WELLPERION SQUASH CLUB</div>
         <div class="foot-line">서울 한남동 최고급 웰페리온 스포츠센터 프라이빗 전용 코트</div>
         <div class="foot-line" style="margin-top:8px"><a href="events.html" style="color:inherit">이벤트 & 대회 신청 · Events & registration</a> · <a href="rankings.html" style="color:inherit">랭킹 · Rankings (WSR)</a></div>
+        <div class="foot-line" style="margin-top:4px"><a href="guide.html" style="color:inherit">보딩스쿨 가이드 · Boarding school guide</a> · <a href="players.html" style="color:inherit">선수 티어 · Players</a> · <a href="colleges.html" style="color:inherit">대학 스쿼시 · Colleges</a></div>
         <div class="foot-line" style="font-size: 0.75rem; margin-top: 10px; opacity: 0.6;">© 2026 Wellperion Squash. All Rights Reserved.</div>
     </footer>
 
