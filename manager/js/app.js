@@ -222,7 +222,7 @@
         saveBtn.disabled = false; saveBtn.textContent = 'Save';
         rec.squashCoach = coach;
         if (entry) rec.squashContact = [rec.squashContact || '', `${today()} ${entry}`].filter(Boolean).join('\n');
-        if (entry) clubCall = { date: today(), caller: coach, customerId: rec.id, campaignId: '', outcome: callOutcomeOf(entry), callbackDate: '', notes: entry };
+        if (entry) clubCall = { date: today(), caller: coach, customerId: rec.id, campaignId: '', outcome: callOutcomeOf(entry), callbackDate: '', notes: entry, source: 'squash-contact' };
       }
     }
     Store.upsert(col, rec);
@@ -255,6 +255,7 @@
         Store.upsert('customers', c); done++;
       } catch (err) { errors.push(`${labelOf('customers', c)}: ${err.message}`); if (/doPost|배포/.test(err.message)) break; }
     }
+    await clubContactsToCalls(); // the copied notes land in the Call log too
     btn.disabled = false; btn.textContent = label;
     alert(`${done}건 옮김${errors.length ? `\n\n실패:\n${errors.join('\n')}` : ''}`);
     render();
@@ -659,6 +660,7 @@
     }
     if (total.sheets.length) Store.setSheetSettings({ lastSync: new Date().toISOString(), lastResult: total });
     if (errors.length) alert('Sync problems:\n' + errors.join('\n'));
+    await clubContactsToCalls();
     btn.disabled = false; btn.textContent = label;
     render();
   }
@@ -710,6 +712,53 @@
   // Outcome for a call logged from free text (스쿼시 contact entry): a best guess, editable in the Call log.
   const callOutcomeOf = (t) => /수신\s*거부|연락\s*금지/.test(t) ? 'opt-out' : /부재|안\s*받|미응답|무응답/.test(t) ? 'no-answer'
     : /관심\s*없|거절|미등록/.test(t) ? 'not-interested' : /예약|등록/.test(t) ? 'booked' : /다시|재연락|콜백|나중/.test(t) ? 'callback' : 'info-sent';
+  // 스쿼시 Contact log (club members) → Call log. One call per dated entry ("2026-09-30 …",
+  // "25.08.27 …", "4.13 …", "9/25 …"); undated lines continue the entry above, or stand alone
+  // with no date. Idempotent: a call with the same person + date + text is not added twice
+  // (that also matches the call the dialog adds right away). Old entries only move lastContact.
+  const parseLogDate = (s) => {
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return s;
+    m = s.match(/^(\d{2})\.(\d{1,2})\.(\d{1,2})$/);
+    if (m) return `20${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    m = s.match(/^(\d{1,2})[./](\d{1,2})$/);
+    if (!m || +m[1] > 12 || +m[2] > 31) return '';
+    const y = +today().slice(0, 4), md = `${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+    return `${y}-${md}` > today() ? `${y - 1}-${md}` : `${y}-${md}`; // no year: the latest one not in the future
+  };
+  function contactEntries(text) {
+    const out = [];
+    for (const raw of String(text || '').replace(/\r/g, '').split('\n')) {
+      const l = raw.trim();
+      if (!l) continue;
+      const m = l.match(/^(\d{4}-\d{2}-\d{2}|\d{2}\.\d{1,2}\.\d{1,2}|\d{1,2}[./]\d{1,2})(?=\s|$)\s*(.*)$/);
+      const date = m ? parseLogDate(m[1]) : '';
+      if (date) out.push({ date, notes: m[2].trim() });
+      else if (out.length) out[out.length - 1].notes += '\n' + l;
+      else out.push({ date: '', notes: l });
+    }
+    return out.filter((e) => e.notes);
+  }
+  async function clubContactsToCalls() {
+    const have = new Set(Store.list('calls').map((k) => `${k.customerId}|${k.date || ''}|${String(k.notes || '').trim()}`));
+    let added = 0;
+    await Store.batch(async () => {
+      for (const c of Store.list('customers')) {
+        if (!c.squashContact) continue;
+        let last = '';
+        for (const e of contactEntries(c.squashContact)) {
+          const key = `${c.id}|${e.date}|${e.notes}`;
+          if (e.date > last) last = e.date;
+          if (have.has(key)) continue;
+          have.add(key);
+          Store.upsert('calls', { date: e.date, caller: c.squashCoach || '', customerId: c.id, campaignId: '', outcome: callOutcomeOf(e.notes), callbackDate: '', notes: e.notes, source: 'squash-contact' });
+          added++;
+        }
+        if (last && last <= today() && (!c.lastContact || last > c.lastContact)) { c.lastContact = last; Store.upsert('customers', c); }
+      }
+    });
+    return added;
+  }
   function syncCustomerFromCall(call) {
     const c = Store.get('customers', call.customerId);
     if (!c) return;
@@ -1471,6 +1520,7 @@
     leads: { sort: { k: 'inqDate', dir: -1 }, colFilters: {}, initial: 10, limit: 10 },
   } };
   const tbl = (key) => state.tables[key];
+  state.tables.calls = { initial: 20, limit: 20 }; // Call log (newest first)
   state.tables.club = { sort: { k: 'clubEnd', dir: -1 }, colFilters: {}, initial: 10, limit: 10 };
   state.tables.sched = { sort: { k: 'count', dir: -1 }, colFilters: {}, initial: 25, limit: 25 }; // 스케줄 → 회원별
   state.tables.schedtime = { sort: { k: 'time', dir: 1 }, colFilters: {}, initial: 40, limit: 40 }; // 스케줄 → 시간별
@@ -2286,7 +2336,7 @@
         + table(cCols, cps, (id) => openDialog('campaigns', Store.get('campaigns', id)), 'No campaigns yet.')
         + `<div style="height:24px"></div>`
         + head('Call log', `<button class="primary" id="btn-new-call" ${noCustomers ? 'disabled title="Add a customer first"' : ''}>+ Log call</button>`)
-        + table(kCols, calls, (id) => openDialog('calls', Store.get('calls', id)), 'No calls logged yet.');
+        + table(kCols, calls.slice(0, tbl('calls').limit), (id) => openDialog('calls', Store.get('calls', id)), 'No calls logged yet.', { tbl: 'calls', footer: calls.length > tbl('calls').initial ? pageFooter(tbl('calls'), Math.min(tbl('calls').limit, calls.length), calls.length, 'calls', '건') : '' });
     },
 
     events() {
@@ -3025,6 +3075,7 @@
   // Restore view from hash, then render.
   const h = location.hash.slice(1);
   if (views[h]) state.view = h;
+  clubContactsToCalls().then((n) => { if (n) render(); });
   render();
   if (!hasToken()) { loginDlg.showModal(); setTimeout(() => $('#login-key').focus(), 50); }
   else cloudCheck();
