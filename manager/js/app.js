@@ -710,8 +710,11 @@
 
   // A logged call updates the customer's last-contact / follow-up / status.
   // Outcome for a call logged from free text (스쿼시 contact entry): a best guess, editable in the Call log.
-  const callOutcomeOf = (t) => /수신\s*거부|연락\s*금지/.test(t) ? 'opt-out' : /부재|안\s*받|미응답|무응답/.test(t) ? 'no-answer'
-    : /관심\s*없|거절|미등록/.test(t) ? 'not-interested' : /예약|등록/.test(t) ? 'booked' : /다시|재연락|콜백|나중/.test(t) ? 'callback' : 'info-sent';
+  const callOutcomeOf = (t) => /수신\s*거부|연락\s*금지/.test(t) ? 'opt-out'
+    : /부재|안\s*받|미응답|무응답|음성\s*사서함|연결\s*안|통화\s*(가\s*)?어려|바[빠뻐]/.test(t) ? 'no-answer'
+    : /관심\s*없|생각\s*없|할\s*생각\s*없|안\s*하|안한다|괜찮다|거절|미등록|시간이\s*없/.test(t) ? 'not-interested'
+    : /예약|등록|오티|\bot\b/i.test(t) ? 'booked'
+    : /다시|재연락|콜백|나중|조율|생각해\s*보|고민|고려|스케[줄쥴]\s*보고|일정\s*보고|연락\s*(주|준|한다|하기로|드리)/.test(t) ? 'callback' : 'info-sent';
   // 스쿼시 Contact log (club members) → Call log. One call per dated entry ("2026-09-30 …",
   // "25.08.27 …", "4.13 …", "9/25 …"); undated lines continue the entry above, or stand alone
   // with no date. Idempotent: a call with the same person + date + text is not added twice
@@ -719,8 +722,8 @@
   const parseLogDate = (s) => {
     let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (m) return s;
-    m = s.match(/^(\d{2})\.(\d{1,2})\.(\d{1,2})$/);
-    if (m) return `20${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    m = s.match(/^(\d{2})\s*[./]\s*(\d{1,2})\s*[./]\s*(\d{1,2})\.?$/) || s.match(/^(\d{2})(\d{2})(\d{2})$/); // 25.08.27 · 26/09/16 · 26. 3. 13. · 260831
+    if (m && +m[2] >= 1 && +m[2] <= 12 && +m[3] >= 1 && +m[3] <= 31) return `20${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
     m = s.match(/^(\d{1,2})[./](\d{1,2})$/);
     if (!m || +m[1] > 12 || +m[2] > 31) return '';
     const y = +today().slice(0, 4), md = `${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
@@ -731,13 +734,13 @@
     for (const raw of String(text || '').replace(/\r/g, '').split('\n')) {
       const l = raw.trim();
       if (!l) continue;
-      const m = l.match(/^(\d{4}-\d{2}-\d{2}|\d{2}\.\d{1,2}\.\d{1,2}|\d{1,2}[./]\d{1,2})(?=\s|$)\s*(.*)$/);
+      const m = l.match(/^(\d{4}-\d{2}-\d{2}|\d{2}\s*[./]\s*\d{1,2}\s*[./]\s*\d{1,2}\.?|\d{6}|\d{1,2}[./]\d{1,2})(?=\s|$)\s*(.*)$/);
       const date = m ? parseLogDate(m[1]) : '';
       if (date) out.push({ date, notes: m[2].trim() });
       else if (out.length) out[out.length - 1].notes += '\n' + l;
       else out.push({ date: '', notes: l });
     }
-    return out.filter((e) => e.notes);
+    return out.map((e) => ({ date: e.date, notes: e.notes.trim() })).filter((e) => e.notes || e.date); // a bare date = a contact that day
   }
   async function clubContactsToCalls() {
     const have = new Set(Store.list('calls').map((k) => `${k.customerId}|${k.date || ''}|${String(k.notes || '').trim()}`));
