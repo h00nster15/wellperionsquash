@@ -283,7 +283,8 @@
   // 상태 (등록 → success, 보류/종료 → loss, anything else → in contact); Sync never overwrites a pick.
   const LEAD_STATUS = ['in contact', 'success', 'loss'];
   // The sheet's guess reads "등록" anywhere in the log, so "미등록", "등록예정", "시작일 조율중" are not a success yet.
-  const leadStatusOf = (c) => c.leadStatus || (['lapsed', 'opted-out'].includes(c.status) || /미등록/.test(c.inqLog || '') ? 'loss' : c.status === 'active' && !/예정|조율|상담|문의/.test(c.inqLog || '') ? 'success' : 'in contact');
+  const leadStatusOf = (c) => c.leadStatus || (c.inqLabel && c.source !== 'inquiry' ? 'success' : // a member from a lesson sheet already signed up
+['lapsed', 'opted-out'].includes(c.status) || /미등록/.test(c.inqLog || '') ? 'loss' : c.status === 'active' && !/예정|조율|상담|문의/.test(c.inqLog || '') ? 'success' : 'in contact');
   const leadStatusSelect = (c) => { const v = leadStatusOf(c); return `<select class="lead-status pill ${pillClass(v)}" data-id="${esc(c.id)}" title="Status 변경">${LEAD_STATUS.map((x) => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select>`; };
   // 전환 리포트: inquiries by month / by coach → success, loss, still in contact; plus the 미등록 reasons.
   // Works on the rows the 문의 list currently shows, so the column filters (구분, 담당…) narrow it too.
@@ -1466,6 +1467,8 @@
   }
   const isLead = (c) => c.source === 'inquiry';
   const isClub = (c) => c.source === 'clubdb';
+  // The 문의 list: open leads plus members who came in through an inquiry (inqLabel, set by Sync).
+  const inquired = (c) => isLead(c) || !!c.inqLabel;
 
   // ---------- Schedule (Schedule.gs → ?action=schedule) ----------
   // The coaches' `N월S` grids, one booking per filled cell. The script opens both yearly
@@ -2217,7 +2220,7 @@
       const noCustomers = !Store.list('customers').length;
       // 문의 (leads): inquiries synced from the 문의-주니어 / 문의-시니어 tabs.
       const ts = tbl('leads');
-      const leadsAll = Store.list('customers').filter(isLead);
+      const leadsAll = Store.list('customers').filter(inquired);
       const lcols = LEAD_COLUMNS.map((k) => CUSTOMER_COLUMNS.find((c) => c.k === k)).filter(Boolean); // in LEAD_COLUMNS order
       let leads = leadsAll;
       leads = applyFilters(leads, ts);

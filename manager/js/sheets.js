@@ -378,6 +378,7 @@ const Sheets = (() => {
     return { rows: rowCount, unique: rows.length, collapsed, added, updated, merged: 0 };
   }
 
+  const INQ_FIELDS = ['inqDate', 'inqProgram', 'inqWish', 'inqMessage', 'inqLog', 'inqMemo', 'inqAge', 'inqAgeText', 'inqRegion', 'inqFirstContact', 'inqHistory'];
   function leads(rows, store, now, rowCount, collapsed, opts) {
     const index = makeIndex();
     for (const e of store.list('customers')) index.add(e);
@@ -391,6 +392,10 @@ const Sheets = (() => {
         for (const k of ['phone', 'email', 'lastContact', 'nextFollowUp']) if (!hit[k] && c[k]) hit[k] = c[k];
         if (c.lastContact && (!hit.lastContact || c.lastContact > hit.lastContact)) hit.lastContact = c.lastContact;
         if (c.notes && !(hit.notes || '').includes(c.notes)) hit.notes = hit.notes ? `${hit.notes} / ${c.notes}` : c.notes;
+        // Keep the inquiry itself too, so the member also shows in the 문의 list (as a converted lead).
+        const newer = !hit.inqDate || (c.inqDate && c.inqDate >= hit.inqDate);
+        for (const k of INQ_FIELDS) if (c[k] && (newer || !hit[k])) hit[k] = c[k];
+        if (newer || !hit.inqLabel) hit.inqLabel = c.segmentLabel;
         hit.inquirySyncedAt = now;
         if (JSON.stringify(hit) !== before) { updated++; store.upsert('customers', hit); }
         continue;
