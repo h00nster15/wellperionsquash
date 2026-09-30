@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미국 대학 스쿼시 가이드 | Glass Court Squash Academy at Wellperion</title>
+    <meta name="description" content="Varsity 스쿼시 팀이 있는 미국·캐나다 대학(CSA) 목록 — 디비전, 팀 레이팅, 시설, 우승 기록. Glass Court Squash Academy at Wellperion.">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <style>
+        :root {
+            --ink: #1D232A;
+            --wall: #F6F7F8;
+            --paper: #FFFFFF;
+            --line: #E1E5EA;
+            --muted: #5F6B78;
+            --navy: #1F2A6B;
+            --glass: #7FA8D9;
+            --ice: #DCE8F6;
+            --red: #C8102E;
+            --font-display: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            --wrap: 1080px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-display);
+            background: var(--wall);
+            color: var(--ink);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+            word-break: keep-all;
+        }
+        a { color: inherit; }
+        .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 20px; }
+        .eyebrow { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--glass); }
+        h2 { font-size: clamp(1.5rem, 3.2vw, 2.1rem); line-height: 1.3; letter-spacing: -.02em; margin: .5rem 0 1rem; color: var(--navy); }
+        h3 { font-size: 1.1rem; letter-spacing: -.01em; color: var(--navy); }
+        .lead { color: var(--muted); max-width: 720px; font-size: 1.02rem; }
+        section { padding: 4.5rem 0; }
+        section + section { border-top: 1px solid var(--line); }
+
+        /* header */
+        .site-header { position: sticky; top: 0; z-index: 50; background: rgba(246, 247, 248, .95); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+        .site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; padding-bottom: 12px; }
+        .brand { font-weight: 700; font-size: 15px; letter-spacing: -.01em; color: var(--navy); text-decoration: none; }
+        .brand .sub { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 400; letter-spacing: .08em; color: var(--muted); }
+        .nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .nav a { font-size: 13px; font-weight: 600; text-decoration: none; padding: 7px 12px; border: 1px solid var(--line); background: var(--paper); }
+        .nav a.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+        @media (max-width: 560px) { .nav a.hide-sm { display: none; } }
+
+        /* hero */
+        .hero { background: var(--navy); color: #fff; padding: 5rem 0 4.5rem; position: relative; overflow: hidden; }
+        .hero::after { content: ""; position: absolute; right: -80px; top: -40px; width: 420px; height: 420px; border: 2px solid rgba(127, 168, 217, .25); transform: rotate(12deg); }
+        .hero h1 { font-size: clamp(2rem, 5.5vw, 3.4rem); line-height: 1.2; letter-spacing: -.03em; margin: .8rem 0 1.2rem; max-width: 760px; }
+        .hero p { color: var(--ice); max-width: 620px; font-size: 1.05rem; }
+        .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2rem; }
+        .btn { display: inline-block; text-decoration: none; font-family: var(--font-display); font-weight: 600; font-size: .92rem; padding: .9rem 1.5rem; border: 1px solid transparent; cursor: pointer; }
+        .btn-light { background: #fff; color: var(--navy); }
+        .btn-ghost { border-color: rgba(255,255,255,.45); color: #fff; }
+        .btn-navy { background: var(--navy); color: #fff; }
+        .hero-meta { margin-top: 2.5rem; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em; color: var(--glass); }
+
+        /* cards */
+        .grid { display: grid; gap: 14px; }
+        .g3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+        .g4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+        .card { background: var(--paper); border: 1px solid var(--line); padding: 1.5rem; }
+        .card .num { font-family: var(--font-mono); font-size: .75rem; color: var(--glass); letter-spacing: .1em; }
+        .card h3 { margin: .35rem 0 .5rem; }
+        .card p, .card li { color: var(--muted); font-size: .95rem; }
+        .div-card { border-top: 4px solid var(--navy); }
+        .div-card:nth-child(2) { border-top-color: #3E5BA9; }
+        .div-card:nth-child(3) { border-top-color: var(--glass); }
+        .div-card:nth-child(4) { border-top-color: #B9CDE8; }
+        .div-card .cups { font-family: var(--font-mono); font-size: .78rem; color: var(--navy); margin-top: .5rem; }
+        .takeaway { margin-top: 2rem; background: var(--ice); border-left: 4px solid var(--navy); padding: 1.1rem 1.3rem; font-size: .95rem; }
+
+        /* browser */
+        #colleges { background: var(--paper); }
+        .filters { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 2rem 0 1rem; }
+        @media (min-width: 760px) { .filters { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; } }
+        .filters input, .filters select { font: inherit; font-size: .95rem; padding: .7rem .8rem; border: 1px solid var(--line); background: var(--wall); color: var(--ink); width: 100%; }
+        .filters input:focus, .filters select:focus { outline: 2px solid var(--glass); outline-offset: -1px; }
+        .count { font-family: var(--font-mono); font-size: .75rem; letter-spacing: .06em; color: var(--muted); margin-bottom: 1rem; }
+        .school-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+        .school { background: var(--wall); border: 1px solid var(--line); padding: 1.2rem 1.25rem; display: flex; flex-direction: column; gap: .6rem; }
+        .school header { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+        .school h3 { font-size: 1.02rem; line-height: 1.35; flex: 1; }
+        .school .ko { display: block; font-size: .82rem; color: var(--muted); font-weight: 500; }
+        .state { font-family: var(--font-mono); font-size: .72rem; padding: .2rem .45rem; background: var(--navy); color: #fff; white-space: nowrap; }
+        .facts { display: grid; grid-template-columns: auto 1fr; gap: .2rem .8rem; font-size: .86rem; }
+        .facts dt { color: var(--muted); font-family: var(--font-mono); font-size: .72rem; letter-spacing: .04em; padding-top: .15rem; }
+        .facts dd { color: var(--ink); }
+        .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+        .pill { font-size: .74rem; padding: .15rem .5rem; background: var(--ice); color: var(--navy); }
+        .pill.d1 { background: var(--navy); color: #fff; }
+        .rt { background: var(--paper); border: 1px solid var(--line); padding: .6rem .75rem; }
+        .rt-head { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .08em; color: var(--navy); margin-bottom: .3rem; }
+        .rt-head span { color: var(--muted); }
+        .rt table { width: 100%; border-collapse: collapse; font-size: .86rem; font-variant-numeric: tabular-nums; }
+        .rt th { font-weight: 500; color: var(--muted); font-size: .72rem; text-align: right; padding: .1rem .3rem; }
+        .rt th:first-child, .rt tbody th { text-align: left; }
+        .rt td { text-align: right; padding: .1rem .3rem; font-weight: 600; color: var(--navy); cursor: help; }
+        .rt td.na { color: var(--line); font-weight: 400; cursor: default; }
+        .school .desc { font-size: .86rem; color: var(--muted); }
+        .school .links { margin-top: auto; display: flex; gap: 12px; font-size: .82rem; font-weight: 600; }
+        .school .links a { color: var(--navy); }
+        .alum { border: 2px solid var(--navy); }
+        .alum-tag { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; color: var(--red); }
+        .more-wrap { text-align: center; margin-top: 1.6rem; }
+        .more-wrap .btn[hidden] { display: none; }
+        .empty { padding: 2rem; text-align: center; color: var(--muted); border: 1px dashed var(--line); }
+        .disclaimer { margin-top: 1.4rem; font-size: .8rem; color: var(--muted); }
+
+        .cta-band { background: var(--navy); color: #fff; }
+        .cta-band h2 { color: #fff; }
+        .cta-band .lead { color: var(--ice); }
+        footer { padding: 2.5rem 0 3rem; font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); }
+        footer a { color: var(--navy); }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="wrap">
+        <a class="brand" href="colleges.html">GLASS COURT<span class="sub">SQUASH ACADEMY AT WELLPERION</span></a>
+        <nav class="nav">
+            <a href="#how" class="hide-sm">대학 스쿼시</a>
+            <a href="#colleges">대학 탐색</a>
+            <a href="guide.html" class="hide-sm">보딩스쿨 가이드</a>
+            <a href="./" class="hide-sm">웰페리온</a>
+            <a href="http://wellperion.com/ko/inquiry-form/?type=youth" class="primary">상담 신청</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+<div class="hero">
+    <div class="wrap">
+        <span class="eyebrow">US College Squash · CSA Varsity · 2025-26</span>
+        <h1>스쿼시 varsity 팀이 있는<br>미국 대학 <span id="heroCount"></span>곳.</h1>
+        <p>미국 대학 스쿼시는 College Squash Association(CSA) 소속 대학들이 겨울 시즌 동안 팀 대항전을 치르고, 2월 전국 선수권에서 디비전별 우승을 가립니다. 각 대학의 디비전, 팀 레이팅, 시설, 우승 기록을 한곳에서 살펴보세요.</p>
+        <div class="btns">
+            <a href="#colleges" class="btn btn-light">대학 둘러보기</a>
+            <a href="guide.html" class="btn btn-ghost">보딩스쿨 가이드 보기</a>
+        </div>
+        <div class="hero-meta">WRITTEN BY COACH SANGHOON LEE · PHILLIPS EXETER ’13 · BROWN SQUASH · PSA PRO</div>
+    </div>
+</div>
+
+<section id="how">
+    <div class="wrap">
+        <span class="eyebrow">How college squash works</span>
+        <h2>미국 대학 스쿼시, 이렇게 운영됩니다</h2>
+        <p class="lead">대학 팀 경기는 보딩스쿨과 같은 사다리(ladder) 방식으로, 9명이 동시에 경기해 5승을 먼저 거둔 팀이 이깁니다. 시즌 성적에 따라 2월 전국 선수권(CSA Team Championships)에서 실력이 비슷한 팀끼리 디비전을 나눠 우승을 겨룹니다.</p>
+        <div class="grid g4" style="margin-top:2rem">
+            <div class="card div-card"><span class="num">DIVISION A</span><h3>최상위 12개 팀</h3><p>전국 우승을 다투는 디비전. 선수 대부분이 국가대표·세계 주니어 수준입니다.</p><div class="cups">남 Potter Cup · 여 Howe Cup</div></div>
+            <div class="card div-card"><span class="num">DIVISION B</span><h3>상위권</h3><p>A 디비전 바로 아래 팀들. 탄탄한 주니어 경력이 있으면 주전으로 뛸 수 있는 수준입니다.</p><div class="cups">남 Hoehn Cup · 여 Kurtz Cup</div></div>
+            <div class="card div-card"><span class="num">DIVISION C</span><h3>중위권</h3><p>학업 중심 리버럴 아츠 칼리지가 많고, 입학 후 성장하며 사다리를 올라가는 선수가 많습니다.</p><div class="cups">남 Summers Cup · 여 Walker Cup</div></div>
+            <div class="card div-card"><span class="num">DIVISION D</span><h3>발전 단계</h3><p>varsity 경험을 쌓기 좋은 팀들. 학업·학교 선택이 먼저인 선수에게 현실적인 선택지입니다.</p><div class="cups">남 Conroy Cup</div></div>
+        </div>
+        <div class="takeaway"><b>레이팅으로 보면:</b> 대학 코치는 US Squash 레이팅과 대회 성적을 가장 먼저 봅니다. 아래 대학별 “Varsity 레이팅 중앙값”을 아이의 현재 레이팅과 비교하면, 입학 후 팀 안에서 어느 위치에서 시작할 수 있을지 가늠할 수 있습니다. 단, 대학 선택의 중심은 언제나 학업과 학교 전체 환경입니다.</div>
+    </div>
+</section>
+
+<section id="colleges">
+    <div class="wrap">
+        <span class="eyebrow">College browser</span>
+        <h2>varsity 스쿼시 팀이 있는 대학</h2>
+        <p class="lead">대학 이름, 주(州), 컨퍼런스, 디비전으로 찾아보세요. 정보는 CSA와 각 대학 공식 athletics 홈페이지 기준이며, 확인되지 않은 항목은 비워 두었습니다.</p>
+        <div class="filters">
+            <input id="q" type="search" placeholder="대학 이름 검색 (예: Harvard, 트리니티)" aria-label="대학 이름 검색">
+            <select id="state" aria-label="주 선택"><option value="">모든 주</option></select>
+            <select id="conf" aria-label="컨퍼런스 선택"><option value="">모든 컨퍼런스</option></select>
+            <select id="division" aria-label="디비전 선택">
+                <option value="">모든 디비전</option>
+                <option value="A">A (Potter · Howe)</option>
+                <option value="B">B (Hoehn · Kurtz)</option>
+                <option value="C">C (Summers · Walker)</option>
+                <option value="D">D (Conroy)</option>
+            </select>
+            <select id="gender" aria-label="팀 선택">
+                <option value="">남·여 팀 전체</option>
+                <option value="men">남자 팀 있음</option>
+                <option value="women">여자 팀 있음</option>
+            </select>
+            <select id="sort" aria-label="정렬">
+                <option value="">이름순</option>
+                <option value="rating">레이팅 높은 순</option>
+            </select>
+        </div>
+        <div class="count" id="count"></div>
+        <div class="school-list" id="list"></div>
+        <div class="more-wrap"><button type="button" id="more" class="btn btn-navy" hidden></button></div>
+        <p class="disclaimer">정보 확인 기준: 2026년 9월, CSA(csasquash.com) 2026 전국 선수권 대진표와 각 대학 공식 athletics 홈페이지. CSA varsity 디비전 소속 대학만 포함했으며, 클럽팀만 있는 대학은 제외했습니다(Brown은 2026년 7월 varsity 복귀로 포함). 이 목록은 순위가 아니며 기본적으로 알파벳 순으로 정렬되어 있습니다.<br>
+        Varsity 레이팅: US Squash(ClubLocker) CSA 2025-26 시즌 로스터 기준, 팀 사다리 상위 9명의 US Squash 레이팅 중앙값입니다(숫자 위에 마우스를 올리면 평균과 인원 표시). 레이팅은 2026년 9월 현재 값이라 졸업생도 현재 레이팅으로 계산됩니다. Brown은 2026-27 로스터 기준입니다.</p>
+    </div>
+</section>
+
+<section class="cta-band">
+    <div class="wrap">
+        <span class="eyebrow">How Glass Court helps</span>
+        <h2>대학 스쿼시의 출발점은 오늘의 코트입니다</h2>
+        <p class="lead">대학 코치가 보는 것은 레이팅과 대회 기록입니다. Glass Court Squash Academy는 웰페리온 스포츠센터에서 주니어 선수의 훈련과 대회 로드맵을 함께 설계합니다.</p>
+        <div class="btns">
+            <a href="http://wellperion.com/ko/inquiry-form/?type=youth" class="btn btn-light">주니어 상담 신청</a>
+            <a href="guide.html" class="btn btn-ghost">보딩스쿨 가이드 보기</a>
+        </div>
+    </div>
+</section>
+</main>
+
+<footer>
+    <div class="wrap">
+        Glass Court Squash Academy at Wellperion · 서울 한남동 웰페리온 스포츠센터<br>
+        <a href="https://instagram.com/glass_court">Instagram @glass_court</a> · <a href="./">wellperionsquash</a><br>
+        본 페이지는 정보 제공 목적이며, 특정 대학의 합격이나 체육 특기 선발을 보장하지 않습니다.
+    </div>
+</footer>
+
+<script>
+const COLLEGES = /*COLLEGES_DATA*/[{"id":"harvard","name":"Harvard University","short":"Harvard","nameKo":"하버드 대학교","city":"Cambridge","state":"MA","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://gocrimson.com/sports/mens-squash","women":"https://gocrimson.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.8,"mean":6.78,"n":9},"women":{"season":"2025-26","median":5.92,"mean":5.97,"n":9}},"facilityKo":"Murr Center — 국제 규격 코트 14면","notesKo":"여자팀 Howe Cup 7회 우승(2016–20, 2022, 2023), 남자팀 Potter Cup 4회 우승(2019, 2020, 2022, 2023)."},{"id":"yale","name":"Yale University","short":"Yale","nameKo":"예일 대학교","city":"New Haven","state":"CT","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://yalebulldogs.com/sports/mens-squash","women":"https://yalebulldogs.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.76,"mean":6.67,"n":9},"women":{"season":"2025-26","median":5.62,"mean":5.54,"n":9}},"facilityKo":"Payne Whitney Gym 내 Brady Squash Center — 코트 15면(4면 유리 Brady Court 포함)","notesKo":"남자팀 2016 Potter Cup 우승."},{"id":"princeton","name":"Princeton University","short":"Princeton","nameKo":"프린스턴 대학교","city":"Princeton","state":"NJ","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://goprincetontigers.com/sports/mens-squash","women":"https://goprincetontigers.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.68,"mean":6.72,"n":9},"women":{"season":"2025-26","median":5.93,"mean":6.04,"n":9}},"facilityKo":"Racquet and Recreation Fieldhouse(2024년 개장) — 코트 14면, 유리 전시 코트 2면","notesKo":"여자팀 2026년 제1회 아이비리그 토너먼트 우승, 2026 Howe Cup 준우승."},{"id":"penn","name":"University of Pennsylvania","short":"Penn","nameKo":"펜실베이니아 대학교","city":"Philadelphia","state":"PA","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://pennathletics.com/sports/mens-squash","women":"https://pennathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.79,"mean":6.87,"n":9},"women":{"season":"2025-26","median":5.87,"mean":5.98,"n":9}},"facilityKo":"Penn Squash Center(2019 리노베이션) — 국제 규격 코트 12면, 유리 챔피언십 코트 2면","notesKo":"남자팀 Potter Cup 2연패(2024, 2025), 여자팀 2026 Howe Cup 우승, 남자팀 2026년 제1회 아이비리그 토너먼트 우승."},{"id":"columbia","name":"Columbia University","short":"Columbia","nameKo":"컬럼비아 대학교","city":"New York","state":"NY","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Kurtz Cup (B)"},"url":{"men":"https://gocolumbialions.com/sports/mens-squash","women":"https://gocolumbialions.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.63,"mean":6.65,"n":9},"women":{"season":"2025-26","median":5.33,"mean":5.35,"n":9}},"facilityKo":"할렘 SL Green StreetSquash Center(홈 경기장) — 국제 규격 코트 8면, 교내 Dodge Fitness Center에도 코트 10면","notesKo":"여자팀 2026 Kurtz Cup 우승, 남자팀 Hoehn Cup 우승(2020, 2023)."},{"id":"cornell","name":"Cornell University","short":"Cornell","nameKo":"코넬 대학교","city":"Ithaca","state":"NY","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://cornellbigred.com/sports/mens-squash","women":"https://cornellbigred.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.26,"mean":6.35,"n":9},"women":{"season":"2025-26","median":5.49,"mean":5.59,"n":9}},"facilityKo":"Belkin Squash Courts — 국제 규격 코트 6면","notesKo":"세계 챔피언 2회 David Palmer 감독(2016년부터). 남자팀 2022 Hoehn Cup, 여자팀 Kurtz Cup(2019, 2022) 우승."},{"id":"dartmouth","name":"Dartmouth College","short":"Dartmouth","nameKo":"다트머스 칼리지","city":"Hanover","state":"NH","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://dartmouthsports.com/sports/mens-squash","women":"https://dartmouthsports.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.47,"mean":6.44,"n":9},"women":{"season":"2025-26","median":5.19,"mean":5.29,"n":9}},"facilityKo":"Berry Sports Center 내 Berry Squash Courts — 국제 규격 10면 + 북미 규격 2면","notesKo":"남자팀 2017 Hoehn Cup, 여자팀 Kurtz Cup(2016, 2017) 우승."},{"id":"brown","name":"Brown University","short":"Brown","nameKo":"브라운 대학교","city":"Providence","state":"RI","conference":"Ivy League","primaryConference":"Ivy League","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":null,"women":null},"url":{"men":"https://brownbears.com/sports/mens-squash","women":"https://brownbears.com/sports/womens-squash"},"ratings":{"men":{"season":"2026-27","median":5.73,"mean":5.79,"n":9},"women":{"season":"2026-27","median":4.85,"mean":4.52,"n":9}},"facilityKo":"Moses Brown School 내 Gorgi Family Squash Center(프로비던스)","notesKo":"2020–2026년 클럽팀으로 운영(남자팀 클럽 부문 Chaffee Cup 2023–2026 우승) 후, 2026년 7월 1일 남·여 모두 varsity로 복귀했습니다. 2025-26 시즌에는 CSA varsity 디비전에 없었습니다."},{"id":"trinity","name":"Trinity College","short":"Trinity","nameKo":"트리니티 칼리지","city":"Hartford","state":"CT","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://bantamsports.com/sports/mens-squash","women":"https://bantamsports.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.84,"mean":6.93,"n":9},"women":{"season":"2025-26","median":5.8,"mean":5.82,"n":9}},"facilityKo":"George A. Kellner Squash Center(코트 10면, 약 500석) + 신축 Kovas Squash Center(코트 7면)","notesKo":"남자팀 2026 Potter Cup 우승(19전 전승) — 통산 18번째 전국 우승. 여자팀 Howe Cup 2연패(2024, 2025)."},{"id":"williams","name":"Williams College","short":"Williams","nameKo":"윌리엄스 칼리지","city":"Williamstown","state":"MA","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Kurtz Cup (B)"},"url":{"men":"https://ephsports.williams.edu/sports/mens-squash","women":"https://ephsports.williams.edu/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.28,"mean":6.25,"n":9},"women":{"season":"2025-26","median":5.03,"mean":5.09,"n":9}},"facilityKo":"Chandler Athletic Center 내 Simon Squash Center — 코트 12면","notesKo":"남자팀 2020 Summers Cup 우승, 여자팀 2026 Kurtz Cup 준우승."},{"id":"amherst","name":"Amherst College","short":"Amherst","nameKo":"앰허스트 칼리지","city":"Amherst","state":"MA","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Hoehn Cup (B)","women":"Howe Cup (A)"},"url":{"men":"https://athletics.amherst.edu/sports/mens-squash","women":"https://athletics.amherst.edu/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.07,"mean":6.13,"n":9},"women":{"season":"2025-26","median":5.22,"mean":5.24,"n":9}},"facilityKo":"Alumni Gymnasium 내 Davenport Squash Courts — 코트 10면","notesKo":"남자팀 2023 Summers Cup, 여자팀 Walker Cup(2017, 2020) 우승."},{"id":"middlebury","name":"Middlebury College","short":"Middlebury","nameKo":"미들베리 칼리지","city":"Middlebury","state":"VT","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Hoehn Cup (B)","women":"Kurtz Cup (B)"},"url":{"men":"https://athletics.middlebury.edu/sports/mens-squash","women":"https://athletics.middlebury.edu/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.01,"mean":6.03,"n":9},"women":{"season":"2025-26","median":4.88,"mean":4.9,"n":9}},"facilityKo":"Bostwick Family Squash Center(2013년 개장) — 코트 9면","notesKo":"남자팀 2017 Summers Cup, 여자팀 2023 Walker Cup 우승."},{"id":"colby","name":"Colby College","short":"Colby","nameKo":"콜비 칼리지","city":"Waterville","state":"ME","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Hoehn Cup (B)","women":"Kurtz Cup (B)"},"url":{"men":"https://colbyathletics.com/sports/mens-squash","women":"https://colbyathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.23,"mean":5.98,"n":9},"women":{"season":"2025-26","median":4.64,"mean":4.75,"n":9}},"facilityKo":"Harold Alfond Athletics Center(2020년 개장) — 코트 9면","notesKo":"남자팀 2026 Hoehn Cup 준우승, 여자팀 Epps Cup(2017, 2022) 우승."},{"id":"bowdoin","name":"Bowdoin College","short":"Bowdoin","nameKo":"보든 칼리지","city":"Brunswick","state":"ME","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Kurtz Cup (B)"},"url":{"men":"https://athletics.bowdoin.edu/sports/mens-squash","women":"https://athletics.bowdoin.edu/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.82,"mean":5.88,"n":9},"women":{"season":"2025-26","median":4.71,"mean":4.73,"n":9}},"facilityKo":"Lubin Family Squash Center — 국제 규격 코트 7면","notesKo":"남자팀 2026 Summers Cup, Conroy Cup(2018, 2023) 우승."},{"id":"bates","name":"Bates College","short":"Bates","nameKo":"베이츠 칼리지","city":"Lewiston","state":"ME","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Walker Cup (C)"},"url":{"men":"https://gobatesbobcats.com/sports/mens-squash","women":"https://gobatesbobcats.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.63,"mean":5.51,"n":9},"women":{"season":"2025-26","median":4.21,"mean":3.9,"n":9}},"facilityKo":"Bates Squash Center(캠퍼스에서 약 5km) — 국제 규격 코트 5면 + 4면 유리 전시 코트","notesKo":"여자팀 Walker Cup 3회(2016, 2018, 2019), 2023 Epps Cup 우승. 남자팀 2016 Summers Cup 우승."},{"id":"tufts","name":"Tufts University","short":"Tufts","nameKo":"터프츠 대학교","city":"Medford","state":"MA","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://gotuftsjumbos.com/sports/mens-squash","women":"https://gotuftsjumbos.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.33,"mean":6.31,"n":9},"women":{"season":"2025-26","median":5.31,"mean":5.28,"n":9}},"facilityKo":"Tufts Squash Center — 유리 쇼 코트 포함 코트 8면","notesKo":"2026 전국 선수권에서 남·여 모두 최상위 12개 팀(Potter/Howe) 진출."},{"id":"wesleyan","name":"Wesleyan University","short":"Wesleyan","nameKo":"웨슬리언 대학교","city":"Middletown","state":"CT","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Kurtz Cup (B)"},"url":{"men":"https://athletics.wesleyan.edu/sports/mens-squash","women":"https://athletics.wesleyan.edu/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.64,"mean":5.61,"n":9},"women":{"season":"2025-26","median":4.49,"mean":4.5,"n":9}},"facilityKo":"Freeman Athletic Center 내 Rosenbaum Squash Center(2005년 개장) — 국제 규격 코트 8면","notesKo":"여자팀 Walker Cup 2연패(2024, 2025), 남자팀 Conroy Cup(2017, 2024) 우승."},{"id":"hamilton","name":"Hamilton College","short":"Hamilton","nameKo":"해밀턴 칼리지","city":"Clinton","state":"NY","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Walker Cup (C)"},"url":{"men":"https://athletics.hamilton.edu/sports/mens-squash","women":"https://athletics.hamilton.edu/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.7,"mean":5.73,"n":9},"women":{"season":"2025-26","median":3.88,"mean":4.05,"n":9}},"facilityKo":"Little Squash Center(2006년 개장) — 코트 10면","notesKo":"남자팀 2026 Summers Cup 준우승."},{"id":"connecticut-college","name":"Connecticut College","short":"Conn College","nameKo":"코네티컷 칼리지","city":"New London","state":"CT","conference":"NESCAC","primaryConference":"NESCAC","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Conroy Cup (D)","women":"Walker Cup (C)"},"url":{"men":"https://camelathletics.com/sports/mens-squash","women":"https://camelathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.3,"mean":5.46,"n":9},"women":{"season":"2025-26","median":4.05,"mean":4.03,"n":9}},"facilityKo":"교내 체육 단지 스쿼시 코트(코트 수 미공개)","notesKo":"여자팀 Epps Cup(2019, 2020) 우승, 남자팀 2026 Conroy Cup 준우승."},{"id":"virginia","name":"University of Virginia","short":"Virginia","nameKo":"버지니아 대학교","city":"Charlottesville","state":"VA","conference":"MASC (Mid-Atlantic Squash Conference)","primaryConference":"Atlantic Coast Conference (ACC)","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://virginiasports.com/sports/msquash/","women":"https://virginiasports.com/sports/wsquash/"},"ratings":{"men":{"season":"2025-26","median":6.67,"mean":6.66,"n":9},"women":{"season":"2025-26","median":5.69,"mean":5.73,"n":9}},"facilityKo":"Boar's Head Sports Club 내 McArthur Squash Center(2013년 개장) — 4면 유리 코트 포함 단식 코트 9면","notesKo":"2017년 클럽에서 varsity로 승격(ACC 최초의 varsity 스쿼시). 여자팀 2020 Kurtz Cup 우승."},{"id":"drexel","name":"Drexel University","short":"Drexel","nameKo":"드렉셀 대학교","city":"Philadelphia","state":"PA","conference":"MASC (Mid-Atlantic Squash Conference)","primaryConference":"Coastal Athletic Association (CAA)","ncaaDivision":"I","teams":{"men":true,"women":true},"csaDivision":{"men":"Potter Cup (A)","women":"Howe Cup (A)"},"url":{"men":"https://drexeldragons.com/sports/mens-squash","women":"https://drexeldragons.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6.65,"mean":6.65,"n":9},"women":{"season":"2025-26","median":5.52,"mean":5.52,"n":9}},"facilityKo":"Kline & Specter Squash Center — 코트 7면","notesKo":"남자팀 2016 Hoehn Cup, 여자팀 2018 Kurtz Cup 우승."},{"id":"stanford","name":"Stanford University","short":"Stanford","nameKo":"스탠퍼드 대학교","city":"Stanford","state":"CA","conference":"MASC (Mid-Atlantic Squash Conference)","primaryConference":"Atlantic Coast Conference (ACC)","ncaaDivision":"I","teams":{"men":false,"women":true},"csaDivision":{"men":null,"women":"Howe Cup (A)"},"url":{"men":null,"women":"https://gostanford.com/sports/squash"},"ratings":{"men":null,"women":{"season":"2025-26","median":5.85,"mean":5.9,"n":9}},"facilityKo":"Arrillaga Center — 유리 경기 코트 포함 코트 7면","notesKo":"여자팀만 운영. MASC 3연패(2024–2026), 2026 Howe Cup 3번 시드."},{"id":"georgetown","name":"Georgetown University","short":"Georgetown","nameKo":"조지타운 대학교","city":"Washington","state":"DC","conference":"MASC (Mid-Atlantic Squash Conference)","primaryConference":"Big East Conference","ncaaDivision":"I","teams":{"men":false,"women":true},"csaDivision":{"men":null,"women":"Kurtz Cup (B)"},"url":{"men":null,"women":"https://guhoyas.com/sports/squash"},"ratings":{"men":null,"women":{"season":"2025-26","median":5.23,"mean":5.22,"n":9}},"facilityKo":"Squash on Fire(캠퍼스에서 약 3km) — 전면 유리 코트 2면 포함 코트 8면","notesKo":"여자팀만 운영. 2020년 varsity 창단, Kurtz Cup 2연패(2024, 2025)."},{"id":"mit","name":"Massachusetts Institute of Technology","short":"MIT","nameKo":"매사추세츠 공과대학교 (MIT)","city":"Cambridge","state":"MA","conference":null,"primaryConference":"New England Women's and Men's Athletic Conference (NEWMAC)","ncaaDivision":"III","teams":{"men":true,"women":false},"csaDivision":{"men":"Hoehn Cup (B)","women":null},"url":{"men":"https://mitathletics.com/sports/mens-squash","women":null},"ratings":{"men":{"season":"2025-26","median":6.25,"mean":6.25,"n":9},"women":null},"facilityKo":"Zesiger Sports and Fitness Center — 국제 규격 코트 6면","notesKo":"남자팀만 운영. 2026 Hoehn Cup, 2019 Summers Cup 우승."},{"id":"navy","name":"United States Naval Academy","short":"Navy","nameKo":"미국 해군사관학교","city":"Annapolis","state":"MD","conference":"MASC (Mid-Atlantic Squash Conference)","primaryConference":"Patriot League","ncaaDivision":"I","teams":{"men":true,"women":false},"csaDivision":{"men":"Hoehn Cup (B)","women":null},"url":{"men":"https://navysports.com/sports/mens-squash","women":null},"ratings":{"men":{"season":"2025-26","median":6.04,"mean":6.16,"n":9},"women":null},"facilityKo":"Halsey Field House 내 Prager Family Squash Facility(2021년) — 국제 규격 코트 6면 + 유리 복식 코트","notesKo":"남자팀만 운영. 2022 Summers Cup 우승, 2025-26 시즌 24승 6패."},{"id":"fordham","name":"Fordham University","short":"Fordham","nameKo":"포덤 대학교","city":"Bronx","state":"NY","conference":null,"primaryConference":"Atlantic 10 Conference","ncaaDivision":"I","teams":{"men":true,"women":false},"csaDivision":{"men":"Conroy Cup (D)","women":null},"url":{"men":"https://fordhamsports.com/sports/squash","women":null},"ratings":{"men":{"season":"2025-26","median":5.28,"mean":5.2,"n":9},"women":null},"facilityKo":"Rose Hill 캠퍼스 Lombardi Memorial Center — 코트 5면","notesKo":"남자팀만 varsity(여자팀은 클럽)."},{"id":"rochester","name":"University of Rochester","short":"Rochester","nameKo":"로체스터 대학교","city":"Rochester","state":"NY","conference":null,"primaryConference":"University Athletic Association (UAA)","ncaaDivision":"III","teams":{"men":true,"women":false},"csaDivision":{"men":"Hoehn Cup (B)","women":null},"url":{"men":"https://uofrathletics.com/sports/mens-squash","women":null},"ratings":{"men":{"season":"2025-26","median":5.96,"mean":5.95,"n":9},"women":null},"facilityKo":"Goergen Athletic Center 내 Lyman Squash Center — 국제 규격 코트 5면","notesKo":"남자팀만 운영. 2024 Hoehn Cup 우승."},{"id":"western","name":"Western University","short":"Western","nameKo":"웨스턴 대학교 (웨스턴 온타리오)","city":"London","state":"ON","conference":null,"primaryConference":"Ontario University Athletics (OUA) / U SPORTS","ncaaDivision":null,"teams":{"men":true,"women":false},"csaDivision":{"men":"Hoehn Cup (B)","women":null},"url":{"men":"https://westernmustangs.ca/sports/mens-squash","women":null},"ratings":{"men":{"season":"2025-26","median":5.91,"mean":5.94,"n":9},"women":null},"facilityKo":"Western Student Recreation Centre — 국제 규격 코트 5면","notesKo":"남자팀만 운영. CSA varsity 디비전의 유일한 캐나다 팀, 2025 Hoehn Cup 우승. 학교 공식 사이트에는 varsity인지 클럽인지 명시되어 있지 않습니다."},{"id":"franklin-marshall","name":"Franklin & Marshall College","short":"F&M","nameKo":"프랭클린 앤드 마셜 칼리지","city":"Lancaster","state":"PA","conference":"MASC (Mid-Atlantic Squash Conference)","primaryConference":"Centennial Conference","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Hoehn Cup (B)","women":"Walker Cup (C)"},"url":{"men":"https://godiplomats.com/sports/mens-squash","women":"https://godiplomats.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":6,"mean":6.08,"n":9},"women":{"season":"2025-26","median":3.96,"mean":3.79,"n":9}},"facilityKo":"Mayser Center — 국제 규격 코트 5면","notesKo":"여자팀 2026 Walker Cup 준우승."},{"id":"dickinson","name":"Dickinson College","short":"Dickinson","nameKo":"디킨슨 칼리지","city":"Carlisle","state":"PA","conference":"MASC (Mid-Atlantic Squash Conference)","primaryConference":"Centennial Conference","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Walker Cup (C)"},"url":{"men":"https://dickinsonathletics.com/sports/mens-squash","women":"https://dickinsonathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.45,"mean":5.63,"n":9},"women":{"season":"2025-26","median":4.45,"mean":4.02,"n":9}},"facilityKo":"Kline Fitness Center 내 Kline Squash Center — 유리 쇼 코트 포함 코트 5면","notesKo":"2014-15 시즌 varsity 창단. 남자팀 2018 Summers Cup, Conroy Cup(2019, 2020) 우승."},{"id":"haverford","name":"Haverford College","short":"Haverford","nameKo":"해버퍼드 칼리지","city":"Haverford","state":"PA","conference":"Liberty League","primaryConference":"Centennial Conference","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Conroy Cup (D)","women":"Walker Cup (C)"},"url":{"men":"https://haverfordathletics.com/sports/mens-squash","women":"https://haverfordathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.47,"mean":5.46,"n":9},"women":{"season":"2025-26","median":3.59,"mean":3.59,"n":9}},"facilityKo":"Gardner Integrated Athletic Center 스쿼시 코트(코트 수 미공개)","notesKo":"남자팀 2026 Conroy Cup 첫 우승."},{"id":"denison","name":"Denison University","short":"Denison","nameKo":"데니슨 대학교","city":"Granville","state":"OH","conference":"Liberty League (associate member)","primaryConference":"North Coast Athletic Conference","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Kurtz Cup (B)"},"url":{"men":"https://bigred.denison.edu/sports/mens-squash","women":"https://bigred.denison.edu/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.45,"mean":5.63,"n":9},"women":{"season":"2025-26","median":4.26,"mean":4.37,"n":9}},"facilityKo":"Mitchell Recreation and Athletics Center 스쿼시 코트","notesKo":"남자팀 2025 Conroy Cup 우승, 여자팀 2026 첫 Liberty League 우승."},{"id":"chatham","name":"Chatham University","short":"Chatham","nameKo":"채텀 대학교","city":"Pittsburgh","state":"PA","conference":null,"primaryConference":"Presidents' Athletic Conference","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Walker Cup (C)"},"url":{"men":"https://gochathamcougars.com/sports/mens-squash","women":"https://gochathamcougars.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.97,"mean":5.79,"n":8},"women":{"season":"2025-26","median":4.03,"mean":3.43,"n":9}},"facilityKo":"Steel City Squash(피츠버그, 2024-25 시즌부터 홈) — 유리 챔피언십 코트 포함 코트 8면","notesKo":"남자팀 2025 Summers Cup 우승."},{"id":"st-lawrence","name":"St. Lawrence University","short":"St. Lawrence","nameKo":"세인트로렌스 대학교","city":"Canton","state":"NY","conference":"Liberty League","primaryConference":"Liberty League","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Summers Cup (C)","women":"Walker Cup (C)"},"url":{"men":"https://saintsathletics.com/sports/mens-squash","women":"https://saintsathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.79,"mean":5.77,"n":9},"women":{"season":"2025-26","median":4.41,"mean":4.4,"n":9}},"facilityKo":"Robie Squash Center — 코트 9면 + 유리 Dordelman Championship Court","notesKo":"여자팀 2026 Walker Cup 우승."},{"id":"vassar","name":"Vassar College","short":"Vassar","nameKo":"바사 칼리지","city":"Poughkeepsie","state":"NY","conference":"Liberty League","primaryConference":"Liberty League","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Conroy Cup (D)","women":"Walker Cup (C)"},"url":{"men":"https://www.vassarathletics.com/sports/mens-squash","women":"https://www.vassarathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.1,"mean":5.13,"n":9},"women":{"season":"2025-26","median":3.02,"mean":3.12,"n":9}},"facilityKo":"Vassar Squash Courts — 국제 규격 코트 6면","notesKo":null},{"id":"bard","name":"Bard College","short":"Bard","nameKo":"바드 칼리지","city":"Annandale-on-Hudson","state":"NY","conference":"Liberty League","primaryConference":"Liberty League","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":null,"women":"Walker Cup (C)"},"url":{"men":"https://bardathletics.com/sports/mens-squash","women":"https://bardathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":2.86,"mean":2.94,"n":8},"women":{"season":"2025-26","median":2.93,"mean":2.81,"n":9}},"facilityKo":"Stevenson Athletic Center — 국제 규격 코트 4면(2012년)","notesKo":"남자팀은 varsity 디비전 소속이지만 2026 챔피언십 대진에는 없었습니다."},{"id":"hobart-william-smith","name":"Hobart and William Smith Colleges","short":"Hobart & William Smith","nameKo":"호바트 앤드 윌리엄 스미스 칼리지","city":"Geneva","state":"NY","conference":"Liberty League","primaryConference":"Liberty League","ncaaDivision":"III","teams":{"men":true,"women":true},"csaDivision":{"men":"Conroy Cup (D)","women":"Walker Cup (C)"},"url":{"men":"https://hwsathletics.com/sports/mens-squash","women":"https://hwsathletics.com/sports/womens-squash"},"ratings":{"men":{"season":"2025-26","median":5.24,"mean":5.14,"n":9},"women":{"season":"2025-26","median":3.23,"mean":3.29,"n":9}},"facilityKo":"Smith Squash Center(1998년) — 국제 규격 코트 5면","notesKo":"Hobart(남) 2024 Summers Cup·2022 Conroy Cup, William Smith(여) 2022 Walker Cup·2018 Epps Cup 우승."}]/*END_COLLEGES_DATA*/;
+const ALUM = 'brown';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const divLetter = d => (d || '').match(/\(([A-D])\)/)?.[1] || null;
+
+function fillSelect(el, values) {
+    [...new Set(values.filter(Boolean))].sort().forEach(v => el.add(new Option(v, v)));
+}
+
+function ratingTable(c) {
+    const r = c.ratings || {};
+    if (!r.men && !r.women) return '<p class="disclaimer" style="margin:0">Varsity 레이팅: US Squash 공개 데이터 없음</p>';
+    const row = (g, label) => {
+        if (!c.teams[g]) return '';
+        const x = r[g];
+        return `<tr><th>${label}</th>${x ? `<td title="평균 ${x.mean.toFixed(2)} · ${x.n}명">${x.median.toFixed(2)}</td>` : '<td class="na">—</td>'}<td>${esc(c.csaDivision[g] || '—')}</td></tr>`;
+    };
+    const season = (r.men || r.women).season;
+    return `<div class="rt">
+        <div class="rt-head">VARSITY 레이팅 중앙값 <span>US Squash · ${esc(season)}</span></div>
+        <table><thead><tr><th></th><th>레이팅</th><th>2026 선수권</th></tr></thead>
+        <tbody>${row('men', '남')}${row('women', '여')}</tbody></table>
+    </div>`;
+}
+
+function best(c, g) {
+    const r = c.ratings || {};
+    const v = (g ? [r[g]] : [r.men, r.women]).filter(Boolean).map(x => x.median);
+    return v.length ? Math.max(...v) : -1;
+}
+
+function card(c) {
+    const facts = [
+        ['위치', [c.city, c.state].filter(Boolean).join(', ')],
+        ['컨퍼런스', c.conference || c.primaryConference],
+        ['NCAA', c.ncaaDivision ? 'Division ' + c.ncaaDivision : null],
+        ['시설', c.facilityKo],
+    ].filter(f => f[1]);
+    const alum = c.id === ALUM;
+    const urls = c.url || {};
+    const links = urls.men && urls.men === urls.women ? [['팀 페이지', urls.men]]
+        : [['남자 팀', urls.men], ['여자 팀', urls.women]].filter(l => l[1]);
+    return `<article class="school${alum ? ' alum' : ''}">
+        <header>
+            <h3>${esc(c.name)}<span class="ko">${esc(c.nameKo)}</span></h3>
+            <span class="state">${esc(c.state)}</span>
+        </header>
+        ${alum ? '<span class="alum-tag">★ 이상훈 코치 모교 · 2026년 varsity 복귀</span>' : ''}
+        <dl class="facts">${facts.map(f => `<dt>${f[0]}</dt><dd>${esc(f[1])}</dd>`).join('')}</dl>
+        <div class="pills">
+            ${c.teams.men ? '<span class="pill">남자 varsity</span>' : ''}
+            ${c.teams.women ? '<span class="pill">여자 varsity</span>' : ''}
+            ${c.conference === 'Ivy League' ? '<span class="pill d1">Ivy League</span>' : ''}
+        </div>
+        ${ratingTable(c)}
+        ${c.notesKo ? `<p class="desc">${esc(c.notesKo)}</p>` : ''}
+        ${links.length ? `<div class="links">${links.map(l => `<a href="${esc(l[1])}" target="_blank" rel="noopener">${l[0]} ↗</a>`).join('')}</div>` : ''}
+    </article>`;
+}
+
+const PAGE = 9;
+let visible = PAGE;
+
+function render() {
+    const q = $('q').value.trim().toLowerCase();
+    const st = $('state').value, cf = $('conf').value, dv = $('division').value, g = $('gender').value;
+    const hits = COLLEGES.filter(c =>
+        (!q || [c.name, c.short, c.nameKo, c.city].join(' ').toLowerCase().includes(q)) &&
+        (!st || c.state === st) &&
+        (!cf || (c.conference || c.primaryConference) === cf) &&
+        (!g || c.teams[g]) &&
+        (!dv || (g ? [g] : ['men', 'women']).some(k => divLetter(c.csaDivision[k]) === dv))
+    );
+    if ($('sort').value === 'rating') hits.sort((a, b) => best(b, g) - best(a, g));
+    $('count').textContent = `${hits.length} / ${COLLEGES.length} COLLEGES`;
+    const shown = hits.slice(0, visible);
+    $('list').innerHTML = hits.length ? shown.map(card).join('') : '<div class="empty">조건에 맞는 대학이 없습니다. 필터를 바꿔 보세요.</div>';
+    const left = hits.length - shown.length;
+    $('more').hidden = left <= 0;
+    $('more').textContent = `대학 더 보기 (${Math.min(PAGE, left)}곳 더 · 남은 ${left}곳)`;
+}
+
+COLLEGES.sort((a, b) => a.name.replace(/^(The |University of |College of )/, '').localeCompare(b.name.replace(/^(The |University of |College of )/, '')));
+$('heroCount').textContent = COLLEGES.length;
+fillSelect($('state'), COLLEGES.map(c => c.state));
+fillSelect($('conf'), COLLEGES.map(c => c.conference || c.primaryConference));
+['q', 'state', 'conf', 'division', 'gender', 'sort'].forEach(id => $(id).addEventListener('input', () => { visible = PAGE; render(); }));
+$('more').addEventListener('click', () => { visible += PAGE; render(); });
+render();
+</script>
+</body>
+</html>
