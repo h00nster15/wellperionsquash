@@ -205,6 +205,7 @@
     }
     // Club member: push 담당자 / new contact entry to the sheet first; keep the dialog
     // open with the error if Google cannot be reached, so nothing typed is lost.
+    let clubCall = null;
     if (col === 'customers' && rec.clubSyncedAt && dlgForm.elements.clubEntry) {
       const coach = dlgForm.elements.squashCoach.value.trim();
       const entry = dlgForm.elements.clubEntry.value.trim();
@@ -221,10 +222,12 @@
         saveBtn.disabled = false; saveBtn.textContent = 'Save';
         rec.squashCoach = coach;
         if (entry) rec.squashContact = [rec.squashContact || '', `${today()} ${entry}`].filter(Boolean).join('\n');
+        if (entry) clubCall = { date: today(), caller: coach, customerId: rec.id, campaignId: '', outcome: callOutcomeOf(entry), callbackDate: '', notes: entry };
       }
     }
     Store.upsert(col, rec);
     if (col === 'calls') syncCustomerFromCall(rec);
+    if (clubCall) { Store.upsert('calls', clubCall); syncCustomerFromCall(clubCall); } // 스쿼시 contact → Call log too
     dlg.close();
     render();
   });
@@ -704,6 +707,9 @@
   }
 
   // A logged call updates the customer's last-contact / follow-up / status.
+  // Outcome for a call logged from free text (스쿼시 contact entry): a best guess, editable in the Call log.
+  const callOutcomeOf = (t) => /수신\s*거부|연락\s*금지/.test(t) ? 'opt-out' : /부재|안\s*받|미응답|무응답/.test(t) ? 'no-answer'
+    : /관심\s*없|거절|미등록/.test(t) ? 'not-interested' : /예약|등록/.test(t) ? 'booked' : /다시|재연락|콜백|나중/.test(t) ? 'callback' : 'info-sent';
   function syncCustomerFromCall(call) {
     const c = Store.get('customers', call.customerId);
     if (!c) return;
