@@ -592,7 +592,8 @@
     const show = (frac, text) => {
       const old = document.getElementById('sync-progress');
       const html = progressHtml(frac, text, 'Sync 진행', 'sync-progress');
-      if (old) old.outerHTML = html; else if (host) host.insertAdjacentHTML('afterend', html);
+      // The view may have re-rendered since Sync started (host detached) — a missing bar must not abort the sync.
+      if (old) old.outerHTML = html; else if (host && host.parentNode) host.insertAdjacentHTML('afterend', html);
     };
     return { show, done: () => { const el = document.getElementById('sync-progress'); if (el) el.remove(); } };
   }
