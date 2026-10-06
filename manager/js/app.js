@@ -2280,10 +2280,14 @@
       const digits = (c) => String(c.phone || '').replace(/\D+/g, '').slice(-9);
       const samePerson = (a, b) => Sheets.personKey(labelOf('customers', a)) === Sheets.personKey(labelOf('customers', b))
         && !(digits(a).length >= 7 && digits(b).length >= 7 && digits(a) !== digits(b));
+      // 단체 and 개인레슨 are separate packages (owner, 2026-10-06): a 단체 re-up does not count
+      // for a finished 개인 package, or the other way round.
+      const lessonOf = (c) => c.lessonType || Sheets.lessonTypeOf(c);
+      const sameLesson = (a, b) => samePerson(a, b) && lessonOf(a) === lessonOf(b);
       const active = synced.filter((c) => c.sessionsLeft > 0 && c.joined);
       // The newest re-registration of the person behind a finished row, or null.
       const reupOf = (c) => active
-        .filter((a) => a !== c && samePerson(a, c) && (!c.joined || a.joined >= c.joined))
+        .filter((a) => a !== c && sameLesson(a, c) && (!c.joined || a.joined >= c.joined))
         .sort((a, b) => b.joined.localeCompare(a.joined))[0] || null;
       const byCoach = (a, b) => (a.coach || '').localeCompare(b.coach || '', 'ko') || (a.validUntil || '').localeCompare(b.validUntil || '') || labelOf('customers', a).localeCompare(labelOf('customers', b), 'ko');
       const out = synced.filter((c) => c.sessionsLeft <= 0).map((c) => ({ c, reup: reupOf(c) }))
