@@ -276,6 +276,24 @@
             .hero-map b { font-size: 1.25rem; }
             section { padding: 3rem 0; }
         }
+
+        /* ---------- photos ---------- */
+        .hero { background: linear-gradient(100deg, rgba(31,42,107,.96) 0%, rgba(31,42,107,.86) 45%, rgba(31,42,107,.55) 100%), var(--photo, none) center / cover, var(--navy); }
+        .hero::after { display: none; }
+        .photo-credit { font-size: 10px; line-height: 1.3; color: rgba(255,255,255,.85); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+        .photo-credit a { color: inherit; }
+        .hero > .photo-credit { position: absolute; right: 12px; bottom: 8px; }
+        .band { position: relative; margin: 0; height: clamp(180px, 34vw, 360px); overflow: hidden; background: var(--ice); }
+        .band img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .band .photo-credit, .card-photo .photo-credit { position: absolute; right: 8px; bottom: 6px; }
+        .card-photo { position: relative; margin: -1.2rem -1.25rem .2rem; aspect-ratio: 16 / 9; overflow: hidden; background: var(--ice); }
+        .card-photo.no-photo { display: flex; align-items: flex-end; padding: 1rem 1.25rem; background: linear-gradient(135deg, var(--navy), #3E5BA9); color: rgba(255,255,255,.9); font-weight: 700; font-size: 1.15rem; letter-spacing: -.01em; }
+        .card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        details.disclaimer summary { cursor: pointer; color: var(--navy); font-weight: 600; list-style: none; }
+        details.disclaimer summary::-webkit-details-marker { display: none; }
+        details.disclaimer summary::before { content: "▸ "; }
+        details.disclaimer[open] summary::before { content: "▾ "; }
+        details.disclaimer p { margin-top: .5rem; }
     </style>
 </head>
 <body>
@@ -290,7 +308,7 @@
 
 <main>
 <!-- HERO -->
-<div class="hero">
+<div class="hero" data-photo-bg="hero">
     <div class="wrap">
         <span class="eyebrow">US Boarding School &amp; College Squash · Parent Guide 2026</span>
         <h1>‘스쿼시가 가장 강한 학교’가 아니라,<br>우리 아이에게 맞는 다음 4년.</h1>
@@ -345,6 +363,8 @@
         </div>
     </div>
 </section>
+
+<figure class="band" data-photo="band-guide"></figure>
 
 <!-- TEAM SYSTEM -->
 <section>
@@ -442,6 +462,8 @@
 </div>
 
 <div data-panel="schools" role="tabpanel">
+<figure class="band" data-photo="band-schools"></figure>
+
 <!-- SCHOOL BROWSER -->
 <section id="schools">
     <div class="wrap">
@@ -465,8 +487,8 @@
         <div class="count" id="count"></div>
         <div class="school-list" id="list"></div>
         <div class="more-wrap"><button type="button" id="more" class="btn btn-navy" hidden></button></div>
-        <p class="disclaimer">정보 확인 기준: 2026년 9월, 각 학교 공식 홈페이지. 팀 구성과 시설은 매년 바뀔 수 있으니 지원 전 학교에 직접 확인하세요. 이 목록은 순위가 아니며 기본적으로 알파벳 순으로 정렬되어 있습니다.<br>
-        Varsity 레이팅: US Squash(ClubLocker) 리그 로스터 기준, 팀 사다리 상위 9명의 US Squash 레이팅 중앙값입니다(숫자 위에 마우스를 올리면 평균과 인원 표시). 레이팅은 2026년 9월 현재 값이므로, 졸업생이 포함된 이전 시즌일수록 실제 당시 수준과 차이가 있을 수 있습니다. 레이팅은 팀의 한 단면일 뿐, 학교나 프로그램의 가치를 평가하는 지표가 아닙니다.</p>
+        <details class="disclaimer"><summary>자료 출처·기준 보기</summary><p>정보 확인 기준: 2026년 9월, 각 학교 공식 홈페이지. 팀 구성과 시설은 매년 바뀔 수 있으니 지원 전 학교에 직접 확인하세요. 이 목록은 순위가 아니며 기본적으로 알파벳 순으로 정렬되어 있습니다.<br>
+        Varsity 레이팅: US Squash(ClubLocker) 리그 로스터 기준, 팀 사다리 상위 9명의 US Squash 레이팅 중앙값입니다(숫자 위에 마우스를 올리면 평균과 인원 표시). 레이팅은 2026년 9월 현재 값이므로, 졸업생이 포함된 이전 시즌일수록 실제 당시 수준과 차이가 있을 수 있습니다. 레이팅은 팀의 한 단면일 뿐, 학교나 프로그램의 가치를 평가하는 지표가 아닙니다.</p></details>
     </div>
 </section>
 
@@ -495,13 +517,15 @@
         <div class="takeaway">
             <b>무엇을 의미할까요?</b> 보딩스쿨은 아이비 스쿼시로 가는 여러 길 중 하나일 뿐, 지름길은 아닙니다. 대학 코치는 출신 학교보다 <b>US Squash 레이팅과 대회 성적</b>을 봅니다. 다만 Hotchkiss·Kent·Deerfield·Andover처럼 Varsity 레이팅이 높은 학교에서 아이비 선수가 꾸준히 나온다는 점은, 매일 수준 높은 상대와 훈련하는 환경의 힘을 보여줍니다.
         </div>
-        <p class="disclaimer">출처: 각 대학 공식 athletics 로스터(2026년 9월 확인). Brown은 해당 시즌 로스터가 공개되어 있지 않아 2026-27 로스터를 사용했습니다. 한 선수가 두 시즌에 걸쳐 있으면 1명으로 계산했습니다. 일부 기숙·통학 혼합 학교는 기숙 비율에 따라 분류했습니다.</p>
+        <details class="disclaimer"><summary>자료 출처·기준 보기</summary><p>출처: 각 대학 공식 athletics 로스터(2026년 9월 확인). Brown은 해당 시즌 로스터가 공개되어 있지 않아 2026-27 로스터를 사용했습니다. 한 선수가 두 시즌에 걸쳐 있으면 1명으로 계산했습니다. 일부 기숙·통학 혼합 학교는 기숙 비율에 따라 분류했습니다.</p></details>
     </div>
 </section>
 
 </div>
 
 <div data-panel="players" role="tabpanel">
+<figure class="band" data-photo="band-players"></figure>
+
 <section id="players">
     <div class="wrap">
         <span class="eyebrow">Six tiers</span>
@@ -531,14 +555,16 @@
         </div>
         <div class="count" id="p-count"></div>
         <div id="p-groups"></div>
-        <p class="disclaimer">출처: US Squash(ClubLocker) 2025-26 NEPSAC·MASO 리그 로스터와 레이팅 기록, US Squash 주니어 랭킹(2026년 3월 25일), US Junior Open·US Junior Championships 결과, WSF·PSA·Team USA 공식 발표. 각 팀 사다리 1–9번 선수를 포함했으며, 사다리가 없는 팀은 가장 많이 출전한 9명입니다. Hill, Lawrenceville, Blair(MAPL)는 US Squash 공개 데이터가 없어 제외했습니다.<br>
-        레이팅은 2026년 3월 31일(시즌 종료) 기준이며, 학년은 학교 공식 로스터에 공개된 경우에만 표시합니다. 2026년 졸업생은 “졸업 ’26”으로 표시했습니다. 티어는 레이팅에 따른 참고용 분류일 뿐 선수에 대한 평가가 아니며, 정보 정정이나 삭제를 원하시면 Instagram @glass_court로 연락 주세요.</p>
+        <details class="disclaimer"><summary>자료 출처·기준 보기</summary><p>출처: US Squash(ClubLocker) 2025-26 NEPSAC·MASO 리그 로스터와 레이팅 기록, US Squash 주니어 랭킹(2026년 3월 25일), US Junior Open·US Junior Championships 결과, WSF·PSA·Team USA 공식 발표. 각 팀 사다리 1–9번 선수를 포함했으며, 사다리가 없는 팀은 가장 많이 출전한 9명입니다. Hill, Lawrenceville, Blair(MAPL)는 US Squash 공개 데이터가 없어 제외했습니다.<br>
+        레이팅은 2026년 3월 31일(시즌 종료) 기준이며, 학년은 학교 공식 로스터에 공개된 경우에만 표시합니다. 2026년 졸업생은 “졸업 ’26”으로 표시했습니다. 티어는 레이팅에 따른 참고용 분류일 뿐 선수에 대한 평가가 아니며, 정보 정정이나 삭제를 원하시면 Instagram @glass_court로 연락 주세요.</p></details>
     </div>
 </section>
 
 </div>
 
 <div data-panel="colleges" role="tabpanel">
+<figure class="band" data-photo="band-colleges"></figure>
+
 <section id="colleges">
     <div class="wrap">
         <span class="eyebrow">How college squash works</span>
@@ -583,8 +609,8 @@
         <div class="count" id="c-count"></div>
         <div class="school-list" id="c-list"></div>
         <div class="more-wrap"><button type="button" id="c-more" class="btn btn-navy" hidden></button></div>
-        <p class="disclaimer">정보 확인 기준: 2026년 9월, CSA(csasquash.com) 2026 전국 선수권 대진표와 각 대학 공식 athletics 홈페이지. CSA varsity 디비전 소속 대학만 포함했으며, 클럽팀만 있는 대학은 제외했습니다(Brown은 2026년 7월 varsity 복귀로 포함). 이 목록은 순위가 아니며 기본적으로 알파벳 순으로 정렬되어 있습니다.<br>
-        Varsity 레이팅: US Squash(ClubLocker) CSA 2025-26 시즌 로스터 기준, 팀 사다리 상위 9명의 US Squash 레이팅 중앙값입니다(숫자 위에 마우스를 올리면 평균과 인원 표시). 레이팅은 2026년 9월 현재 값이라 졸업생도 현재 레이팅으로 계산됩니다. Brown은 2026-27 로스터 기준입니다.</p>
+        <details class="disclaimer"><summary>자료 출처·기준 보기</summary><p>정보 확인 기준: 2026년 9월, CSA(csasquash.com) 2026 전국 선수권 대진표와 각 대학 공식 athletics 홈페이지. CSA varsity 디비전 소속 대학만 포함했으며, 클럽팀만 있는 대학은 제외했습니다(Brown은 2026년 7월 varsity 복귀로 포함). 이 목록은 순위가 아니며 기본적으로 알파벳 순으로 정렬되어 있습니다.<br>
+        Varsity 레이팅: US Squash(ClubLocker) CSA 2025-26 시즌 로스터 기준, 팀 사다리 상위 9명의 US Squash 레이팅 중앙값입니다(숫자 위에 마우스를 올리면 평균과 인원 표시). 레이팅은 2026년 9월 현재 값이라 졸업생도 현재 레이팅으로 계산됩니다. Brown은 2026-27 로스터 기준입니다.</p></details>
     </div>
 </section>
 
@@ -617,6 +643,7 @@
     </div>
 </footer>
 
+<script src="img/photos.js"></script>
 <script>
 // ---------- boarding schools + ivy ----------
 (function () {
@@ -674,6 +701,7 @@ function card(s) {
     ].filter(f => f[1]);
     const alum = s.id === ALUM;
     return `<article class="school${alum ? ' alum' : ''}">
+        ${photoFigure('schools/' + s.id, 'card-photo', esc(s.name))}
         <header>
             ${s.logo ? `<img class="logo" src="${esc(s.logo)}" alt="">` : ''}
             <h3>${esc(s.name)}<span class="ko">${esc(s.nameKo)}</span></h3>
@@ -866,6 +894,7 @@ function card(c) {
     const links = urls.men && urls.men === urls.women ? [['팀 페이지', urls.men]]
         : [['남자 팀', urls.men], ['여자 팀', urls.women]].filter(l => l[1]);
     return `<article class="school${alum ? ' alum' : ''}">
+        ${photoFigure('colleges/' + c.id, 'card-photo', esc(c.name))}
         <header>
             <h3>${esc(c.name)}<span class="ko">${esc(c.nameKo)}</span></h3>
             <span class="state">${esc(c.state)}</span>
@@ -952,6 +981,8 @@ render();
     window.addEventListener('resize', fit);
     fit();
     show(location.hash, !!location.hash);
+    // the browser jumps to the #anchor itself after load; re-apply so a tab opens at its top
+    window.addEventListener('load', () => { if (location.hash) setTimeout(() => show(location.hash, true), 60); });
 })();
 </script>
 </body>
