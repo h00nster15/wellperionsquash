@@ -3,6 +3,12 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const today = () => new Date().toISOString().slice(0, 10);
+  // Members whose 유효기간 ends within EXPIRY_DAYS while sessions are still left: those sessions
+  // are about to lapse, so they are worth a call. Shown on the Dashboard and as a Customers chip.
+  const EXPIRY_DAYS = 14;
+  const expiryWindow = () => ({ min: today(), max: new Date(Date.now() + EXPIRY_DAYS * 864e5).toISOString().slice(0, 10) });
+  const expiringSoon = (c) => { const w = expiryWindow(); return typeof c.sessionsLeft === 'number' && c.sessionsLeft > 0 && !!c.validUntil && c.validUntil >= w.min && c.validUntil <= w.max; };
+  const daysUntil = (d) => Math.round((Date.parse(d) - Date.parse(today())) / 864e5);
   const fmtDate = (d) => (d ? d : '—');
 
   // ---------- Schemas: drive both tables and edit dialogs ----------
@@ -442,8 +448,10 @@
     const lessons = new Map(); for (const c of all) { const v = c.lessonType || Sheets.lessonTypeOf(c); if (!lessons.has(v)) lessons.set(v, new Set()); lessons.get(v).add(personOf(c)); } for (const [v, set] of lessons) lessons.set(v, set.size);
     const group = (title, chips) => chips.length ? `<div class="stat-group"><div class="stat-title">${esc(title)}</div><div class="chips">${chips.join('')}</div></div>` : '';
     const zero = count((c) => c.sessionsLeft === 0);
+    const expiring = count(expiringSoon);
+    const ef = tbl('members').colFilters, expOn = !!(ef.validUntil && ef.validUntil.max && ef.sessionsLeft && ef.sessionsLeft.min === '1');
     return `<div class="stats">
-      <div class="stat-group total"><div class="stat-title">전체 회원</div><div class="big">${persons(all)}<span class="sub">명${persons(all) !== all.length ? ` · 명단 ${all.length}행` : ''}</span></div>${zero ? `<button class="chip warn ${tbl('members').colFilters.sessionsLeft && tbl('members').colFilters.sessionsLeft.max === '0' ? 'on' : ''}" data-chip-k="sessionsLeft" data-chip-v="0" data-chip-t="members" title="잔여 세션 0 필터"><span class="n">${zero}</span> 잔여 세션 0</button>` : ''}</div>
+      <div class="stat-group total"><div class="stat-title">전체 회원</div><div class="big">${persons(all)}<span class="sub">명${persons(all) !== all.length ? ` · 명단 ${all.length}행` : ''}</span></div>${zero ? `<button class="chip warn ${tbl('members').colFilters.sessionsLeft && tbl('members').colFilters.sessionsLeft.max === '0' ? 'on' : ''}" data-chip-k="sessionsLeft" data-chip-v="0" data-chip-t="members" title="잔여 세션 0 필터"><span class="n">${zero}</span> 잔여 세션 0</button>` : ''}${expiring ? `<button class="chip warn ${expOn ? 'on' : ''}" data-chip-k="expiring" data-chip-v="1" data-chip-t="members" title="유효기간이 ${EXPIRY_DAYS}일 안에 끝나는데 잔여 세션이 남은 회원"><span class="n">${expiring}</span> 유효기간 임박</button>` : ''}</div>
       ${group('담당강사', ordered(coaches, ['이상훈', '박상현']).map((v) => chip(v, coaches.get(v), 'coach', v)))}
       ${group('등록분류', ordered(regs, ['신규', '재등록']).map((v) => chip(v, regs.get(v), 'registration', v)))}
       ${group('회원구분', ordered(kinds, ['정회원', '비회원', 'WSC']).map((v) => chip(v, kinds.get(v), 'segment', v)))}
@@ -2208,6 +2216,7 @@
       const out = synced.filter((c) => c.sessionsLeft <= 0).map((c) => ({ c, reup: reupOf(c) }))
         .sort((x, y) => Number(!!x.reup) - Number(!!y.reup) || byCoach(x.c, y.c));
       const reupped = out.filter((o) => o.reup).length;
+      const expiring = synced.filter(expiringSoon).sort((a, b) => a.validUntil.localeCompare(b.validUntil) || byCoach(a, b));
       const reupNote = (r) => `<span class="pill ok">재등록 ${fmtDate(r.joined)} · ${typeof r.sessionsTotal === 'number' ? `${r.sessionsTotal}회` : '회수 미기재'}</span>`;
       return head('Dashboard') + `
         <div class="cards">
@@ -2229,6 +2238,7 @@
             : '<p class="empty">스케줄 탭을 한 번 열면 코치 시트에서 이번 달 예약을 읽어옵니다.</p>'}</div>
           <div class="panel"><h2>Upcoming events</h2>${upcoming.length ? `<ul>${upcoming.map((e) => `<li><strong>${fmtDate(e.date)}</strong> — ${esc(e.name)} ${pill(e.status)} <span class="pill">${e.registered || 0}/${e.capacity || '∞'}</span></li>`).join('')}</ul>` : '<p class="empty">No upcoming events. Add one under Events.</p>'}</div>
           <div class="panel"><h2>잔여 세션 0 — 재등록 대상 <span class="pill bad">${out.length - reupped}명</span>${reupped ? ` <span class="pill ok">재등록 완료 ${reupped}명</span>` : ''}</h2>${out.length ? `<ul>${out.map(({ c, reup }) => `<li><strong>${esc(labelOf('customers', c))}</strong> — ${esc(c.coach) || '—'} · ${esc(c.segmentLabel || c.segment || '')}${c.validUntil ? ` · 유효기간 ${fmtDate(c.validUntil)}` : ''}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}${reup ? ` ${reupNote(reup)}` : ''}</li>`).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-out-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : '<p class="empty">잔여 세션이 0인 회원이 없습니다. (Sync 후 갱신됩니다)</p>'}</div>
+          <div class="panel"><h2>유효기간 임박 — ${EXPIRY_DAYS}일 이내 <span class="pill warn">${expiring.length}명</span></h2>${expiring.length ? `<ul>${expiring.map((c) => { const d = daysUntil(c.validUntil); return `<li><strong>${esc(labelOf('customers', c))}</strong> — <span class="pill ${d <= 3 ? 'bad' : 'warn'}">${d === 0 ? '오늘 만료' : d + '일 남음'}</span> 유효기간 ${fmtDate(c.validUntil)} · 잔여 ${esc(c.sessionsLeft)}회 · ${esc(c.coach) || '—'}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}</li>`; }).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-expiring-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : `<p class="empty">${EXPIRY_DAYS}일 안에 유효기간이 끝나는 회원 (잔여 세션 있음) 이 없습니다.</p>`}</div>
           <div class="panel"><h2>Follow-ups due (next 30 days)</h2>${due.length ? `<ul>${due.map((c) => `<li><strong>${fmtDate(c.nextFollowUp)}</strong> — ${esc(labelOf('customers', c))} ${pill(c.status)}</li>`).join('')}</ul>` : '<p class="empty">Nothing due. Set “Next follow-up” on a customer or log a callback.</p>'}</div>
         </div>`;
     },
@@ -2810,6 +2820,11 @@
         const ts = tbl(el.dataset.chipT || 'members');
         const k = el.dataset.chipK, v = el.dataset.chipV;
         if (k === 'clubDaysLeft') { const cur = ts.colFilters[k] || {}; const on = v === 'valid' ? cur.min === '0' : cur.max === '-1'; ts.colFilters[k] = on ? {} : (v === 'valid' ? { min: '0', max: '' } : { min: '', max: '-1' }); render(); return; }
+        if (k === 'expiring') {
+          const f = ts.colFilters, on = f.sessionsLeft && f.sessionsLeft.min === '1' && f.validUntil && f.validUntil.max;
+          if (on) { delete f.sessionsLeft; delete f.validUntil; } else { f.sessionsLeft = { min: '1', max: '' }; f.validUntil = expiryWindow(); ts.sort = { k: 'validUntil', dir: 1 }; }
+          render(); return;
+        }
         if (k === 'sessionsLeft') ts.colFilters[k] = ts.colFilters[k] && ts.colFilters[k].max === '0' ? {} : { min: '', max: '0' };
         else ts.colFilters[k] = ts.colFilters[k] === v ? '' : v;
         render();
@@ -2840,6 +2855,8 @@
     if (rebuildBtn) rebuildBtn.onclick = () => rebuildMemberHistory();
     const outBtn = $('#btn-out-customers');
     if (outBtn) outBtn.onclick = () => { tbl('members').colFilters = { sessionsLeft: { min: '', max: '0' } }; tbl('members').sort = { k: 'sessionsLeft', dir: 1 }; state.view = 'customers'; location.hash = '#customers'; render(); };
+    const expBtn = $('#btn-expiring-customers');
+    if (expBtn) expBtn.onclick = () => { tbl('members').colFilters = { sessionsLeft: { min: '1', max: '' }, validUntil: expiryWindow() }; tbl('members').sort = { k: 'validUntil', dir: 1 }; state.view = 'customers'; location.hash = '#customers'; render(); };
     const clearBtn = $('#btn-clear-filters');
     if (clearBtn) clearBtn.onclick = () => { tbl('members').colFilters = {}; render(); };
     viewEl.querySelectorAll('[data-page]').forEach((el) => {
