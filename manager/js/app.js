@@ -5,7 +5,7 @@
   const today = () => new Date().toISOString().slice(0, 10);
   // Members whose 유효기간 ends within EXPIRY_DAYS while sessions are still left: those sessions
   // are about to lapse, so they are worth a call. Shown on the Dashboard and as a Customers chip.
-  const EXPIRY_DAYS = 14;
+  const EXPIRY_DAYS = 7; // keep in step with EXPIRY.days in apps-script/Expiry.gs (the daily e-mail)
   const expiryWindow = () => ({ min: today(), max: new Date(Date.now() + EXPIRY_DAYS * 864e5).toISOString().slice(0, 10) });
   const expiringSoon = (c) => { const w = expiryWindow(); return typeof c.sessionsLeft === 'number' && c.sessionsLeft > 0 && !!c.validUntil && c.validUntil >= w.min && c.validUntil <= w.max; };
   const daysUntil = (d) => Math.round((Date.parse(d) - Date.parse(today())) / 864e5);
@@ -694,6 +694,20 @@
       btn.textContent = label; btn.disabled = false;
       alert('문의 DB 가져오기 실패: ' + err.message + '\n(Apps Script가 최신 버전으로 배포되어 있는지 확인하세요: Deploy → New version)');
     }
+  }
+
+  // Dashboard "메일 보내기": the Apps Script mails the 유효기간 임박 list now (Expiry.gs). The same
+  // mail also goes out by itself each morning when someone new enters the window.
+  async function sendExpiryMail(btn) {
+    const src = (Store.settings().sheet.sources || []).find((x) => /script\.google\.com/.test(x.url || ''));
+    if (!src) { btn.textContent = 'Apps Script 소스 없음'; return; }
+    const u = new URL(src.url); u.search = ''; u.searchParams.set('action', 'expiry-email'); u.searchParams.set('token', tokenFor(src.url, src.token) || '');
+    btn.disabled = true; btn.textContent = '보내는 중…';
+    try {
+      const j = await (await fetch(u.toString(), { redirect: 'follow' })).json();
+      if (!j.ok) throw new Error(j.error || 'unknown error');
+      btn.textContent = j.sent ? `보냄 → ${j.to} (${j.members}명)` : '보낼 회원 없음';
+    } catch (err) { btn.textContent = '실패: ' + err.message; btn.disabled = false; }
   }
 
   // Read-only view of the SMS_LOG tab kept by apps-script/Sms.gs (fetched via
@@ -2216,6 +2230,8 @@
       const out = synced.filter((c) => c.sessionsLeft <= 0).map((c) => ({ c, reup: reupOf(c) }))
         .sort((x, y) => Number(!!x.reup) - Number(!!y.reup) || byCoach(x.c, y.c));
       const reupped = out.filter((o) => o.reup).length;
+      const reupTab = state.reupTab === 'done' ? 'done' : 'pending'; // 재등록 안 한 회원 / 재등록 한 회원
+      const shown = out.filter((o) => (reupTab === 'done') === !!o.reup);
       const expiring = synced.filter(expiringSoon).sort((a, b) => a.validUntil.localeCompare(b.validUntil) || byCoach(a, b));
       const reupNote = (r) => `<span class="pill ok">재등록 ${fmtDate(r.joined)} · ${typeof r.sessionsTotal === 'number' ? `${r.sessionsTotal}회` : '회수 미기재'}</span>`;
       return head('Dashboard') + `
@@ -2237,8 +2253,8 @@
               : '<p class="empty">오늘은 예약된 수업이 없습니다.</p>')
             : '<p class="empty">스케줄 탭을 한 번 열면 코치 시트에서 이번 달 예약을 읽어옵니다.</p>'}</div>
           <div class="panel"><h2>Upcoming events</h2>${upcoming.length ? `<ul>${upcoming.map((e) => `<li><strong>${fmtDate(e.date)}</strong> — ${esc(e.name)} ${pill(e.status)} <span class="pill">${e.registered || 0}/${e.capacity || '∞'}</span></li>`).join('')}</ul>` : '<p class="empty">No upcoming events. Add one under Events.</p>'}</div>
-          <div class="panel"><h2>잔여 세션 0 — 재등록 대상 <span class="pill bad">${out.length - reupped}명</span>${reupped ? ` <span class="pill ok">재등록 완료 ${reupped}명</span>` : ''}</h2>${out.length ? `<ul>${out.map(({ c, reup }) => `<li><strong>${esc(labelOf('customers', c))}</strong> — ${esc(c.coach) || '—'} · ${esc(c.segmentLabel || c.segment || '')}${c.validUntil ? ` · 유효기간 ${fmtDate(c.validUntil)}` : ''}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}${reup ? ` ${reupNote(reup)}` : ''}</li>`).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-out-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : '<p class="empty">잔여 세션이 0인 회원이 없습니다. (Sync 후 갱신됩니다)</p>'}</div>
-          <div class="panel"><h2>유효기간 임박 — ${EXPIRY_DAYS}일 이내 <span class="pill warn">${expiring.length}명</span></h2>${expiring.length ? `<ul>${expiring.map((c) => { const d = daysUntil(c.validUntil); return `<li><strong>${esc(labelOf('customers', c))}</strong> — <span class="pill ${d <= 3 ? 'bad' : 'warn'}">${d === 0 ? '오늘 만료' : d + '일 남음'}</span> 유효기간 ${fmtDate(c.validUntil)} · 잔여 ${esc(c.sessionsLeft)}회 · ${esc(c.coach) || '—'}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}</li>`; }).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-expiring-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : `<p class="empty">${EXPIRY_DAYS}일 안에 유효기간이 끝나는 회원 (잔여 세션 있음) 이 없습니다.</p>`}</div>
+          <div class="panel"><h2>잔여 세션 0 — 재등록 대상</h2>${out.length ? `<div class="chips" style="margin:0 0 10px"><button class="chip ${reupTab === 'pending' ? 'on' : ''}" data-reup-tab="pending"><span class="n">${out.length - reupped}</span> 재등록 안 한 회원</button><button class="chip ${reupTab === 'done' ? 'on' : ''}" data-reup-tab="done"><span class="n">${reupped}</span> 재등록 한 회원</button></div>${shown.length ? `<ul>${shown.map(({ c, reup }) => `<li><strong>${esc(labelOf('customers', c))}</strong> — ${esc(c.coach) || '—'} · ${esc(c.segmentLabel || c.segment || '')}${c.validUntil ? ` · 유효기간 ${fmtDate(c.validUntil)}` : ''}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}${reup ? ` ${reupNote(reup)}` : ''}</li>`).join('')}</ul>` : `<p class="empty">${reupTab === 'done' ? '아직 재등록한 회원이 없습니다.' : '모두 재등록했습니다.'}</p>`}<p style="margin:10px 0 0"><button class="ghost" id="btn-out-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button></p>` : '<p class="empty">잔여 세션이 0인 회원이 없습니다. (Sync 후 갱신됩니다)</p>'}</div>
+          <div class="panel"><h2>유효기간 임박 — ${EXPIRY_DAYS}일 이내 <span class="pill warn">${expiring.length}명</span></h2>${expiring.length ? `<ul>${expiring.map((c) => { const d = daysUntil(c.validUntil); return `<li><strong>${esc(labelOf('customers', c))}</strong> — <span class="pill ${d <= 3 ? 'bad' : 'warn'}">${d === 0 ? '오늘 만료' : d + '일 남음'}</span> 유효기간 ${fmtDate(c.validUntil)} · 잔여 ${esc(c.sessionsLeft)}회 · ${esc(c.coach) || '—'}${c.phone || c.guardianPhone ? ` · ${esc(c.phone || c.guardianPhone)}` : ''}</li>`; }).join('')}</ul><p style="margin:10px 0 0"><button class="ghost" id="btn-expiring-customers" style="font-size:12px">Customers 탭에서 필터로 보기</button> <button class="ghost" id="btn-expiry-mail" style="font-size:12px" title="이 목록을 h00nster15@gmail.com 으로 지금 보냅니다 (매일 아침 새 회원이 들어오면 자동 발송)">메일 보내기</button></p>` : `<p class="empty">${EXPIRY_DAYS}일 안에 유효기간이 끝나는 회원 (잔여 세션 있음) 이 없습니다.</p>`}</div>
           <div class="panel"><h2>Follow-ups due (next 30 days)</h2>${due.length ? `<ul>${due.map((c) => `<li><strong>${fmtDate(c.nextFollowUp)}</strong> — ${esc(labelOf('customers', c))} ${pill(c.status)}</li>`).join('')}</ul>` : '<p class="empty">Nothing due. Set “Next follow-up” on a customer or log a callback.</p>'}</div>
         </div>`;
     },
@@ -2855,6 +2871,10 @@
     if (rebuildBtn) rebuildBtn.onclick = () => rebuildMemberHistory();
     const outBtn = $('#btn-out-customers');
     if (outBtn) outBtn.onclick = () => { tbl('members').colFilters = { sessionsLeft: { min: '', max: '0' } }; tbl('members').sort = { k: 'sessionsLeft', dir: 1 }; state.view = 'customers'; location.hash = '#customers'; render(); };
+    const mailBtn = $('#btn-expiry-mail');
+    if (mailBtn) mailBtn.onclick = () => sendExpiryMail(mailBtn);
+    const reupTabs = viewEl.querySelectorAll('[data-reup-tab]');
+    reupTabs.forEach((el) => { el.onclick = () => { state.reupTab = el.dataset.reupTab; render(); }; });
     const expBtn = $('#btn-expiring-customers');
     if (expBtn) expBtn.onclick = () => { tbl('members').colFilters = { sessionsLeft: { min: '1', max: '' }, validUntil: expiryWindow() }; tbl('members').sort = { k: 'validUntil', dir: 1 }; state.view = 'customers'; location.hash = '#customers'; render(); };
     const clearBtn = $('#btn-clear-filters');
