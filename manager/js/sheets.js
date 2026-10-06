@@ -266,7 +266,12 @@ const Sheets = (() => {
     // (two people with the same name are told apart by their numbers).
     const sameCoach = (a, b) => !a.coach || !b.coach || splitList(a.coach).some((x) => splitList(b.coach).includes(x));
     const samePhone = (a, b) => digits(a.phone).length < 7 || digits(b.phone).length < 7 || digits(a.phone).slice(-9) === digits(b.phone).slice(-9);
-    const compatible = (a, b) => sameCoach(a, b) && samePhone(a, b);
+    // Two coach-roster rows (they carry 잔여 세션) are one record only under the exact same sheet
+    // name: '김시윤(단체)' and '김시윤1(단체)' are separate packages even when the 연락처 tab gave
+    // both the same phone (it matches by person, digits ignored), which used to merge them.
+    const rosterRow = (x) => x.sessionsLeft !== undefined && x.sessionsLeft !== '' && x.sessionsLeft !== null;
+    const sameRosterName = (a, b) => !(rosterRow(a) && rosterRow(b)) || normName(`${a.firstName || ''} ${a.lastName || ''}`) === normName(`${b.firstName || ''} ${b.lastName || ''}`);
+    const compatible = (a, b) => sameCoach(a, b) && samePhone(a, b) && sameRosterName(a, b);
     return {
       add(rec) { for (const k of keysOf(rec)) { if (!m.has(k)) m.set(k, []); if (!m.get(k).includes(rec)) m.get(k).push(rec); } },
       find(c) { for (const k of keysOf(c)) { const hit = (m.get(k) || []).find((r) => r !== c && compatible(r, c)); if (hit) return hit; } return null; },
