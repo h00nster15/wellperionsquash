@@ -926,7 +926,7 @@
   // kept for hours hid a script update for just as long.
   const HISTORY_KEY = 'wellperion-squash.member-history';
   // Views drawn from the books: they re-render as the history loads or rebuilds.
-  const historyView = () => state.view === 'dashboard' || state.view === 'revenue';
+  const historyView = () => state.view === 'dashboard' || state.view === 'revenue' || state.view === 'customers'; // customers: the 월 선택 list
   let historyCache = null, historyLoading = false, historyError = '', historyTried = false, historyProgress = '';
   let historyDone = 0, historyTotal = 0; // progress of 장부 새로고침, in month tabs
   let historyChecks = null; // this month's tabs as the script read them on the last 장부 새로고침
@@ -1032,6 +1032,79 @@
       if (historyView()) render();
     }
   }
+  // ---------- Members → 월 선택: one past month, as its payroll tabs had it ----------
+  // The month list and each month's tabs (책ID + gid) come from the 회원 추이 cache
+  // (Months.gs); the rows are read live from the coach books through the same token-
+  // protected CSV path as Sync (column whitelist applies), one row per sheet row, read-only.
+  // Kept in memory only for this page load: past tabs rarely change, and nothing is stored.
+  const rosterCache = {}; // month → { loading, rows, errors }
+  const rosterMonths = () => [...new Set(((historyCache && historyCache.months) || []).map((r) => r.month))].sort().reverse();
+  async function loadRoster(month) {
+    const src = scriptSource();
+    const tabs = ((historyCache && historyCache.months) || []).filter((r) => r.month === month && r.bookId && r.gid);
+    if (!src || !tabs.length || (rosterCache[month] && (rosterCache[month].loading || rosterCache[month].rows))) return;
+    rosterCache[month] = { loading: true, rows: null, errors: [] };
+    const rows = [], errors = [];
+    await Promise.all(tabs.map(async (t) => {
+      try {
+        const u = new URL(src.url); u.search = ''; u.searchParams.set('book', t.bookId); u.searchParams.set('gid', t.gid);
+        const { headers, records } = Sheets.toTable(await Sheets.fetchCSV(u.toString(), tokenFor(src.url, src.token)));
+        const map = Sheets.guessMapping(headers);
+        records.forEach((r, i) => {
+          const c = Sheets.mapRecord(r, map);
+          if (!c.firstName && !c.lastName) return;
+          rows.push(Object.assign(c, { id: `${month}|${t.coach}|${i}`, coach: t.coach, rosterTab: t.tab }));
+        });
+      } catch (err) { errors.push(`${t.coach} ${t.tab}: ${err.message || err}`); }
+    }));
+    rosterCache[month] = { loading: false, rows, errors };
+    if (state.view === 'customers' && state.rosterMonth === month) render();
+  }
+  const monthSelect = () => {
+    const months = rosterMonths();
+    return `<select id="roster-month" title="지난 달 명단과 요약을 봅니다 (코치 장부의 그 달 탭)"><option value="">이번 달 (Sync)</option>${months.map((m) => `<option value="${m}" ${state.rosterMonth === m ? 'selected' : ''}>${m.replace('-', '년 ')}월</option>`).join('')}${!months.length ? '<option disabled>장부 기록 불러오는 중…</option>' : ''}</select>`;
+  };
+  function rosterMonthView() {
+    loadMemberHistory();
+    const month = state.rosterMonth;
+    const cached = rosterCache[month];
+    const tabRows = ((historyCache && historyCache.months) || []).filter((r) => r.month === month);
+    const located = tabRows.filter((r) => r.bookId && r.gid);
+    if (!cached && located.length) loadRoster(month);
+    // Summary from the cached counts: the same numbers as the Dashboard charts, for one month.
+    const p = historyCache ? historySeries(historyCache.months, '').find((q) => q.m === month) : null;
+    const revenue = tabRows.reduce((a, r) => a + (r.revenue || 0), 0);
+    const hasRevenue = tabRows.some((r) => r.revenue != null);
+    const card = (n, l) => `<div class="card"><div class="num">${n}</div><div class="label">${l}</div></div>`;
+    const leftBy = p && p.leftBy ? CHURN_CLASSES.filter((c) => p.leftBy[c.k]).map((c) => `${c.label} ${p.leftBy[c.k]}`).join(' · ') : '';
+    const summary = p ? `<div class="cards">
+        ${card(p.active, '활동 회원')}
+        ${card(p.split ? p.newJoin : p.added, p.split ? '신규' : '등록')}
+        ${p.split ? card(p.renew, '재등록') : ''}
+        ${card(p.left == null ? '—' : p.left, `이탈${p.rate != null ? ` · ${pct(p.rate)}` : ''}${leftBy ? `<br><span class="muted-note">${esc(leftBy)}</span>` : ''}`)}
+        ${hasRevenue ? card(wonFull(revenue).replace('원', ''), '매출 (원)') : ''}
+      </div>
+      ${tabRows.length > 1 ? `<div class="table-wrap" style="margin-bottom:14px"><table><thead><tr><th>담당강사</th><th>탭</th><th>명부</th><th>신규</th><th>재등록</th>${hasRevenue ? '<th>매출</th>' : ''}</tr></thead><tbody>${tabRows.map((r) => `<tr><td>${esc(r.coach)}</td><td>${esc(r.tab)}</td><td>${r.members}</td><td>${r.newJoin == null ? '—' : r.newJoin}</td><td>${r.renew == null ? '—' : r.renew}</td>${hasRevenue ? `<td>${r.revenue == null ? '—' : wonFull(r.revenue)}</td>` : ''}</tr>`).join('')}</tbody></table></div>` : ''}` : '';
+    let body;
+    if (!historyCache) body = `<p class="empty">${historyError ? `장부 기록을 불러오지 못했습니다: ${esc(historyError)}` : '장부 기록 불러오는 중…'}</p>`;
+    else if (!located.length) body = `<p class="empty">이 달의 명단 위치가 아직 저장되지 않았습니다. Dashboard → 회원 추이의 <strong>장부 다시 읽기</strong>를 한 번 실행하면 볼 수 있습니다.</p>`;
+    else if (!cached || cached.loading) body = progressHtml(null, `${month} 명단 읽는 중… (장부를 여는 데 20–60초)`, '명단 읽는 중');
+    else {
+      const ts = tbl('roster');
+      const visible = Store.settings().sheet.columns || DEFAULT_COLUMNS;
+      const cols = CUSTOMER_COLUMNS.filter((c) => visible.includes(c.k));
+      let rows = applyFilters(cached.rows, ts);
+      rows = sortRows(rows, cols, ts);
+      const shown = rows.slice(0, ts.limit);
+      body = `${cached.errors.length ? `<p class="chart-note" style="color:var(--bad)">${cached.errors.map(esc).join('<br>')}</p>` : ''}
+        <p style="margin:-6px 0 12px;font-size:12px;color:var(--muted)">${rows.length} / ${cached.rows.length}행 (${persons(rows)}명) — 그 달 장부 탭의 행 그대로 (재등록 행도 따로), 읽기 전용.</p>
+        ${table(cols, shown, null, '조건에 맞는 회원이 없습니다.', { tbl: 'roster', sort: ts.sort, filterRow: filterRow(cols, cached.rows, ts), footer: pageFooter(ts, shown.length, rows.length, 'roster', '행') })}`;
+    }
+    const nf = activeFilters(tbl('roster'));
+    const extra = `${monthSelect()}${nf ? `<button class="ghost" id="btn-clear-roster-filters">필터 해제 (${nf})</button>` : ''}${cached && cached.rows ? '<button class="ghost" id="btn-roster-csv">이 달 CSV</button>' : ''}`;
+    return head(`Members · ${month.replace('-', '년 ')}월`, extra) + summary + body;
+  }
+
   function historyTrend(months, coach) {
     const rows = (historyCache && historyCache.months) || [];
     if (!rows.length) return null;
@@ -1354,7 +1427,7 @@
         : typedChurn
           ? stackedBarChart(points, shownClasses.map((c) => ({ key: 'left' + c.k, label: c.label, color: c.color })).concat(points.some((p) => p.leftU) ? [{ key: 'leftU', label: '구분 없음 (다시 읽기 전)', color: '#d6d1c4' }] : []), '월별 회원구분별 이탈 회원 수', (p) => [['이탈률', null, points.find((q) => q.m === p.m).left == null ? '기록 없음' : pct(p.rate)]])
           : stackedBarChart(points.map((p) => Object.assign({}, p, { left: p.left || 0 })), [{ key: 'left', label: '이탈', color: CHURN }], '월별 이탈 회원 수', (p) => [['이탈률', null, points.find((q) => q.m === p.m).left == null ? '기록 없음' : pct(p.rate)]])}
-      ${untyped && scriptSource() ? `<p class="chart-note">${untyped}개월은 회원구분별 이탈 집계 전에 저장된 기록입니다. <button class="chip" id="btn-history-rebuild" ${historyLoading ? 'disabled' : ''}>장부 다시 읽기</button> <span class="muted-note">(몇 분 걸릴 수 있습니다)</span></p>` : ''}` : ''}
+      ${untyped && scriptSource() ? `<p class="chart-note">${untyped}개월은 이전 형식으로 저장된 기록입니다 (회원구분별 이탈과 Members의 월별 명단이 없음). <button class="chip" id="btn-history-rebuild" ${historyLoading ? 'disabled' : ''}>장부 다시 읽기</button> <span class="muted-note">(몇 분 걸릴 수 있습니다)</span></p>` : ''}` : ''}
       ${split ? `<h3 class="chart-title">${who}주니어 · 성인 <span>회원구분 WSC = 주니어, 나머지 = 성인</span></h3>
       ${multiLineChart(points, [{ key: 'junior', label: '주니어', color: SERIES_COLORS[0] }, { key: 'adult', label: '성인', color: SERIES_COLORS[1] }], '월별 주니어·성인 회원 수')}` : ''}`
       : `<p class="empty">${esc(coach)} 코치의 장부에 이 기간 기록이 없습니다. 기간을 '전체'로 바꿔 보세요.</p>`}
@@ -1603,6 +1676,7 @@
   } };
   const tbl = (key) => state.tables[key];
   state.tables.calls = { initial: 20, limit: 20 }; // Call log (newest first)
+  state.tables.roster = { sort: { k: 'name', dir: 1 }, colFilters: {}, initial: 50, limit: 50 }; // Members → 월 선택 (a past month)
   state.tables.club = { sort: { k: 'clubEnd', dir: -1 }, colFilters: {}, initial: 10, limit: 10 };
   state.tables.sched = { sort: { k: 'count', dir: -1 }, colFilters: {}, initial: 25, limit: 25 }; // 스케줄 → 회원별
   state.tables.schedtime = { sort: { k: 'time', dir: 1 }, colFilters: {}, initial: 40, limit: 40 }; // 스케줄 → 시간별
@@ -2323,6 +2397,8 @@
     },
 
     customers() {
+      if (state.rosterMonth) return rosterMonthView();
+      loadMemberHistory(); // fills the 월 선택 list
       const ts = tbl('members');
       const q = state.q.toLowerCase();
       const all = Store.list('customers').filter((c) => !isLead(c) && !isClub(c)); // inquiries and club DB live under Campaigns & Calls
@@ -2334,7 +2410,7 @@
       rows = applyFilters(rows, ts);
       rows = sortRows(rows, cols, ts);
       const nf = activeFilters(ts);
-      const extra = `<input type="search" id="q" placeholder="Search…" value="${esc(state.q)}">
+      const extra = `${monthSelect()}<input type="search" id="q" placeholder="Search…" value="${esc(state.q)}">
         <select id="filter"><option value="">All segments</option>${SEGMENTS.map((s) => `<option ${s === state.filter ? 'selected' : ''}>${s}</option>`).join('')}</select>
         ${nf ? `<button class="ghost" id="btn-clear-filters" data-tbl="members" title="Clear the column filters">필터 해제 (${nf})</button>` : ''}
         <button class="ghost" id="btn-sheet" title="Configure the Google Sheet source">Google Sheet</button>
@@ -2957,6 +3033,18 @@
     const clearLeads = $('#btn-clear-lead-filters');
     if (clearLeads) clearLeads.onclick = () => { tbl('leads').colFilters = {}; render(); };
 
+    const monthSel = $('#roster-month');
+    if (monthSel) monthSel.onchange = () => { state.rosterMonth = monthSel.value; tbl('roster').colFilters = {}; tbl('roster').limit = tbl('roster').initial; render(); };
+    const rosterClear = $('#btn-clear-roster-filters');
+    if (rosterClear) rosterClear.onclick = () => { tbl('roster').colFilters = {}; render(); };
+    const rosterCsv = $('#btn-roster-csv');
+    if (rosterCsv) rosterCsv.onclick = () => {
+      const keys = ['coach', 'firstName', 'joined', 'validUntil', 'sessionsTotal', 'sessionsCarried', 'sessionsThisMonth', 'sessionsLeft', 'payment', 'registration', 'segmentLabel', 'lessonType'];
+      const cell = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+      const lines = [['담당강사', '회원명', '등록일자', '유효기간', '등록회수', '총 잔여세션', '당월 진행', '잔여 세션', '결제 금액', '등록분류', '회원구분', '레슨구분'].join(',')]
+        .concat(rosterCache[state.rosterMonth].rows.map((c) => keys.map((k) => cell(c[k])).join(',')));
+      download(`members-${state.rosterMonth}.csv`, '﻿' + lines.join('\n'), 'text/csv');
+    };
     const csv = $('#btn-csv');
     if (csv) csv.onclick = () => downloadCSV();
     const sheetBtn = $('#btn-sheet');

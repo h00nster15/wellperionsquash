@@ -511,5 +511,5 @@ const Sheets = (() => {
     }
   }
 
-  return { FIELDS, toFetchUrl, fetchCSV, parseCSV, toTable, guessMapping, sync, dedupe, pruneMissing, personKey, lessonTypeOf };
+  return { FIELDS, toFetchUrl, fetchCSV, parseCSV, toTable, guessMapping, mapRecord, sync, dedupe, pruneMissing, personKey, lessonTypeOf };
 })();
