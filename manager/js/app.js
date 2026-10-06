@@ -696,6 +696,36 @@
     }
   }
 
+  // 문의 "전화번호 복사": the filtered list's mobile numbers, one per line, for a mass text.
+  // Duplicates (the same number typed differently) and opted-out people are left out.
+  let leadPhones = [];
+  function phoneList(rows) {
+    const seen = new Set(), out = [];
+    for (const c of rows) {
+      if (c.status === 'opted-out') continue;
+      let d = String(c.phone || c.guardianPhone || '').replace(/\D+/g, '');
+      if (d.startsWith('82')) d = '0' + d.slice(2);
+      if (!/^01\d{8,9}$/.test(d) || seen.has(d)) continue;
+      seen.add(d);
+      out.push(d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`);
+    }
+    return out;
+  }
+  async function copyPhones(btn) {
+    const text = leadPhones.join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = `${leadPhones.length}개 복사됨 ✓`;
+    } catch (e) { // no clipboard access (e.g. http): show them to copy by hand
+      dlgState = { onSave: () => true };
+      $('#dlg-title').textContent = `전화번호 ${leadPhones.length}개`;
+      $('#dlg-delete').hidden = true;
+      dlgFields.innerHTML = `<label class="full" style="grid-column:1/-1">전체 선택(Ctrl+A) 후 복사(Ctrl+C)<textarea rows="16" readonly>${esc(text)}</textarea></label>`;
+      dlg.showModal();
+      dlgFields.querySelector('textarea').select();
+    }
+  }
+
   // Dashboard "메일 보내기": the Apps Script mails the 유효기간 임박 list now (Expiry.gs). The same
   // mail also goes out by itself each morning when someone new enters the window.
   async function sendExpiryMail(btn) {
@@ -2358,7 +2388,8 @@
           <div class="stat-group"><div class="stat-title">담당</div><div class="chips">${tally((c) => c.coach).map(([v, n]) => lchip(v, n, 'coach', v)).join('')}</div></div>
         </div>` : '';
       const canSync = (Store.settings().sheet.sources || []).some((x) => x.url);
-      const leadsBlock = head('문의 · Inquiries', `${nf ? `<button class="ghost" id="btn-clear-lead-filters" data-tbl="leads">필터 해제 (${nf})</button>` : ''}<span style="font-size:12px;color:var(--muted)">문의-주니어 / 문의-시니어 시트 · 행 클릭 = 상세 · 통화는 아래 Call log에 기록</span><button class="ghost" id="btn-import-inquiries" title="웰페리온 문의 DB 시트 → 문의-주니어/시니어 탭 재생성 후 Sync (Apps Script buildInquiryTabs)" ${canSync ? '' : 'disabled'}>문의 DB 가져오기</button><button class="ghost" id="btn-sync-leads" title="Pull members and inquiries from the Google Sheets" ${canSync ? '' : 'disabled'}>Sync</button>`)
+      leadPhones = phoneList(leads);
+      const leadsBlock = head('문의 · Inquiries', `${nf ? `<button class="ghost" id="btn-clear-lead-filters" data-tbl="leads">필터 해제 (${nf})</button>` : ''}<button class="ghost" id="btn-copy-phones" title="지금 보이는 문의(필터 적용)의 전화번호를 한 줄에 하나씩 복사합니다. 중복과 수신거부(opted-out)는 뺍니다." ${leadPhones.length ? '' : 'disabled'}>전화번호 복사 (${leadPhones.length})</button><span style="font-size:12px;color:var(--muted)">문의-주니어 / 문의-시니어 시트 · 행 클릭 = 상세 · 통화는 아래 Call log에 기록</span><button class="ghost" id="btn-import-inquiries" title="웰페리온 문의 DB 시트 → 문의-주니어/시니어 탭 재생성 후 Sync (Apps Script buildInquiryTabs)" ${canSync ? '' : 'disabled'}>문의 DB 가져오기</button><button class="ghost" id="btn-sync-leads" title="Pull members and inquiries from the Google Sheets" ${canSync ? '' : 'disabled'}>Sync</button>`)
         + leadStats
         + conversionReport(leads)
         + table(lcols, leads.slice(0, ts.limit), (id) => openDialog('customers', Store.get('customers', id)), leadsAll.length ? '조건에 맞는 문의가 없습니다.' : '아직 문의 데이터가 없습니다. 문의 DB 가져오기 또는 Members → Google Sheet에서 문의 시트를 추가하고 Sync 하세요.', { tbl: 'leads', sort: ts.sort, filterRow: filterRow(lcols, leadsAll, ts), footer: `${pageFooter(ts, Math.min(ts.limit, leads.length), leads.length, 'leads', '건')}${leads.length !== leadsAll.length ? ` (전체 ${leadsAll.length}건 중 필터 적용)` : ''}` });
@@ -2928,6 +2959,8 @@
     if (syncBtn) syncBtn.onclick = () => syncFromSheet(syncBtn);
     const syncLeads = $('#btn-sync-leads');
     if (syncLeads) syncLeads.onclick = () => syncFromSheet(syncLeads);
+    const phonesBtn = $('#btn-copy-phones');
+    if (phonesBtn) phonesBtn.onclick = () => copyPhones(phonesBtn);
     const importBtn = $('#btn-import-inquiries');
     if (importBtn) importBtn.onclick = () => importInquiries(importBtn);
     const smsBtn = $('#btn-smslog');
