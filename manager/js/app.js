@@ -2271,26 +2271,33 @@
       // Members whose 잔여 세션 has reached 0 (or below): the 재등록 call list. A person who
       // re-upped shows up as a second row ("김민준1") with sessions left AND a 등록일자. They stay
       // on the list, marked 재등록 with that row's 등록일자 and 등록회수, below the people still to
-      // call (owner's request). A numbered row without 등록일자 is not a re-registration, and one
-      // dated before the finished registration is an older package, not a re-up.
+      // call (owner's request). A row of the same person WITHOUT 등록일자 also counts as a re-up
+      // (owner, 2026-10-06: the new package is entered before its date is filled in), whatever
+      // its 잔여 세션; such a row is the re-registration, so it is not listed as finished itself.
+      // A dated row registered before the finished one is an older package, not a re-up.
       // Same person = same name ignoring digits/brackets, unless both rows carry different phones.
       const synced = cs.filter((c) => c.sheetSyncedAt && typeof c.sessionsLeft === 'number');
       const digits = (c) => String(c.phone || '').replace(/\D+/g, '').slice(-9);
       const samePerson = (a, b) => Sheets.personKey(labelOf('customers', a)) === Sheets.personKey(labelOf('customers', b))
         && !(digits(a).length >= 7 && digits(b).length >= 7 && digits(a) !== digits(b));
       const active = synced.filter((c) => c.sessionsLeft > 0 && c.joined);
-      // The newest re-registration of the person behind a finished row, or null.
+      const undated = cs.filter((c) => c.sheetSyncedAt && !c.joined && !isLead(c) && !isClub(c));
+      // The newest re-registration of the person behind a finished row (a dated one first,
+      // else an undated one), or null.
       const reupOf = (c) => active
-        .filter((a) => samePerson(a, c) && (!c.joined || a.joined >= c.joined))
-        .sort((a, b) => b.joined.localeCompare(a.joined))[0] || null;
+        .filter((a) => a !== c && samePerson(a, c) && (!c.joined || a.joined >= c.joined))
+        .sort((a, b) => b.joined.localeCompare(a.joined))[0]
+        || (c.joined ? undated.find((a) => a !== c && samePerson(a, c)) : null) || null;
       const byCoach = (a, b) => (a.coach || '').localeCompare(b.coach || '', 'ko') || (a.validUntil || '').localeCompare(b.validUntil || '') || labelOf('customers', a).localeCompare(labelOf('customers', b), 'ko');
-      const out = synced.filter((c) => c.sessionsLeft <= 0).map((c) => ({ c, reup: reupOf(c) }))
+      const finished = synced.filter((c) => c.sessionsLeft <= 0).map((c) => ({ c, reup: reupOf(c) }));
+      const reupRows = new Set(finished.map((o) => o.reup).filter(Boolean));
+      const out = finished.filter((o) => !reupRows.has(o.c))
         .sort((x, y) => Number(!!x.reup) - Number(!!y.reup) || byCoach(x.c, y.c));
       const reupped = out.filter((o) => o.reup).length;
       const reupTab = state.reupTab === 'done' ? 'done' : 'pending'; // 재등록 안 한 회원 / 재등록 한 회원
       const shown = out.filter((o) => (reupTab === 'done') === !!o.reup);
       const expiring = synced.filter(expiringSoon).sort((a, b) => a.validUntil.localeCompare(b.validUntil) || byCoach(a, b));
-      const reupNote = (r) => `<span class="pill ok">재등록 ${fmtDate(r.joined)} · ${typeof r.sessionsTotal === 'number' ? `${r.sessionsTotal}회` : '회수 미기재'}</span>`;
+      const reupNote = (r) => `<span class="pill ok">재등록 ${r.joined ? fmtDate(r.joined) : '(등록일자 미입력)'} · ${typeof r.sessionsTotal === 'number' ? `${r.sessionsTotal}회` : '회수 미기재'}</span>`;
       return head('Dashboard') + `
         <div class="cards">
           ${card(cs.filter((c) => c.status === 'active').length, 'Active members')}
