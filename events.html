@@ -18,8 +18,9 @@
         .site-header { position: sticky; top: 0; z-index: 50; background: rgba(246,244,239,.96); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .brand { font-weight: 600; font-size: 15px; letter-spacing: -.01em; text-decoration: none; }
         .brand .sub { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--muted); }
-        .header-cta { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-decoration: none; border: 1px solid var(--ink); padding: 8px 14px; border-radius: 999px; }
-        .header-cta:hover { background: var(--ink); color: var(--wall); }
+        .header-nav { display: flex; align-items: center; gap: 16px; }
+        .header-cta { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-decoration: none; color: #55555a; white-space: nowrap; padding: 4px 0; }
+        .header-cta:hover { color: var(--ink); }
         main { max-width: 900px; margin: 0 auto; padding: 36px 20px 80px; }
         .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
         h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; letter-spacing: -.02em; line-height: 1.15; margin: 8px 0 10px; }
@@ -78,7 +79,7 @@
 <body>
     <header class="site-header">
         <a class="brand" href="./">WELLPERION <span class="sub">SQUASH CLUB · EVENTS</span></a>
-        <div style="display:flex;gap:8px"><a href="rankings.html" class="header-cta" style="border-style:dashed">RANKINGS</a><a href="./" class="header-cta">← PROGRAMS</a></div>
+        <div class="header-nav"><a href="rankings.html" class="header-cta">RANKINGS</a><a href="./" class="header-cta">← PROGRAMS</a></div>
     </header>
 
     <main>
