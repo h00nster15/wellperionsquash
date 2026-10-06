@@ -290,6 +290,9 @@ const Sheets = (() => {
     return k;
   }
 
+  // Columns of a coach roster that the sheet alone decides: blank there = blank here.
+  const SHEET_OWNED = ['joined', 'validUntil', 'sessionsTotal', 'sessionsCarried', 'sessionsThisMonth', 'sessionsLeft', 'payment', 'registration'];
+
   // Merge sheet rows into the store. Rows that share an email/phone/name are
   // collapsed into one; existing customers are updated in place, never duplicated.
   // opts.coach: the 담당강사 of this source; stamped on every row it contributes.
@@ -338,6 +341,9 @@ const Sheets = (() => {
         if (opts.coach && hit.sheetRunAt !== now) { if (!(hit.localEdits || []).includes('coach')) hit.coach = ''; delete hit.aliases; hit.sheetRunAt = now; }
         const coaches = splitList(hit.coach);
         fill(hit, c, true);
+        // A cell emptied in the sheet must empty the app too: fill() skips blanks, so a stale
+        // 등록일자 lingered on 이하은1(단체) and made it look like a re-registration (2026-10-06).
+        for (const k of SHEET_OWNED) if (map[k] && (c[k] === '' || c[k] == null) && !(hit.localEdits || []).includes(k)) hit[k] = '';
         if (c.coach && coaches.length && !coaches.includes(c.coach)) hit.coach = coaches.concat(c.coach).join(', ');
         hit.sheetSyncedAt = now;
         if (JSON.stringify(hit) !== before) updated++;
