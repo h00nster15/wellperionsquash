@@ -907,7 +907,7 @@
     historyLoading = true; historyTried = true;
     try {
       const j = await socialCall('member-history');
-      historyCache = { at: new Date().toISOString(), months: j.months || [], coachMonths: j.coachMonths || [], totals: j.totals || [], stale: j.stale || 0, current: j.current || '' };
+      historyCache = { at: new Date().toISOString(), months: j.months || [], coachMonths: j.coachMonths || [], totals: j.totals || [], stale: j.stale || 0, untyped: j.untyped || 0, current: j.current || '' };
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(historyCache)); } catch (e) { /* ignore */ }
       historyError = '';
     } catch (err) {
@@ -917,6 +917,14 @@
       if (historyView()) render();
     }
   }
+  // Dropout split (명단구분 in Months.gs). Colours: Oxford blue / brass / green as the coach
+  // lines, which never share a chart with this one; 그 외 and "구분 없음" stay grey.
+  const CHURN_CLASSES = [
+    { k: 'M', label: '정회원', color: '#2d53a3' },
+    { k: 'N', label: '비회원', color: '#b27a1e' },
+    { k: 'J', label: '주니어', color: '#2e9e7c' },
+    { k: 'O', label: '그 외', color: '#a39e93' },
+  ];
   // 회원구분 → 주니어 / 성인. WSC is the sheets' junior class (same words as Sheets' junior segment).
   const isJuniorType = (t) => /wsc|주니어|학생|아동|kid/i.test(t);
   // A coach's rows (or everyone's with coach = ''), summed per month:
@@ -939,6 +947,7 @@
       const p = byMonth[d.month];
       if (!p) return;
       p.left = d.left;
+      p.leftBy = d.leftBy || null; p.baseBy = d.baseBy || null; // by 회원구분: J 주니어 · N 비회원 · M 정회원 · O 그 외
       if (!coach && d.people) p.active = d.people;
     });
     const out = Object.keys(byMonth).sort().map((m) => byMonth[m]);
@@ -946,6 +955,12 @@
       p.other = p.split ? Math.max(0, p.added - p.newJoin - p.renew) : 0;
       const prev = out[i - 1];
       p.rate = p.left != null && prev && prev.m === ymAdd(p.m, -1) && prev.active ? p.left / prev.active : null;
+      // Dropout per 회원구분, rate over last month's roster of that class.
+      for (const c of CHURN_CLASSES) {
+        p['left' + c.k] = p.leftBy ? p.leftBy[c.k] || 0 : null;
+        p['rate' + c.k] = p.leftBy && p.baseBy && p.baseBy[c.k] ? (p.leftBy[c.k] || 0) / p.baseBy[c.k] : null;
+      }
+      p.leftU = p.left != null && !p.leftBy ? p.left : 0; // counted before 명단구분 existed: no split
     });
     return out;
   }
@@ -971,7 +986,7 @@
           if (historyView()) render();
           continue;
         }
-        historyCache = { at: new Date().toISOString(), months: j.months || [], coachMonths: j.coachMonths || [], totals: j.totals || [], stale: j.stale || 0, current: j.current || '' };
+        historyCache = { at: new Date().toISOString(), months: j.months || [], coachMonths: j.coachMonths || [], totals: j.totals || [], stale: j.stale || 0, untyped: j.untyped || 0, current: j.current || '' };
         try { localStorage.setItem(HISTORY_KEY, JSON.stringify(historyCache)); } catch (e) { /* ignore */ }
         if (j.rebuilt && j.rebuilt.checks && j.rebuilt.checks.length) historyChecks = { at: new Date().toISOString(), rows: j.rebuilt.checks };
         const left = j.rebuilt ? j.rebuilt.remaining : 0;
@@ -1279,6 +1294,12 @@
     const churn = books && points.some((p) => p.left != null);
     const lastRated = churn ? points.filter((p) => p.left != null).pop() : null;
     const stale = books && historyCache.stale ? historyCache.stale : 0;
+    // 이탈 by 회원구분: chips appear once at least one month carries the split.
+    const typedChurn = churn && points.some((p) => p.leftBy);
+    const shownClasses = typedChurn ? CHURN_CLASSES.filter((c) => c.k !== 'O' || points.some((p) => p.leftO || (p.baseBy && p.baseBy.O))) : [];
+    const churnCls = typedChurn ? shownClasses.find((c) => c.k === state.churnClass) || null : null;
+    const churnBtn = (v, l) => `<button class="chip ${(churnCls ? churnCls.k : '') === v ? 'on' : ''}" data-churn-class="${v}">${esc(l)}</button>`;
+    const untyped = books && historyCache.untyped && !stale ? historyCache.untyped : 0;
     const CHURN = '#9a4a6e'; // mulberry: its own identity, not the burgundy alert colour and not a coach/sign-up hue
     return `<div class="panel chart-panel">
       <div class="chart-head">
@@ -1296,8 +1317,14 @@
       ${stackedBarChart(points, [{ key: 'newJoin', label: '신규', color: SERIES_COLORS[0] }, { key: 'renew', label: '재등록', color: SERIES_COLORS[1] }].concat(hasOther ? [{ key: 'other', label: '기타 (등록분류 없음)', color: '#a39e93' }] : []), '월별 신규·재등록 수')}`
         : `<h3 class="chart-title">${who}신규 등록 <span>등록일자가 그 달인 회원${books ? ' (재등록 포함)' : ''} · 기간 합계 ${sum}명</span></h3>
       ${barChart(points, 'added', CHART_NEW, '월별 신규 등록 수')}`}
-      ${churn ? `<h3 class="chart-title">${who}이탈 <span>지난달 명부에 있었는데 이번 달 명부에 없는 회원 · 이탈률 = 이탈 ÷ 지난달 회원</span></h3>
-      ${stackedBarChart(points.map((p) => Object.assign({}, p, { left: p.left || 0 })), [{ key: 'left', label: '이탈', color: CHURN }], '월별 이탈 회원 수', (p) => [['이탈률', null, points.find((q) => q.m === p.m).left == null ? '기록 없음' : pct(p.rate)]])}` : ''}
+      ${churn ? `<h3 class="chart-title">${who}이탈${churnCls ? ` · ${esc(churnCls.label)}` : ''} <span>지난달 명부에 있었는데 이번 달 명부에 없는 회원 · 이탈률 = 이탈 ÷ 지난달 ${churnCls ? esc(churnCls.label) : '회원'}</span></h3>
+      ${typedChurn ? `<div class="chips coach-chips"><span class="muted-note">회원구분</span>${churnBtn('', '전체')}${shownClasses.map((c) => churnBtn(c.k, c.label)).join('')}</div>` : ''}
+      ${churnCls
+        ? stackedBarChart(points.map((p) => Object.assign({}, p, { ['left' + churnCls.k]: p['left' + churnCls.k] || 0 })), [{ key: 'left' + churnCls.k, label: churnCls.label + ' 이탈', color: churnCls.color }], `월별 ${churnCls.label} 이탈 회원 수`, (p) => [['이탈률', null, points.find((q) => q.m === p.m)['left' + churnCls.k] == null ? '구분 기록 없음' : pct(p['rate' + churnCls.k])]])
+        : typedChurn
+          ? stackedBarChart(points, shownClasses.map((c) => ({ key: 'left' + c.k, label: c.label, color: c.color })).concat(points.some((p) => p.leftU) ? [{ key: 'leftU', label: '구분 없음 (다시 읽기 전)', color: '#d6d1c4' }] : []), '월별 회원구분별 이탈 회원 수', (p) => [['이탈률', null, points.find((q) => q.m === p.m).left == null ? '기록 없음' : pct(p.rate)]])
+          : stackedBarChart(points.map((p) => Object.assign({}, p, { left: p.left || 0 })), [{ key: 'left', label: '이탈', color: CHURN }], '월별 이탈 회원 수', (p) => [['이탈률', null, points.find((q) => q.m === p.m).left == null ? '기록 없음' : pct(p.rate)]])}
+      ${untyped && scriptSource() ? `<p class="chart-note">${untyped}개월은 회원구분별 이탈 집계 전에 저장된 기록입니다. <button class="chip" id="btn-history-rebuild" ${historyLoading ? 'disabled' : ''}>장부 다시 읽기</button> <span class="muted-note">(몇 분 걸릴 수 있습니다)</span></p>` : ''}` : ''}
       ${split ? `<h3 class="chart-title">${who}주니어 · 성인 <span>회원구분 WSC = 주니어, 나머지 = 성인</span></h3>
       ${multiLineChart(points, [{ key: 'junior', label: '주니어', color: SERIES_COLORS[0] }, { key: 'adult', label: '성인', color: SERIES_COLORS[1] }], '월별 주니어·성인 회원 수')}` : ''}`
       : `<p class="empty">${esc(coach)} 코치의 장부에 이 기간 기록이 없습니다. 기간을 '전체'로 바꿔 보세요.</p>`}
@@ -1309,10 +1336,10 @@
         : `등록일자가 있는 ${dated}명으로 계산${undated ? ` (날짜 없는 ${undated}명 제외)` : ''}. 재등록은 한 회원으로 합쳐지고 시트에서 지워진 회원은 빠지므로, 과거 달일수록 실제보다 적게 보일 수 있습니다.`}${historyError ? ` <span style="color:var(--bad)">장부를 불러오지 못했습니다: ${esc(historyError)}</span>` : ''}</p>
       ${historyCheckTable()}
       ${points.length ? `<details class="chart-table"><summary>표로 보기</summary>
-        <div class="table-wrap"><table><thead><tr><th>월</th><th>활동 회원</th><th>신규 등록</th>${splitJoins ? '<th>신규</th><th>재등록</th>' : ''}${churn ? '<th>이탈</th><th>이탈률</th>' : ''}${split ? '<th>주니어</th><th>성인</th>' : ''}${byCoach ? byCoach.series.map((s) => `<th>${esc(s.label)}</th>`).join('') : ''}</tr></thead>
+        <div class="table-wrap"><table><thead><tr><th>월</th><th>활동 회원</th><th>신규 등록</th>${splitJoins ? '<th>신규</th><th>재등록</th>' : ''}${churn ? '<th>이탈</th><th>이탈률</th>' : ''}${shownClasses.map((c) => `<th>이탈 ${esc(c.label)}</th>`).join('')}${split ? '<th>주니어</th><th>성인</th>' : ''}${byCoach ? byCoach.series.map((s) => `<th>${esc(s.label)}</th>`).join('') : ''}</tr></thead>
         <tbody>${points.slice().reverse().map((p) => {
           const c = byCoach && byCoach.points.find((q) => q.m === p.m);
-          return `<tr><td>${esc(p.m)}</td><td>${p.active}</td><td>${p.added}</td>${splitJoins ? `<td>${p.newJoin}</td><td>${p.renew}</td>` : ''}${churn ? `<td>${p.left == null ? '—' : p.left}</td><td>${pct(p.rate)}</td>` : ''}${split ? `<td>${p.junior}</td><td>${p.adult}</td>` : ''}${byCoach ? byCoach.series.map((s) => `<td>${c ? c[s.key] : '—'}</td>`).join('') : ''}</tr>`;
+          return `<tr><td>${esc(p.m)}</td><td>${p.active}</td><td>${p.added}</td>${splitJoins ? `<td>${p.newJoin}</td><td>${p.renew}</td>` : ''}${churn ? `<td>${p.left == null ? '—' : p.left}</td><td>${pct(p.rate)}</td>` : ''}${shownClasses.map((c) => `<td>${p['left' + c.k] == null ? '—' : `${p['left' + c.k]} <span class="muted-note">${pct(p['rate' + c.k])}</span>`}</td>`).join('')}${split ? `<td>${p.junior}</td><td>${p.adult}</td>` : ''}${byCoach ? byCoach.series.map((s) => `<td>${c ? c[s.key] : '—'}</td>`).join('') : ''}</tr>`;
         }).join('')}</tbody></table></div>
       </details>` : ''}
     </div>`;
@@ -2860,6 +2887,9 @@
     });
     viewEl.querySelectorAll('[data-rev-yoy]').forEach((el) => {
       el.onclick = () => { state.revYoyMetric = el.dataset.revYoy; render(); };
+    });
+    viewEl.querySelectorAll('[data-churn-class]').forEach((el) => {
+      el.onclick = () => { state.churnClass = el.dataset.churnClass; render(); };
     });
     viewEl.querySelectorAll('[data-trend-coach]').forEach((el) => {
       el.onclick = () => { state.trendCoach = el.dataset.trendCoach; render(); };
