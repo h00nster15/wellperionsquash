@@ -675,15 +675,18 @@
 
   // Asks the Apps Script to rebuild the 문의-주니어/시니어 tabs from the 웰페리온 문의 DB
   // spreadsheet (buildInquiryTabs), then runs a normal Sync so the leads update here.
-  async function importInquiries(btn) {
+  async function rebuildInquiries() {
     const src = (Store.settings().sheet.sources || []).find((x) => /script\.google\.com/.test(x.url || ''));
-    if (!src) return alert('Google Sheet source (Apps Script URL) is not configured.');
+    if (!src) throw new Error('Google Sheet source (Apps Script URL) is not configured.');
     const u = new URL(src.url); u.search = ''; u.searchParams.set('action', 'rebuild-inquiries'); u.searchParams.set('token', src.token || '');
+    const j = await (await fetch(u.toString(), { redirect: 'follow' })).json();
+    if (!j.ok) throw new Error(j.error || 'unknown error');
+    return j;
+  }
+  async function importInquiries(btn) {
     const label = btn.textContent; btn.disabled = true; btn.textContent = '문의 DB 읽는 중… (최대 1분)';
     try {
-      const res = await fetch(u.toString(), { redirect: 'follow' });
-      const j = await res.json();
-      if (!j.ok) throw new Error(j.error || 'unknown error');
+      const j = await rebuildInquiries();
       const tabs = (j.sourceTabs || []).map((t) => `${t.name}: ${t.rows}행`).join(', ');
       const skipped = (j.skippedTabs || []).map((t) => `${t.name}: ${t.rows}행 (열 이름 불일치: ${(t.headers || []).join(' · ')})`).join('\n');
       btn.textContent = label; btn.disabled = false;
@@ -3279,5 +3282,14 @@
   clubContactsToCalls().then((n) => { if (n) render(); });
   render();
   if (!hasToken()) { loginDlg.showModal(); setTimeout(() => $('#login-key').focus(), 50); }
-  else cloudCheck();
+  else openRefresh();
+  // Every page open: re-read the inquiry sheets into 문의-주니어/시니어, then Sync everything (owner, 2026-10-12).
+  async function openRefresh() {
+    await cloudCheck();
+    const bar = syncProgress(null);
+    bar.show(null, '새 문의 불러오는 중… (최대 1분)');
+    try { await rebuildInquiries(); } catch (err) { console.warn('inquiry import failed', err); }
+    finally { bar.done(); }
+    await syncFromSheet($('#btn-sync') || { textContent: '', disabled: false });
+  }
 })();
