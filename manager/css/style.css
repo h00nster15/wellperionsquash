@@ -220,7 +220,7 @@ dialog form { padding: 20px; }
 dialog h2 { margin: 0 0 14px; font-size: 24px; font-weight: 600; color: var(--primary); }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
-.fields label.full { grid-column: 1 / -1; }
+.fields .full { grid-column: 1 / -1; } /* labels and the info rows of the club / inquiry contact blocks */
 .fields input, .fields select, .fields textarea {
   padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); background: var(--card);
 }

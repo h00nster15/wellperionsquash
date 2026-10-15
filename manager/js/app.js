@@ -15,6 +15,10 @@
   const SEGMENTS = ['lead', 'member', 'lapsed', 'junior', 'corporate', 'sponsor'];
   const CUSTOMER_STATUS = ['new', 'contacted', 'trial-booked', 'active', 'at-risk', 'lapsed', 'opted-out'];
   const CAMPAIGN_STATUS = ['planned', 'live', 'paused', 'done'];
+  // The 문의 sheet's 상태 / 담당 lists (Inquiries.gs INQ_STATUS / INQ_STAFF) and what each 상태 means here.
+  const INQ_STATUS = ['미정', '컨택중', '부재중·문자', 'OT/체험 예약', '등록', '보류/종료'];
+  const INQ_STAFF = ['이상훈', '박상현', '이우성', '유승용', '양승문'];
+  const INQ_STATUS_APP = { 미정: 'new', 컨택중: 'contacted', '부재중·문자': 'contacted', 'OT/체험 예약': 'trial-booked', 등록: 'active', '보류/종료': 'lapsed' };
   const CALL_OUTCOMES = ['booked', 'callback', 'info-sent', 'not-interested', 'opt-out', 'no-answer'];
   const EVENT_TYPES = ['league', 'tournament', 'open-day', 'social', 'corporate', 'coaching-clinic'];
   const EVENT_STATUS = ['idea', 'planned', 'open', 'full', 'done', 'cancelled'];
@@ -189,6 +193,25 @@
         <div class="full" style="border-top:1px solid var(--line);margin:6px 0 0"></div>
         <div class="full" style="font-size:12px;color:var(--muted)">앱 내부 정보 (시트에는 저장되지 않음)</div>` + dlgFields.innerHTML;
     }
+    // Inquiries (문의-주니어 / 문의-시니어): log a contact. It is written into that row of the
+    // 문의 tab (연락 기록, 최근 연락일, 상태, 담당, 다음 연락 예정), so every computer sees it
+    // after Sync and 문의 DB 가져오기 keeps it.
+    if (col === 'customers' && isLead(rec)) {
+      $('#dlg-title').textContent = '문의 · ' + labelOf('customers', rec);
+      const staff = [...new Set(INQ_STAFF.concat(rec.coach ? [rec.coach] : []))];
+      dlgFields.innerHTML = `
+        <div class="full" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><strong>문의 연락 기록</strong><span style="font-size:12px;color:var(--muted)">${[rec.inqDate && '접수 ' + rec.inqDate, rec.inqProgram, rec.phone || rec.guardianPhone, rec.segmentLabel].filter(Boolean).map(esc).join(' · ')}</span></div>
+        ${rec.inqMessage ? `<div class="full" style="font-size:13px">${esc(rec.inqMessage)}</div>` : ''}
+        <div class="full" style="font-size:12px;color:var(--muted)">지금까지의 연락 기록${rec.inqFirstContact ? ` (최초 ${esc(rec.inqFirstContact)}${rec.lastContact ? ' · 최근 ' + esc(rec.lastContact) : ''})` : ''}${contactLog(rec.inqLog)}</div>
+        <label class="full">새 연락 기록 — 저장하면 오늘 날짜(${today()})로 추가되고 문의 시트의 연락 기록 · 최근 연락일에 기록됩니다<textarea name="inqEntry" placeholder="예: 전화 — 체험 10/18 토 2시 예약 / 부재중, 문자 남김"></textarea></label>
+        <label>상태<select name="inqStatus"><option value="">— 그대로 —</option>${INQ_STATUS.map((x) => `<option>${esc(x)}</option>`).join('')}</select></label>
+        <label>담당<select name="inqStaff"><option value="">—</option>${staff.map((x) => `<option ${x === rec.coach ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></label>
+        <label>다음 연락 예정<input type="date" name="inqNext" value="${esc(rec.nextFollowUp || '')}"></label>
+        <div class="full" id="inq-note-status" style="font-size:12px;color:var(--bad)" hidden></div>
+        <div class="full" style="border-top:1px solid var(--line);margin:6px 0 0"></div>
+        <div class="full" style="font-size:12px;color:var(--muted)">앱 내부 정보 (시트에는 저장되지 않음)</div>` + dlgFields.innerHTML;
+    }
+    dlgState.prevNext = rec.nextFollowUp || '';
     dlg.showModal();
   }
 
@@ -231,6 +254,31 @@
         if (entry) clubCall = { date: today(), caller: coach, customerId: rec.id, campaignId: '', outcome: callOutcomeOf(entry), callbackDate: '', notes: entry, source: 'squash-contact' };
       }
     }
+    if (col === 'customers' && isLead(rec) && dlgForm.elements.inqEntry) {
+      const entry = dlgForm.elements.inqEntry.value.trim();
+      const status = dlgForm.elements.inqStatus.value;
+      const staff = dlgForm.elements.inqStaff.value;
+      const next = dlgForm.elements.inqNext.value;
+      if (entry || status || staff !== (rec.coach || '') || next !== (dlgState.prevNext || '')) {
+        const msg = $('#inq-note-status'), saveBtn = dlgForm.querySelector('button[type=submit]');
+        msg.hidden = true; saveBtn.disabled = true; saveBtn.textContent = '시트에 저장 중…';
+        let j;
+        try {
+          j = await postToScript('leads', { action: 'inquiry-contact', date: rec.inqDate || '', phone: rec.phone || rec.guardianPhone || '', name: labelOf('customers', rec), entry, status, staff, next });
+        } catch (err) {
+          msg.textContent = '⚠ 문의 시트에 저장하지 못했습니다: ' + err.message + ' — 다시 시도하거나 취소하세요.';
+          msg.hidden = false; saveBtn.disabled = false; saveBtn.textContent = 'Save';
+          return;
+        }
+        saveBtn.disabled = false; saveBtn.textContent = 'Save';
+        rec.inqLog = j.log;
+        if (j.lastContact) rec.lastContact = j.lastContact;
+        if (j.firstContact) rec.inqFirstContact = j.firstContact;
+        if (staff) rec.coach = staff;
+        rec.nextFollowUp = next;
+        if (status) rec.status = INQ_STATUS_APP[status] || rec.status;
+      }
+    }
     Store.upsert(col, rec);
     if (col === 'calls') syncCustomerFromCall(rec);
     if (clubCall) { Store.upsert('calls', clubCall); syncCustomerFromCall(clubCall); } // 스쿼시 contact → Call log too
@@ -269,11 +317,16 @@
   // POST { action: 'club-note' } to the Apps Script behind the 웰페리온 회원 DB source
   // (same /exec URL + token as the reads; a text/plain body avoids a CORS preflight).
   async function saveClubNote(rec, coach, entry) {
+    return postToScript('clubdb', { action: 'club-note', memberNo: rec.memberNo || '', name: labelOf('customers', rec), phone: rec.phone || '', squashCoach: coach, entry });
+  }
+  // POST to the Apps Script behind a source of this kind (else any Apps Script source with a token).
+  async function postToScript(kind, payload) {
     const srcs = Store.settings().sheet.sources || [];
-    const src = srcs.find((x) => x.kind === 'clubdb' && /script\.google\.com\/macros\//.test(x.url || '')) || srcs.find((x) => x.token);
+    const isScript = (x) => /script\.google\.com\/macros\//.test(x.url || '');
+    const src = srcs.find((x) => x.kind === kind && isScript(x)) || srcs.find((x) => isScript(x) && x.token) || srcs.find((x) => x.token);
     if (!src) throw new Error('Apps Script 소스가 없습니다 (Google Sheet 설정 확인).');
     const exec = src.url.split('?')[0];
-    const body = { action: 'club-note', token: tokenFor(src.url, src.token), memberNo: rec.memberNo || '', name: labelOf('customers', rec), phone: rec.phone || '', squashCoach: coach, entry };
+    const body = Object.assign({ token: tokenFor(src.url, src.token) }, payload);
     let res;
     try { res = await fetch(exec, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' }); }
     catch (err) { throw new Error('Google에 연결할 수 없습니다 (' + err.message + ')'); }
@@ -461,11 +514,13 @@
   // Columns of the 문의 (leads) table under Outreach.
   const LEAD_COLUMNS = ['leadName', 'inqDate', 'leadStatus', 'phone', 'coach', 'inqFirstContact', 'nextFollowUp', 'inqSummary', 'inqLog'];
   const CLUB_COLUMNS = ['clubName', 'clubAge', 'clubPlan', 'clubStart', 'clubEnd', 'clubDaysLeft', 'phone', 'squashCoach', 'squashContact', 'clubNotes'];
-  // Split a free-text contact log at each date token so every contact is its own line.
+  // One contact per line. A log written as one long line (older sheets) is split at each date
+  // token; a log that already has line breaks (what the app writes) is split only at them, so
+  // a date inside an entry ("체험 10/18 예약") stays in its line.
   function contactLog(text) {
     const t = String(text || '').replace(/\r/g, '').trim();
     if (!t) return '—';
-    const lines = t.split(/\n+|(?=(?:^|\s)(?:\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2})(?:\s|$))/).map((l) => l.trim()).filter(Boolean);
+    const lines = (t.includes('\n') ? t.split(/\n+/) : t.split(/(?=(?:^|\s)(?:\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2})(?:\s|$))/)).map((l) => l.trim()).filter(Boolean);
     return `<div class="log">${lines.map((l) => {
       const m = l.match(/^(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2})(?:\s+(\d{1,2}:\d{2}))?\s*(.*)$/s);
       return m ? `<div><b>${esc(m[1])}${m[2] ? ' ' + esc(m[2]) : ''}</b> ${esc(m[3])}</div>` : `<div>${esc(l)}</div>`;
@@ -1369,12 +1424,12 @@
     const regs = (v) => Object.entries(v || {}).map(([k, n]) => `${esc(k)} ${n}`).join(', ') || '—';
     const rows = historyChecks.rows.map((r) => r.error
       ? `<tr><td>${esc(r.coach)}</td><td>${esc(r.tab)}</td><td colspan="6" style="color:var(--bad)">${esc(r.error)}</td></tr>`
-      : `<tr><td>${esc(r.coach)}</td><td>${esc(r.tab)}</td><td>${r.members}</td><td>${r.joined} <span class="muted-note">(신규 ${r.newJoin} · 재등록 ${r.renew})</span></td><td>${r.revenue == null ? '—' : `${wonFull(r.revenue)}${r.unpaidRows ? ` <span class="muted-note">(금액 없음 ${r.unpaidRows}건)</span>` : ''}`}</td>
+      : `<tr><td>${esc(r.coach)}</td><td>${esc(r.tab)}</td><td>${r.members}</td><td>${r.joined} <span class="muted-note">(신규 ${r.newJoin} · 재등록 ${r.renew})</span></td><td>${r.personal == null ? '<b style="color:var(--bad)">개인매출 칸 없음</b>' : wonFull(r.personal)}</td>
           <td class="wrap">${regs(r.check && r.check.regValues)}</td>
           <td>${r.check && r.check.unreadDates ? `<span style="color:var(--bad)">${r.check.unreadDates}건</span> <span class="muted-note">${r.check.unreadSamples.map(esc).join(', ')}</span>` : '0'}</td>
           <td class="wrap">${cols(r.check && r.check.columns)}</td></tr>`);
     return `<details class="chart-table"${historyChecks.rows.some(off) ? ' open' : ''}><summary>이번 달 장부 점검 · ${new Date(historyChecks.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</summary>
-      <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>탭</th><th>명부</th><th>이번 달 등록일자</th><th>이번 달 매출</th><th>등록분류 값</th><th>못 읽은 날짜</th><th>찾은 열</th></tr></thead>
+      <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>탭</th><th>명부</th><th>이번 달 등록일자</th><th>개인매출</th><th>등록분류 값</th><th>못 읽은 날짜</th><th>찾은 열</th></tr></thead>
       <tbody>${rows.join('')}</tbody></table></div>
       <p class="chart-note">신규·재등록은 등록일자가 이번 달이고 등록분류에 "신규" 또는 "재등록"이 들어간 행만 셉니다. 이름은 표시하지 않습니다.</p>
     </details>`;
@@ -1516,24 +1571,20 @@
 
 
   // ---------- Monthly revenue (Revenue view) ----------
-  // From the same books and cache as 회원 추이: for each coach's monthly tab the script sums
-  // 결제 금액 over the rows whose 등록일자 falls in that month (every payment row, so two
-  // payments in one month both count), split 신규/재등록 by 등록분류. Carried-over rows are
-  // not counted again. Months counted before the 매출 columns existed have revenue null.
+  // 개인매출 per coach per month (owner, 2026-10-15): each monthly tab of a coach's book has a
+  // cell labelled 개인매출 with the month's amount under it; the script reads it into the same
+  // cache as 회원 추이 (Months.gs personalRevenue_). Rows counted before that (cache version
+  // < 4) are incomplete and leave their month out; a tab with no 개인매출 cell is named in
+  // the note rather than counted as 0.
   function revenueSeries(rows, coach) {
     const byMonth = {};
     rows.filter((r) => !coach || r.coach === coach).forEach((r) => {
-      const p = byMonth[r.month] || (byMonth[r.month] = { m: r.month, revenue: 0, revNew: 0, revRenew: 0, paid: 0, unpaid: 0, counted: true });
-      if (r.revenue == null) { p.counted = false; return; }
-      p.revenue += r.revenue; p.revNew += r.revNew || 0; p.revRenew += r.revRenew || 0;
-      p.paid += r.paidRows || 0; p.unpaid += r.unpaidRows || 0;
+      const p = byMonth[r.month] || (byMonth[r.month] = { m: r.month, revenue: 0, has: false, counted: true, missing: [] });
+      if (!r.complete) { p.counted = false; return; }
+      if (r.personal != null) { p.revenue += r.personal; p.has = true; }
+      else if (r.personalMissing) p.missing.push(r.coach);
     });
-    return Object.keys(byMonth).sort().map((m) => {
-      const p = byMonth[m];
-      p.revOther = Math.max(0, p.revenue - p.revNew - p.revRenew);
-      p.avg = p.paid ? Math.round(p.revenue / p.paid) : null;
-      return p;
-    }).filter((p) => p.counted); // a month with any coach not yet recounted would read low
+    return Object.keys(byMonth).sort().map((m) => byMonth[m]).filter((p) => p.counted && p.has);
   }
   // "+120만 (+8.3%)": a change in won, short, red when down.
   function wonDiff(a, b) {
@@ -1549,17 +1600,14 @@
       const cur = at(points, latest);
       const last12 = points.filter((p) => p.m > yearAgo && p.m <= latest);
       const total = last12.reduce((a, p) => a + p.revenue, 0);
-      const paid = last12.reduce((a, p) => a + p.paid, 0);
       const peak = last12.reduce((a, p) => (p.revenue > a.revenue ? p : a), { revenue: 0, m: '' });
       return `<tr${current ? '' : ' style="color:var(--muted)"'}><td>${esc(coach)}${current ? '' : ' <span class="muted-note">(이전)</span>'}</td>
         <td>${cur == null ? '—' : wonFull(cur)}</td><td>${wonDiff(cur, at(points, prev))}</td><td>${wonDiff(cur, at(points, yearAgo))}</td>
-        <td>${last12.length ? `${wonFull(total)} <span class="muted-note">(신규 ${wonShort(last12.reduce((a, p) => a + p.revNew, 0))} · 재등록 ${wonShort(last12.reduce((a, p) => a + p.revRenew, 0))})</span>` : '—'}</td>
-        <td>${last12.length ? wonFull(Math.round(total / last12.length)) : '—'}</td>
-        <td>${peak.m ? `${wonFull(peak.revenue)} <span class="muted-note">(${esc(peak.m)})</span>` : '—'}</td>
-        <td>${paid ? wonFull(Math.round(total / paid)) : '—'}</td></tr>`;
+        <td>${last12.length ? wonFull(total) : '—'}</td><td>${last12.length ? wonFull(Math.round(total / last12.length)) : '—'}</td>
+        <td>${peak.m ? `${wonFull(peak.revenue)} <span class="muted-note">(${esc(peak.m)})</span>` : '—'}</td></tr>`;
     });
-    return `<h3 class="chart-title">코치별 매출 <span>${esc(latest)} 장부 기준</span></h3>
-      <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>이번 달</th><th>전월 대비</th><th>전년 동월 대비</th><th>최근 12개월</th><th>월평균</th><th>12개월 최고</th><th>건당 평균</th></tr></thead>
+    return `<h3 class="chart-title">코치별 개인매출 <span>${esc(latest)} 장부 기준</span></h3>
+      <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>이번 달</th><th>전월 대비</th><th>전년 동월 대비</th><th>최근 12개월</th><th>월평균</th><th>12개월 최고</th></tr></thead>
       <tbody>${rows.join('')}</tbody></table></div>`;
   }
 
@@ -1568,8 +1616,8 @@
     const rows = (historyCache && historyCache.months) || [];
     const hist = historyTrend(state.revMonths, state.revCoach);
     const coach = hist && hist.coaches.includes(state.revCoach) ? state.revCoach : '';
-    const counted = rows.filter((r) => r.revenue != null).length;
-    const stale = rows.length - counted;
+    const counted = rows.filter((r) => r.personal != null).length;
+    const stale = rows.filter((r) => !r.complete).length;
     const who = coach ? `${esc(coach)} · ` : '';
     const rangeBtn = (v, l) => `<button class="chip ${state.revMonths === v ? 'on' : ''}" data-rev-range="${v}">${l}</button>`;
     const coachBtn = (v, l) => `<button class="chip ${coach === v ? 'on' : ''}" data-rev-coach="${esc(v)}">${esc(l)}</button>`;
@@ -1577,9 +1625,9 @@
     const error = historyError ? ` <span style="color:var(--bad)">장부를 불러오지 못했습니다: ${esc(historyError)}</span>` : '';
     if (!hist || !counted) {
       return `<div class="panel chart-panel">
-        <div class="chart-head"><h2>매출 추이</h2><div class="chips">${refresh}</div></div>
+        <div class="chart-head"><h2>개인매출 추이</h2><div class="chips">${refresh}</div></div>
         ${historyLoading ? progressBar() : ''}
-        <p class="empty">아직 매출 기록이 없습니다. 코치 장부의 <b>결제 금액</b>을 읽으려면 <b>장부 새로고침</b>을 누르세요 (처음 한 번은 모든 달을 다시 읽어 몇 분 걸립니다).${scriptSource() ? '' : ' 먼저 Members 탭에서 Apps Script 연결이 필요합니다.'}${error}</p>
+        <p class="empty">아직 개인매출 기록이 없습니다. 코치 장부 월별 탭의 <b>개인매출</b> 칸(그 아래 금액)을 읽으려면 <b>장부 새로고침</b>을 누르세요 (처음 한 번은 모든 달을 다시 읽어 몇 분 걸립니다).${scriptSource() ? '' : ' 먼저 Members 탭에서 Apps Script 연결이 필요합니다.'}${error}</p>
         ${historyCheckTable()}
       </div>`;
     }
@@ -1592,79 +1640,63 @@
     const prev = last && find(ymAdd(last.m, -1)), yearAgo = last && find(ymAdd(last.m, -12));
     const inProgress = last && last.m === historyCache.current;
     const sum = points.reduce((a, p) => a + p.revenue, 0);
-    const hasOther = points.some((p) => p.revOther > 0);
-    const unpaid = points.reduce((a, p) => a + p.unpaid, 0);
-    const avgPoints = points.filter((p) => p.avg != null);
+    // Tabs in range whose 개인매출 cell could not be found — shown, never counted as 0.
+    const missing = rows.filter((r) => r.personalMissing && hist.inRange({ m: r.month }) && (!coach || r.coach === coach))
+      .map((r) => `${r.coach} ${r.month}`).sort();
     return `<div class="panel chart-panel">
       <div class="chart-head">
-        <h2>매출 추이 <span class="muted-note">${last ? `${who}${esc(last.m)} 매출 ${wonFull(last.revenue)}${inProgress ? ' (진행 중)' : ''}${prev ? ` · 전월 대비 ${wonDiff(last.revenue, prev.revenue)}` : ''}${yearAgo ? ` · 전년 동월 대비 ${wonDiff(last.revenue, yearAgo.revenue)}` : ''}` : ''}</span></h2>
+        <h2>개인매출 추이 <span class="muted-note">${last ? `${who}${esc(last.m)} 개인매출 ${wonFull(last.revenue)}${inProgress ? ' (진행 중)' : ''}${prev ? ` · 전월 대비 ${wonDiff(last.revenue, prev.revenue)}${prev.missing.length ? ` <span title="${esc(prev.missing.join(', '))} 장부에 개인매출 칸 없음">(전월 일부 빠짐)</span>` : ''}` : ''}${yearAgo ? ` · 전년 동월 대비 ${wonDiff(last.revenue, yearAgo.revenue)}${yearAgo.missing.length ? ' (전년 일부 빠짐)' : ''}` : ''}${last.missing.length ? ' · 이번 달 일부 빠짐' : ''}` : ''}</span></h2>
         <div class="chips">${rangeBtn(12, '12개월')}${rangeBtn(24, '24개월')}${rangeBtn('all', '전체')}${refresh}</div>
       </div>
       ${historyLoading ? progressBar() : ''}
-      ${stale && scriptSource() ? `<p class="chart-note">${stale}개 장부 탭은 매출 집계 전에 저장된 기록이라 빠져 있습니다. <button class="chip" id="btn-history-rebuild" ${historyLoading ? 'disabled' : ''}>장부 다시 읽기</button> <span class="muted-note">(몇 분 걸릴 수 있습니다)</span></p>` : ''}
+      ${stale && scriptSource() ? `<p class="chart-note">${stale}개 장부 탭은 개인매출을 읽기 전에 저장된 기록이라 빠져 있습니다. <button class="chip" id="btn-history-rebuild" ${historyLoading ? 'disabled' : ''}>장부 다시 읽기</button> <span class="muted-note">(몇 분 걸릴 수 있습니다)</span></p>` : ''}
       <div class="chips coach-chips"><span class="muted-note">담당강사</span>${coachBtn('', '전체')}${hist.current.map((c) => coachBtn(c, c)).join('')}${hist.coaches.filter((c) => !hist.current.includes(c)).map((c) => coachBtn(c, c + ' (이전)')).join('')}</div>
       ${points.length ? `
-      <h3 class="chart-title">${who}월별 매출 <span>등록일자가 그 달인 결제 금액 · 기간 합계 ${wonFull(sum)} · 월평균 ${wonFull(Math.round(sum / points.length))}</span></h3>
-      ${stackedBarChart(points, [{ key: 'revNew', label: '신규', color: SERIES_COLORS[0] }, { key: 'revRenew', label: '재등록', color: SERIES_COLORS[1] }].concat(hasOther ? [{ key: 'revOther', label: '기타 (등록분류 없음)', color: '#a39e93' }] : []), '월별 매출', (p) => [['합계', null, wonFull(p.revenue)], ['결제 건수', null, `${p.paid}건`]], { money: true })}
-      ${avgPoints.length ? `<h3 class="chart-title">${who}건당 평균 결제액 <span>매출 ÷ 금액이 적힌 결제 건수</span></h3>
-      ${lineChart(avgPoints, 'avg', CHART_NEW, '월별 건당 평균 결제액', { money: true })}` : ''}`
-      : `<p class="empty">${esc(coach)} 코치의 장부에 이 기간 매출 기록이 없습니다. 기간을 '전체'로 바꿔 보세요.</p>`}
-      ${byCoach && byCoach.points.length ? `<h3 class="chart-title">코치별 매출 <span>코치 이름을 누르면 그 코치만 봅니다</span></h3>
-      ${multiLineChart(byCoach.points, byCoach.series, '코치별 월별 매출', { money: true })}` : ''}
+      <h3 class="chart-title">${who}월별 개인매출 <span>장부 월별 탭의 개인매출 · 기간 합계 ${wonFull(sum)} · 월평균 ${wonFull(Math.round(sum / points.length))}</span></h3>
+      ${barChart(points, 'revenue', SERIES_COLORS[0], '월별 개인매출', { money: true })}`
+      : `<p class="empty">${esc(coach)} 코치의 장부에 이 기간 개인매출 기록이 없습니다. 기간을 '전체'로 바꿔 보세요.</p>`}
+      ${byCoach && byCoach.points.length ? `<h3 class="chart-title">코치별 개인매출 <span>코치 이름을 누르면 그 코치만 봅니다</span></h3>
+      ${multiLineChart(byCoach.points, byCoach.series, '코치별 월별 개인매출', { money: true })}` : ''}
       ${!coach ? revenueCoachTable(perCoach, hist.latest) : ''}
-      <p class="chart-note">코치 장부 ${hist.books}권(${hist.coaches.map(esc).join(' · ')})의 월별 탭에서 <b>등록일자가 그 달인 행의 결제 금액</b>을 더했습니다. 한 달에 두 번 결제하면 두 번 모두 셉니다. 신규·재등록은 등록분류로 나눕니다.${unpaid ? ` 이 기간 등록 ${unpaid}건은 결제 금액이 비어 있어 빠졌습니다.` : ''}${inProgress ? ' 이번 달은 장부가 입력 중이면 적게 보일 수 있습니다.' : ''} ${new Date(hist.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 불러옴.${error}</p>
+      <p class="chart-note">코치 장부 ${hist.books}권(${hist.coaches.map(esc).join(' · ')})의 월별 탭마다 <b>개인매출</b> 칸 아래의 금액을 읽어 더했습니다.${missing.length ? ` 개인매출 칸을 찾지 못한 탭 ${missing.length}개는 빠져 있습니다: ${missing.slice(0, 6).map(esc).join(', ')}${missing.length > 6 ? ' …' : ''}.` : ''}${inProgress ? ' 이번 달은 장부가 입력 중이면 적게 보일 수 있습니다.' : ''} ${new Date(hist.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 불러옴.${error}</p>
       ${historyCheckTable()}
       ${points.length ? `<details class="chart-table"><summary>표로 보기</summary>
-        <div class="table-wrap"><table><thead><tr><th>월</th><th>매출</th><th>신규</th><th>재등록</th>${hasOther ? '<th>기타</th>' : ''}<th>결제 건수</th><th>건당 평균</th>${unpaid ? '<th>금액 없음</th>' : ''}${byCoach ? byCoach.series.map((s) => `<th>${esc(s.label)}</th>`).join('') : ''}</tr></thead>
+        <div class="table-wrap"><table><thead><tr><th>월</th><th>개인매출</th>${byCoach ? byCoach.series.map((s) => `<th>${esc(s.label)}</th>`).join('') : ''}</tr></thead>
         <tbody>${points.slice().reverse().map((p) => {
           const c = byCoach && byCoach.points.find((q) => q.m === p.m);
-          return `<tr><td>${esc(p.m)}</td><td>${wonFull(p.revenue)}</td><td>${wonFull(p.revNew)}</td><td>${wonFull(p.revRenew)}</td>${hasOther ? `<td>${wonFull(p.revOther)}</td>` : ''}<td>${p.paid}건</td><td>${p.avg == null ? '—' : wonFull(p.avg)}</td>${unpaid ? `<td>${p.unpaid}건</td>` : ''}${byCoach ? byCoach.series.map((s) => `<td>${c && c[s.key] != null ? wonFull(c[s.key]) : '—'}</td>`).join('') : ''}</tr>`;
+          return `<tr><td>${esc(p.m)}</td><td>${wonFull(p.revenue)}${p.missing.length ? ` <span class="muted-note">(${p.missing.map(esc).join(', ')} 없음)</span>` : ''}</td>${byCoach ? byCoach.series.map((s) => `<td>${c && c[s.key] != null ? wonFull(c[s.key]) : '—'}</td>`).join('') : ''}</tr>`;
         }).join('')}</tbody></table></div>
       </details>` : ''}
     </div>`;
   }
 
-  // Year over year for revenue: one line per year across 1월–12월, following the 담당강사
-  // filter of 매출 추이. Flows (매출, 신규, 재등록) compare the year to date; 건당 평균, the latest month.
-  const REV_YOY_METRICS = [
-    { key: 'revenue', label: '매출', flow: true },
-    { key: 'revNew', label: '신규 매출', flow: true },
-    { key: 'revRenew', label: '재등록 매출', flow: true },
-    { key: 'avg', label: '건당 평균', flow: false },
-  ];
+  // Year over year for 개인매출: one line per year across 1월–12월, following the 담당강사
+  // filter of 개인매출 추이; the headline compares the year to date with the same months last year.
   function revenueYoyPanel() {
     const rows = (historyCache && historyCache.months) || [];
-    if (!rows.some((r) => r.revenue != null)) return '';
+    if (!rows.some((r) => r.personal != null)) return '';
     const coach = state.revCoach && rows.some((r) => r.coach === state.revCoach) ? state.revCoach : '';
     const series = revenueSeries(rows, coach);
     const years = [...new Set(series.map((p) => p.m.slice(0, 4)))].sort().reverse();
     if (years.length < 2) return '';
     const shown = years.slice(0, 3);
-    const metric = REV_YOY_METRICS.find((m) => m.key === state.revYoyMetric) || REV_YOY_METRICS[0];
-    const at = (y, mo) => { const p = series.find((q) => q.m === `${y}-${String(mo).padStart(2, '0')}`); return p && p[metric.key] != null ? p[metric.key] : null; };
+    const at = (y, mo) => { const p = series.find((q) => q.m === `${y}-${String(mo).padStart(2, '0')}`); return p ? p.revenue : null; };
     const points = Array.from({ length: 12 }, (_, i) => { const p = { m: String(i + 1) }; shown.forEach((y) => { p[y] = at(y, i + 1); }); return p; });
     const lines = shown.map((y, i) => ({ key: y, label: `${y}년`, color: SERIES_COLORS[i] }));
     const [cur, prev] = shown;
     let lastMo = 12; while (lastMo > 0 && at(cur, lastMo) == null) lastMo--;
     let head = '';
     if (lastMo) {
-      if (metric.flow) {
-        const sum = (y) => { let t = 0, any = false; for (let mo = 1; mo <= lastMo; mo++) { const v = at(y, mo); if (v != null) { t += v; any = true; } } return any ? t : null; };
-        const a = sum(cur), b = sum(prev);
-        head = `${cur}년 1–${lastMo}월 ${metric.label} ${wonFull(a)}${b == null ? '' : ` · 전년 동기 ${wonFull(b)} (${wonDiff(a, b)})`}`;
-      } else {
-        const a = at(cur, lastMo), b = at(prev, lastMo);
-        head = `${lastMo}월 ${metric.label} ${wonFull(a)}${b == null ? '' : ` · 전년 ${lastMo}월 ${wonFull(b)} (${wonDiff(a, b)})`}`;
-      }
+      const sum = (y) => { let t = 0, any = false; for (let mo = 1; mo <= lastMo; mo++) { const v = at(y, mo); if (v != null) { t += v; any = true; } } return any ? t : null; };
+      const a = sum(cur), b = sum(prev);
+      head = `${cur}년 1–${lastMo}월 개인매출 ${wonFull(a)}${b == null ? '' : ` · 전년 동기 ${wonFull(b)} (${wonDiff(a, b)})`}`;
     }
-    const chip = (m) => `<button class="chip ${m.key === metric.key ? 'on' : ''}" data-rev-yoy="${m.key}">${esc(m.label)}</button>`;
     return `<div class="panel chart-panel">
       <div class="chart-head">
-        <h2>매출 전년 비교 <span class="muted-note">${coach ? esc(coach) + ' · ' : ''}${head}</span></h2>
-        <div class="chips">${REV_YOY_METRICS.map(chip).join('')}</div>
+        <h2>개인매출 전년 비교 <span class="muted-note">${coach ? esc(coach) + ' · ' : ''}${head}</span></h2>
       </div>
-      ${multiLineChart(points, lines, `연도별 월별 ${metric.label}`, { tick: (p) => `${p.m}월`, money: true })}
-      <p class="chart-note">같은 달끼리 비교합니다. 매출이 집계된 장부만 세므로, 기록이 없는 달은 비어 있습니다.${years.length > 3 ? ` 최근 3년만 표시합니다 (${years.slice(3).join(', ')}년 제외).` : ''} 담당강사 필터는 위 매출 추이에서 바꿉니다.</p>
+      ${multiLineChart(points, lines, '연도별 월별 개인매출', { tick: (p) => `${p.m}월`, money: true })}
+      <p class="chart-note">같은 달끼리 비교합니다. 개인매출을 읽은 장부만 세므로, 기록이 없는 달은 비어 있습니다.${years.length > 3 ? ` 최근 3년만 표시합니다 (${years.slice(3).join(', ')}년 제외).` : ''} 담당강사 필터는 위 개인매출 추이에서 바꿉니다.</p>
       <details class="chart-table"><summary>표로 보기</summary>
         <div class="table-wrap"><table><thead><tr><th>월</th>${shown.map((y) => `<th>${y}년</th>`).join('')}<th>전년 대비</th></tr></thead>
         <tbody>${points.map((p) => `<tr><td>${p.m}월</td>${shown.map((y) => `<td>${p[y] == null ? '—' : wonFull(p[y])}</td>`).join('')}<td>${wonDiff(p[cur], p[prev])}</td></tr>`).join('')}</tbody></table></div>
@@ -1673,7 +1705,7 @@
   }
 
   // ---------- Views ----------
-  const state = { view: 'dashboard', q: '', filter: '', trendMonths: 12, trendCoach: '', yoyMetric: 'active', revMonths: 12, revCoach: '', revYoyMetric: 'revenue', tables: {
+  const state = { view: 'dashboard', q: '', filter: '', trendMonths: 12, trendCoach: '', yoyMetric: 'active', revMonths: 12, revCoach: '', tables: {
     members: { sort: { k: 'name', dir: 1 }, colFilters: {}, initial: 20, limit: 20 },
     leads: { sort: { k: 'inqDate', dir: -1 }, colFilters: {}, initial: 10, limit: 10 },
   } };
@@ -3004,9 +3036,6 @@
     });
     viewEl.querySelectorAll('[data-rev-coach]').forEach((el) => {
       el.onclick = () => { state.revCoach = el.dataset.revCoach; render(); };
-    });
-    viewEl.querySelectorAll('[data-rev-yoy]').forEach((el) => {
-      el.onclick = () => { state.revYoyMetric = el.dataset.revYoy; render(); };
     });
     viewEl.querySelectorAll('[data-churn-class]').forEach((el) => {
       el.onclick = () => { state.churnClass = el.dataset.churnClass; render(); };
