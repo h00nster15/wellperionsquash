@@ -42,12 +42,18 @@ figcaption code { color: var(--muted); font-size: 12px; }
 .lightbox .bar { display: flex; gap: 10px; align-items: center; color: #FFFFFF; font-size: 15px; }
 .lightbox button { font: inherit; font-weight: 700; border: 1px solid rgba(255,255,255,0.5); background: transparent; color: #FFFFFF; border-radius: 999px; padding: 8px 16px; cursor: pointer; min-height: 40px; }
 .lightbox button:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+.fonts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; }
+.fonts b { font-size: 14px; margin-right: 4px; }
+.fonts button { font: inherit; font-size: 13px; font-weight: 700; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer; min-height: 36px; }
+.fonts button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.fonts button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 footer { padding-block: 40px; color: var(--muted); font-size: 13px; }
 </style>
 
 <header class="top"><div class="wrap">
   <h1>웰페리온 인스타그램 카드</h1>
   <p>모든 카드는 1080×1080 정사각형입니다. 카드를 누르면 크게 볼 수 있고, 좌우 화살표 키로 넘겨볼 수 있어요.</p>
+  <div class="fonts" id="fonts" role="group" aria-label="글꼴 시안"><b>글꼴 시안</b></div>
 </div></header>
 <nav class="tabs" aria-label="테마"><div class="wrap" id="tabs"></div></nav>
 <main class="wrap" id="main"></main>
@@ -64,7 +70,38 @@ const groups = JSON.parse(document.getElementById('cards').textContent);
 const flat = [];
 const tabs = document.getElementById('tabs');
 const main = document.getElementById('main');
-const docFor = c => c.doc.split('LOGO_SRC').join(LOGO);
+const docFor = c => withFont(c.doc.split('LOGO_SRC').join(LOGO));
+
+// Font options under review — injected into each card; the card files themselves are unchanged.
+const FONT_LINKS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Cormorant+Garamond:wght@500;600&family=Instrument+Serif&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">';
+const LIGHTER = '.p,.s{font-weight:300!important}.pl,.ct{font-weight:500!important;letter-spacing:0.04em}';
+const PRETENDARD = ".f,.f *{font-family:'Pretendard',sans-serif!important}[style*=\"font-weight: 900\"]{font-weight:700!important}.p,.s{font-weight:400!important;color:#5A5F5C!important}.pl,.ct{font-weight:500!important;letter-spacing:0.02em}";
+const FONTS = [
+  { id: 'A', name: 'A · 지금 (고딕 900)', css: '' },
+  { id: 'B', name: 'B · 명조 제목 + 고딕 본문', css: LIGHTER + ".h,.t{font-family:'Noto Serif KR',serif!important;font-weight:600!important}.h{letter-spacing:-0.02em!important;line-height:1.22!important}.k{font-weight:500!important;letter-spacing:0.12em!important;font-size:24px!important}.n{font-family:'Cormorant Garamond','Noto Serif KR',serif!important;font-weight:600!important;font-size:26px!important}" },
+  { id: 'C', name: 'C · 전체 명조', css: ".f,.f *{font-family:'Noto Serif KR',serif!important}.h{font-weight:600!important;letter-spacing:-0.02em!important;line-height:1.22!important}.k{font-weight:500!important;letter-spacing:0.14em!important;font-size:24px!important}.t{font-weight:600!important}.pl,.ct{font-weight:500!important;letter-spacing:0.04em}" },
+  { id: 'D', name: 'D · 가벼운 고딕', css: LIGHTER + ".h{font-weight:600!important;letter-spacing:-0.03em!important;line-height:1.2!important}.k{font-weight:500!important;letter-spacing:0.14em!important;font-size:24px!important}.t{font-weight:600!important}.n{font-weight:500!important}" },
+  { id: 'E', name: 'E · 프리텐다드 + 세리프 숫자', css: PRETENDARD + ".h{font-weight:700!important;letter-spacing:-0.035em!important;line-height:1.16!important}[style*=\"font-size: 1\"],.k{font-family:'Instrument Serif','Pretendard',serif!important}.k{font-weight:500!important;font-size:26px!important;letter-spacing:0.06em!important}.n{font-family:'Instrument Serif',serif!important;font-weight:400!important;font-size:30px!important;font-style:italic}" },
+  { id: 'F', name: 'F · 프리텐다드 세미볼드', css: PRETENDARD + ".h{font-weight:600!important;letter-spacing:-0.04em!important;line-height:1.15!important}.k{font-weight:600!important;letter-spacing:0.16em!important;font-size:21px!important}.t,.n{font-weight:600!important}" },
+  { id: 'G', name: 'G · 얇고 큰 제목', css: PRETENDARD + ".h{font-weight:300!important;letter-spacing:-0.045em!important;line-height:1.12!important}.k{font-weight:500!important;letter-spacing:0.18em!important;font-size:20px!important}.t{font-weight:600!important}.n{font-weight:500!important}[style*=\"font-weight: 900\"]{font-weight:600!important}" },
+];
+let font = FONTS[0];
+try { font = FONTS.find(x => x.id === (new URLSearchParams(location.search).get('font') || localStorage.getItem('cardFont'))) || font; } catch (e) {}
+function withFont(doc) { return font.css ? doc.replace('<style>', FONT_LINKS + '<style>' + font.css + '\n') : doc; }
+const fontBar = document.getElementById('fonts');
+for (const x of FONTS) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = x.name; b.dataset.id = x.id;
+  b.addEventListener('click', () => setFont(x));
+  fontBar.appendChild(b);
+}
+function setFont(x) {
+  font = x;
+  try { localStorage.setItem('cardFont', x.id); } catch (e) {}
+  fontBar.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.id === x.id));
+  document.querySelectorAll('.frame iframe').forEach((fr, i) => { fr.srcdoc = docFor(flat[i]); });
+  if (!lb.hidden) show(cur);
+}
 
 function makeFrame(card) {
   const f = document.createElement('iframe');
@@ -139,4 +176,5 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') show(cur - 1);
 });
 window.addEventListener('resize', () => { if (!lb.hidden) sizeBig(); });
+fontBar.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.id === font.id));
 </script>
