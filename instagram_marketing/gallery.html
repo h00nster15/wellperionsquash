@@ -36,6 +36,7 @@ figcaption { display: flex; justify-content: space-between; gap: 12px; font-size
 figcaption b { font-weight: 700; }
 figcaption code { color: var(--muted); font-size: 12px; }
 .lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(10, 12, 11, 0.86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.lightbox[hidden] { display: none; }
 .lightbox .big { position: relative; overflow: hidden; border-radius: 8px; background: #FFFFFF; }
 .lightbox .big iframe { position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; border: 0; transform-origin: 0 0; }
 .lightbox .bar { display: flex; gap: 10px; align-items: center; color: #FFFFFF; font-size: 15px; }
