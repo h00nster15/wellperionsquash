@@ -112,6 +112,18 @@ button.danger { background: var(--card); color: var(--bad); border: 1px solid va
 .chart-legend em { font-style: normal; opacity: .8; }
 .chart-legend i.sq { width: 10px; height: 10px; border-radius: 2px; }
 .coach-chips { align-items: center; margin-top: 10px; }
+/* 회원구분 비율: one 100% bar per coach, the shares written beside it */
+.mix-bars { display: grid; gap: 12px; margin: 8px 0 4px; }
+.mix-row { display: grid; grid-template-columns: 110px 1fr; gap: 4px 12px; align-items: center; font-size: 13px; }
+.mix-name { font-weight: 600; }
+.mix-bar { display: flex; gap: 2px; height: 14px; }
+.mix-bar i { min-width: 2px; }
+.mix-bar i:first-child { border-radius: 4px 0 0 4px; }
+.mix-bar i:last-child { border-radius: 0 4px 4px 0; }
+.mix-bar i:only-child { border-radius: 4px; }
+.mix-vals { grid-column: 2; font-size: 12px; color: var(--muted); }
+.mix-vals strong { color: var(--ink); font-weight: 600; }
+@media (max-width: 600px) { .mix-row { grid-template-columns: 1fr; } .mix-vals { grid-column: 1; } }
 .progress-wrap { display: flex; align-items: center; gap: 10px; margin: 12px 0 2px; font-size: 12px; color: var(--muted); }
 #sync-progress { margin: -4px 0 14px; }
 .progress { position: relative; flex: 1; max-width: 420px; height: 6px; border-radius: 999px; background: var(--hover); overflow: hidden; }

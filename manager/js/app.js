@@ -1506,6 +1506,118 @@
     </div>`;
   }
 
+  // ---------- 회원구분 비율 (Dashboard) ----------
+  // Each month's roster split by 회원구분 — 정회원 · 비회원 · WSC — as shares of 100%, from the
+  // same coach books as 회원 추이 (byType = people per 회원구분 in one coach's month tab).
+  // 월별 follows the 담당강사 filter and period above; 코치별 puts the coaches side by side.
+  // Colours are the 이탈 chart's (CHURN_CLASSES), so a class keeps its colour across the page.
+  const MIX_CLASSES = [{ k: 'M', label: '정회원' }, { k: 'N', label: '비회원' }, { k: 'J', label: 'WSC' }, { k: 'O', label: '그 외' }]
+    .map((c) => Object.assign({}, c, { color: CHURN_CLASSES.find((x) => x.k === c.k).color }));
+  // Same rule as memberClass_ in Months.gs; a blank cell arrives as "미분류" → 그 외.
+  const typeClass = (t) => (isJuniorType(t) ? 'J' : /비회원/.test(t) ? 'N' : /회원/.test(t) ? 'M' : 'O');
+  function mixSeries(rows, coach) {
+    const by = {};
+    rows.filter((r) => !coach || r.coach === coach).forEach((r) => {
+      const p = by[r.month] || (by[r.month] = { m: r.month, M: 0, N: 0, J: 0, O: 0, total: 0 });
+      Object.entries(r.byType || {}).forEach(([t, n]) => { p[typeClass(t)] += n; p.total += n; });
+    });
+    return Object.keys(by).sort().map((m) => by[m]).filter((p) => p.total > 0);
+  }
+  const shareOf = (p, k) => (p && p.total ? p[k] / p.total : null);
+  const pct0 = (r) => (r == null ? '—' : `${Math.round(100 * r)}%`);
+
+  // 100% columns, one per month (stackedBarChart's geometry): shares on the axis, counts in the tooltip.
+  function shareChart(points, classes, label, height = 190) {
+    const W = 1500, H = height, L = 56, R = 34, T = 16, B = 34;
+    const iw = W - L - R, ih = H - T - B, n = points.length;
+    const band = iw / n, bw = Math.min(24, Math.max(3, band - 2));
+    const y = (f) => T + ih - ih * f;
+    const step = Math.ceil(n / 12);
+    const bars = (p, i) => {
+      const bx = L + band * i + (band - bw) / 2;
+      const segs = classes.filter((c) => p[c.k] > 0);
+      let base = 0;
+      return segs.map((c, k) => {
+        const f0 = base, f1 = base + p[c.k] / p.total; base = f1;
+        const top = k === segs.length - 1;
+        const y1 = y(f1) + (top ? 0 : 1), y0 = y(f0) - (k ? 1 : 0); // 2px of surface between segments
+        if (y0 - y1 < 0.5) return '';
+        const r = top ? Math.min(4, bw / 2, y0 - y1) : 0;
+        return `<path d="M${bx.toFixed(1)},${(y1 + r).toFixed(1)} a${r},${r} 0 0 1 ${r},${-r} h${(bw - 2 * r).toFixed(1)} a${r},${r} 0 0 1 ${r},${r} V${y0.toFixed(1)} H${bx.toFixed(1)} Z" fill="${c.color}"/>`;
+      }).join('');
+    };
+    const tipRows = (p) => classes.map((c) => [c.label, c.color, `${p[c.k]}명 · ${pct0(shareOf(p, c.k))}`]).concat([['합계', null, `${p.total}명`]]);
+    return `<figure class="chart">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${[0, 0.5, 1].map((f) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(f).toFixed(1)}" y2="${y(f).toFixed(1)}"/><text class="tick" x="${L - 8}" y="${(y(f) + 4).toFixed(1)}" text-anchor="end">${100 * f}%</text>`).join('')}
+        ${points.map(bars).join('')}
+        ${monthTicks(points, step).map((t) => `<text class="tick" x="${(L + band * t.i + band / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(t.text)}</text>`).join('')}
+        ${points.map((p, i) => `<rect class="hit" tabindex="0" data-x="${(L + band * i + band / 2).toFixed(1)}" data-y="${T}" data-label="${esc(p.m)}" data-rows="${esc(JSON.stringify(tipRows(p)))}" x="${(L + band * i).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ih}" fill="transparent"/>`).join('')}
+      </svg>
+      <div class="chart-tip" hidden></div>
+    </figure>`;
+  }
+
+  // One horizontal 100% bar per coach, the shares written out beside it (never colour alone).
+  function mixBars(list, classes) {
+    return `<div class="mix-bars">${list.map(({ label, p }) => `<div class="mix-row">
+      <span class="mix-name">${esc(label)}</span>
+      <div class="mix-bar" role="img" aria-label="${esc(`${label}: ${classes.map((c) => `${c.label} ${p[c.k]}명`).join(', ')}`)}">${classes.filter((c) => p[c.k] > 0).map((c) => `<i style="flex:${p[c.k]} 0 0;background:${c.color}" title="${esc(`${c.label} ${p[c.k]}명 (${pct0(shareOf(p, c.k))})`)}"></i>`).join('')}</div>
+      <span class="mix-vals">${classes.map((c) => `${esc(c.label)} <strong>${pct0(shareOf(p, c.k))}</strong> <span class="muted-note">${p[c.k]}명</span>`).join(' · ')} · 합계 ${p.total}명</span>
+    </div>`).join('')}</div>`;
+  }
+
+  function mixPanel() {
+    const rows = (historyCache && historyCache.months) || [];
+    const hist = rows.length ? historyTrend(state.trendMonths, state.trendCoach) : null;
+    if (!hist) return '';
+    const coach = hist.coaches.includes(state.trendCoach) ? state.trendCoach : '';
+    const points = mixSeries(rows, coach).filter(hist.inRange);
+    if (!points.length) return '';
+    const view = state.mixView === 'coach' ? 'coach' : 'month';
+    const perCoach = hist.coaches.map((c) => ({ coach: c, current: hist.current.includes(c), points: mixSeries(rows, c).filter(hist.inRange) })).filter((c) => c.points.length);
+    const classes = MIX_CLASSES.filter((c) => c.k !== 'O' || points.some((p) => p.O) || perCoach.some((x) => x.points.some((p) => p.O)));
+    const last = points[points.length - 1];
+    const who = coach ? `${esc(coach)} · ` : '';
+    const chip = (v, l) => `<button class="chip ${view === v ? 'on' : ''}" data-mix="${v}">${l}</button>`;
+    const cell = (p, k) => `${p[k]} <span class="muted-note">${pct0(shareOf(p, k))}</span>`;
+    // Shares over the whole period: every month's people added up, then divided.
+    const pooled = (pts) => pts.reduce((a, p) => { classes.forEach((c) => { a[c.k] += p[c.k]; }); a.total += p.total; return a; }, { M: 0, N: 0, J: 0, O: 0, total: 0 });
+    let body;
+    if (view === 'month') {
+      body = `<h3 class="chart-title">${who}월별 회원구분 비율 <span>그 달 장부 명부의 회원 · 막대 하나 = 100%</span></h3>
+      <div class="chart-legend">${classes.map((c) => `<span><i class="sq" style="background:${c.color}"></i>${esc(c.label)}</span>`).join('')}</div>
+      ${shareChart(points, classes, '월별 회원구분 비율')}
+      <details class="chart-table"><summary>표로 보기</summary>
+        <div class="table-wrap"><table><thead><tr><th>월</th><th>회원</th>${classes.map((c) => `<th>${esc(c.label)}</th>`).join('')}</tr></thead>
+        <tbody>${points.slice().reverse().map((p) => `<tr><td>${esc(p.m)}</td><td>${p.total}</td>${classes.map((c) => `<td>${cell(p, c.k)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      </details>`;
+    } else {
+      const m = hist.latest;
+      const now = perCoach.map((c) => ({ label: c.coach + (c.current ? '' : ' (이전)'), p: c.points.find((p) => p.m === m) })).filter((x) => x.p);
+      const all = mixSeries(rows, '').find((p) => p.m === m);
+      if (all && now.length > 1) now.push({ label: '전체', p: all });
+      body = `<h3 class="chart-title">코치별 회원구분 비율 · ${esc(m)} <span>그 달 장부 명부의 회원</span></h3>
+      <div class="chart-legend">${classes.map((c) => `<span><i class="sq" style="background:${c.color}"></i>${esc(c.label)}</span>`).join('')}</div>
+      ${now.length ? mixBars(now, classes) : `<p class="empty">${esc(m)} 장부가 아직 없습니다.</p>`}
+      ${perCoach.filter((c) => c.points.length > 1).map((c) => `<h3 class="chart-title">${esc(c.coach)}${c.current ? '' : ' (이전)'} · 월별 <span>${c.points.length}개월</span></h3>
+      ${shareChart(c.points, classes, `${c.coach} 월별 회원구분 비율`, 150)}`).join('')}
+      <details class="chart-table"><summary>표로 보기</summary>
+        <div class="table-wrap"><table><thead><tr><th>담당강사</th><th>${esc(m)} 회원</th>${classes.map((c) => `<th>${esc(c.label)} ${esc(m.slice(5))}월</th>`).join('')}${classes.map((c) => `<th>${esc(c.label)} 기간</th>`).join('')}</tr></thead>
+        <tbody>${perCoach.map((c) => { const p = c.points.find((q) => q.m === m); const pool = pooled(c.points);
+          return `<tr${c.current ? '' : ' style="color:var(--muted)"'}><td>${esc(c.coach)}${c.current ? '' : ' <span class="muted-note">(이전)</span>'}</td><td>${p ? p.total : '—'}</td>${classes.map((x) => `<td>${p ? cell(p, x.k) : '—'}</td>`).join('')}${classes.map((x) => `<td>${pct0(shareOf(pool, x.k))}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div>
+      </details>`;
+    }
+    return `<div class="panel chart-panel">
+      <div class="chart-head">
+        <h2>회원구분 비율 <span class="muted-note">${who}${esc(last.m)} · ${classes.map((c) => `${esc(c.label)} ${pct0(shareOf(last, c.k))}`).join(' · ')} (${last.total}명)</span></h2>
+        <div class="chips">${chip('month', '월별')}${chip('coach', '코치별')}</div>
+      </div>
+      ${body}
+      <p class="chart-note">회원구분은 장부의 회원구분 칸 그대로입니다 (WSC = 주니어${classes.some((c) => c.k === 'O') ? ', 빈칸·그 밖의 값 = 그 외' : ''}). 한 사람은 한 코치의 한 달에 한 번 셉니다${coach ? '' : '. 두 코치에게 등록한 사람은 전체에서 두 번 셉니다'}. ${view === 'month' ? '기간과 담당강사는 위 회원 추이에서 바꿉니다.' : `기간은 위 회원 추이에서 바꿉니다 · "기간" 열은 그 기간 모든 달을 합쳐 낸 비율입니다.`}</p>
+    </div>`;
+  }
+
   // ---------- Year over year (Dashboard) ----------
   // One line per year across 1월–12월, for the metric picked above the chart; follows the
   // 담당강사 filter. The latest three years are drawn (three hues stay apart for colour-blind
@@ -2421,6 +2533,7 @@
           ${card(upcoming.length, 'Upcoming events')}
         </div>
         ${trendPanel(cs.filter((c) => !isLead(c) && !isClub(c)))}
+        ${mixPanel()}
         ${yoyPanel()}
         <div class="two-col">
           <div class="panel"><h2>오늘 수업 ${schedCache ? `<span class="pill">${todaysBookings().length}건</span>` : ''}</h2>${schedCache
@@ -3036,6 +3149,9 @@
     });
     viewEl.querySelectorAll('[data-rev-coach]').forEach((el) => {
       el.onclick = () => { state.revCoach = el.dataset.revCoach; render(); };
+    });
+    viewEl.querySelectorAll('[data-mix]').forEach((el) => {
+      el.onclick = () => { state.mixView = el.dataset.mix; render(); };
     });
     viewEl.querySelectorAll('[data-churn-class]').forEach((el) => {
       el.onclick = () => { state.churnClass = el.dataset.churnClass; render(); };
