@@ -1515,12 +1515,27 @@
     .map((c) => Object.assign({}, c, { color: CHURN_CLASSES.find((x) => x.k === c.k).color }));
   // Same rule as memberClass_ in Months.gs; a blank cell arrives as "미분류" → 그 외.
   const typeClass = (t) => (isJuniorType(t) ? 'J' : /비회원/.test(t) ? 'N' : /회원/.test(t) ? 'M' : 'O');
+  // One coach: their month tab's byType, which adds up to that coach's 활동 회원. Everyone: unique
+  // people by class, so it adds up to 회원 추이's 활동 회원 — the script's peopleBy, or else the
+  // next month's baseBy (last month's unique roster by class, sent for dropout). A month with
+  // neither (the newest, before the script sends peopleBy) keeps the coaches' sum, flagged `summed`.
   function mixSeries(rows, coach) {
     const by = {};
     rows.filter((r) => !coach || r.coach === coach).forEach((r) => {
-      const p = by[r.month] || (by[r.month] = { m: r.month, M: 0, N: 0, J: 0, O: 0, total: 0 });
+      const p = by[r.month] || (by[r.month] = { m: r.month, M: 0, N: 0, J: 0, O: 0, total: 0, summed: !coach });
       Object.entries(r.byType || {}).forEach(([t, n]) => { p[typeClass(t)] += n; p.total += n; });
     });
+    if (!coach) {
+      const totals = (historyCache && historyCache.totals) || [];
+      const unique = (m) => { const d = totals.find((t) => t.month === m), next = totals.find((t) => t.month === ymAdd(m, 1));
+        return (d && d.peopleBy) || (next && next.baseBy) || null; };
+      Object.values(by).forEach((p) => {
+        const u = unique(p.m);
+        if (!u) return;
+        Object.assign(p, { M: u.M || 0, N: u.N || 0, J: u.J || 0, O: u.O || 0, summed: false });
+        p.total = p.M + p.N + p.J + p.O;
+      });
+    }
     return Object.keys(by).sort().map((m) => by[m]).filter((p) => p.total > 0);
   }
   const shareOf = (p, k) => (p && p.total ? p[k] / p.total : null);
@@ -1614,7 +1629,7 @@
         <div class="chips">${chip('month', '월별')}${chip('coach', '코치별')}</div>
       </div>
       ${body}
-      <p class="chart-note">회원구분은 장부의 회원구분 칸 그대로입니다 (WSC = 주니어${classes.some((c) => c.k === 'O') ? ', 빈칸·그 밖의 값 = 그 외' : ''}). 한 사람은 한 코치의 한 달에 한 번 셉니다${coach ? '' : '. 두 코치에게 등록한 사람은 전체에서 두 번 셉니다'}. ${view === 'month' ? '기간과 담당강사는 위 회원 추이에서 바꿉니다.' : `기간은 위 회원 추이에서 바꿉니다 · "기간" 열은 그 기간 모든 달을 합쳐 낸 비율입니다.`}</p>
+      <p class="chart-note">회원구분은 장부의 회원구분 칸 그대로입니다 (WSC = 주니어${classes.some((c) => c.k === 'O') ? ', 빈칸·그 밖의 값 = 그 외' : ''}). 인원 합계는 회원 추이의 활동 회원과 같습니다: 한 사람은 한 달에 한 번, 두 코치에게 등록한 사람도 전체에서는 한 번 셉니다${points.some((p) => p.summed) ? ` (${points.filter((p) => p.summed).map((p) => esc(p.m)).join(', ')}은 코치별 합이라 두 번 셀 수 있음 — 장부 새로고침 후 맞춰집니다)` : ''}.${view === 'month' ? '기간과 담당강사는 위 회원 추이에서 바꿉니다.' : `기간은 위 회원 추이에서 바꿉니다 · "기간" 열은 그 기간 모든 달을 합쳐 낸 비율입니다.`}</p>
     </div>`;
   }
 
