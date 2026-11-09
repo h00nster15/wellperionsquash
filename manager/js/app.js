@@ -1116,7 +1116,40 @@
       } catch (err) { errors.push(`${t.coach} ${t.tab}: ${err.message || err}`); }
     }));
     rosterCache[month] = { loading: false, rows, errors };
-    if (state.view === 'customers' && state.rosterMonth === month) render();
+    if (state.view === 'customers' && (state.rosterMonth === month || state.rosterMonth === ymAdd(month, 1))) render();
+  }
+  // ---------- 이탈 회원: who was on last month's books and is on none this month ----------
+  // Same rule and key as dropout_ in Months.gs (club-wide, personKey_), so the list matches the
+  // 이탈 count. Both months are read live from the books, as above; names stay in this page.
+  const leaverKey = (c) => String(labelOf('customers', c) || '').replace(/[[(（【][^)]）】]*[)]）】]/g, '').replace(/[0-9]+/g, '').replace(/s+/g, '').trim();
+  function leaversOf(month) {
+    const prev = ymAdd(month, -1), now = rosterCache[month], before = rosterCache[prev];
+    if (!rosterMonths().includes(prev)) return { prev, rows: null };
+    if (!before) loadRoster(prev);
+    if (!now || !now.rows || !before || !before.rows) return { prev, loading: true };
+    const stay = new Set(now.rows.map(leaverKey));
+    const seen = new Map();
+    before.rows.forEach((c) => {
+      const k = leaverKey(c);
+      if (!k || stay.has(k)) return;
+      const hit = seen.get(k);
+      if (!hit) seen.set(k, Object.assign({}, c, { coaches: [c.coach] }));
+      else if (!hit.coaches.includes(c.coach)) hit.coaches.push(c.coach);
+    });
+    return { prev, rows: [...seen.values()].sort((a, b) => String(a.coaches[0]).localeCompare(String(b.coaches[0])) || labelOf('customers', a).localeCompare(labelOf('customers', b), 'ko')), errors: before.errors };
+  }
+  function leaversHtml(month) {
+    const L = leaversOf(month);
+    if (L.rows === null) return '';
+    const title = `<h2>이탈 회원 <span class="muted-note">${L.prev.replace('-', '년 ')}월 명부에 있었는데 ${month.replace('-', '년 ')}월 명부에는 없는 회원</span></h2>`;
+    if (L.loading) return `<section class="leavers">${title}${progressHtml(null, `${L.prev} 명단 읽는 중…`, '명단 읽는 중')}</section>`;
+    if (!L.rows.length) return `<section class="leavers">${title}<p class="empty">이탈 회원이 없습니다.</p></section>`;
+    const td = (v) => `<td>${v ? esc(v) : '—'}</td>`;
+    return `<section class="leavers">${title.replace('</span></h2>', ` · ${L.rows.length}명</span></h2>`)}
+      ${L.errors && L.errors.length ? `<p class="chart-note" style="color:var(--bad)">${L.errors.map(esc).join('<br>')}</p>` : ''}
+      <div class="table-wrap" style="margin-bottom:14px"><table><thead><tr><th>이름</th><th>담당강사</th><th>회원구분</th><th>연락처</th><th>등록일자</th><th>유효기간</th><th>잔여 세션</th></tr></thead><tbody>
+      ${L.rows.map((c) => `<tr>${td(labelOf('customers', c))}${td(c.coaches.join(', '))}${td(c.segment)}${td(c.phone || c.guardianPhone)}${td(c.joined)}${td(c.validUntil)}${td(c.sessionsLeft)}</tr>`).join('')}
+      </tbody></table></div></section>`;
   }
   const monthSelect = () => {
     const months = rosterMonths();
@@ -1160,7 +1193,7 @@
     }
     const nf = activeFilters(tbl('roster'));
     const extra = `${monthSelect()}${nf ? `<button class="ghost" id="btn-clear-roster-filters">필터 해제 (${nf})</button>` : ''}${cached && cached.rows ? '<button class="ghost" id="btn-roster-csv">이 달 CSV</button>' : ''}`;
-    return head(`Members · ${month.replace('-', '년 ')}월`, extra) + summary + body;
+    return head(`Members · ${month.replace('-', '년 ')}월`, extra) + summary + (cached && cached.rows ? leaversHtml(month) : '') + body;
   }
 
   function historyTrend(months, coach) {
@@ -1629,7 +1662,7 @@
         <div class="chips">${chip('month', '월별')}${chip('coach', '코치별')}</div>
       </div>
       ${body}
-      <p class="chart-note">회원구분은 장부의 회원구분 칸 그대로입니다 (WSC = 주니어${classes.some((c) => c.k === 'O') ? ', 빈칸·그 밖의 값 = 그 외' : ''}). 인원 합계는 회원 추이의 활동 회원과 같습니다: 한 사람은 한 달에 한 번, 두 코치에게 등록한 사람도 전체에서는 한 번 셉니다${points.some((p) => p.summed) ? ` (${points.filter((p) => p.summed).map((p) => esc(p.m)).join(', ')}은 코치별 합이라 두 번 셀 수 있음 — 장부 새로고침 후 맞춰집니다)` : ''}.${view === 'month' ? '기간과 담당강사는 위 회원 추이에서 바꿉니다.' : `기간은 위 회원 추이에서 바꿉니다 · "기간" 열은 그 기간 모든 달을 합쳐 낸 비율입니다.`}</p>
+      <p class="chart-note">회원구분은 장부의 회원구분 칸 그대로입니다 (WSC = 주니어${classes.some((c) => c.k === 'O') ? ', 빈칸·그 밖의 값 = 그 외' : ''}). 인원 합계는 회원 추이의 활동 회원과 같습니다: 한 사람은 한 달에 한 번, 두 코치에게 등록한 사람도 전체에서는 한 번 셉니다${points.some((p) => p.summed) ? ` (${points.filter((p) => p.summed).map((p) => esc(p.m)).join(', ')}은 아직 코치별 합이라 두 코치에게 등록한 사람이 두 번 들어갑니다)` : ''}. ${view === 'month' ? '기간과 담당강사는 위 회원 추이에서 바꿉니다.' : `기간은 위 회원 추이에서 바꿉니다 · "기간" 열은 그 기간 모든 달을 합쳐 낸 비율입니다.`}</p>
     </div>`;
   }
 
