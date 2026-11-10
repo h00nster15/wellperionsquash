@@ -700,7 +700,7 @@
     const label = btn.textContent; btn.disabled = true; btn.textContent = 'Syncing…';
     const total = { rows: 0, unique: 0, collapsed: 0, added: 0, updated: 0, merged: 0, removed: 0, sheets: [], warnings: [] };
     const runAt = new Date().toISOString();
-    const errors = [];
+    const errors = [], unreached = [];
     let step = 0;
     for (const src of sources) { // sequential so later sheets merge into customers created by earlier ones
       btn.textContent = `Syncing ${src.name}…`;
@@ -713,7 +713,10 @@
         if (r.unmatched && r.unmatched.length) total.warnings.push(`${src.name}: ${r.unmatched.length}명은 회원 명단에 없음 — ${r.unmatched.slice(0, 10).join(', ')}${r.unmatched.length > 10 ? '…' : ''}`);
         for (const k of ['rows', 'unique', 'collapsed', 'added', 'updated', 'merged']) total[k] += r[k] || 0;
         total.sheets.push({ name: src.name, ...r });
-      } catch (err) { errors.push(`${src.name}: ${err.message}`); }
+      } catch (err) {
+        errors.push(`${src.name}: ${err.message}`);
+        if (/Could not reach Google/.test(err.message)) unreached.push(Sheets.toFetchUrl(src.url, tokenFor(src.url, src.token)));
+      }
     }
     if (bar) bar.show(1, '정리 중…');
     // Only prune when every source succeeded — a failed fetch must not look like "everyone left".
@@ -723,6 +726,8 @@
     }
     if (total.sheets.length) Store.setSheetSettings({ lastSync: new Date().toISOString(), lastResult: total });
     if (errors.length) alert('Sync problems:\n' + errors.join('\n'));
+    // A blocked response hides Google's own error page from the app; opened as a page, it shows.
+    if (unreached.length && confirm('Google이 보낸 오류 화면을 새 탭에서 열까요? (원인 확인용 — 화면에 뜬 문구를 알려 주세요)')) window.open(unreached[0], '_blank', 'noopener');
     await clubContactsToCalls();
     btn.disabled = false; btn.textContent = label;
     render();
@@ -1771,6 +1776,24 @@
       <tbody>${rows.join('')}</tbody></table></div>`;
   }
 
+  // Every tab's 개인매출 as read, with the cell it came from and a link that opens the book on
+  // that cell — so each figure can be checked against the sheet (owner, 2026-11-11).
+  function revenueAuditTable(rows) {
+    if (!rows.length) return '';
+    const sorted = rows.slice().sort((a, b) => b.month.localeCompare(a.month) || String(a.coach).localeCompare(String(b.coach), 'ko'));
+    const cell = (r) => {
+      if (!r.complete) return '<span class="muted-note">다시 읽기 전</span>';
+      if (!r.personalAt) return r.personalMissing ? '<span class="muted-note">개인매출 칸 없음</span>' : '—';
+      const url = r.bookId && r.gid ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(r.bookId)}/edit#gid=${encodeURIComponent(r.gid)}&range=${encodeURIComponent(r.personalAt)}` : '';
+      return url ? `<a href="${url}" target="_blank" rel="noopener">${esc(r.personalAt)}</a>` : esc(r.personalAt);
+    };
+    return `<details class="chart-table"><summary>탭별 개인매출 확인 (${sorted.length}개 탭)</summary>
+      <p class="chart-note">각 금액을 읽은 칸입니다. 칸을 누르면 그 장부의 그 칸이 열립니다.</p>
+      <div class="table-wrap"><table><thead><tr><th>월</th><th>담당강사</th><th>탭</th><th>개인매출</th><th>읽은 칸</th></tr></thead>
+      <tbody>${sorted.map((r) => `<tr><td>${esc(r.month)}</td><td>${esc(r.coach)}</td><td>${esc(r.tab)}</td><td>${r.personal == null ? '—' : wonFull(r.personal)}</td><td>${cell(r)}</td></tr>`).join('')}</tbody></table></div>
+    </details>`;
+  }
+
   function revenuePanel() {
     loadMemberHistory();
     const rows = (historyCache && historyCache.months) || [];
@@ -1820,6 +1843,7 @@
       ${!coach ? revenueCoachTable(perCoach, hist.latest) : ''}
       <p class="chart-note">코치 장부 ${hist.books}권(${hist.coaches.map(esc).join(' · ')})의 월별 탭마다 <b>개인매출</b> 칸 아래의 금액을 읽어 더했습니다.${missing.length ? ` 개인매출 칸을 찾지 못한 탭 ${missing.length}개는 빠져 있습니다: ${missing.slice(0, 6).map(esc).join(', ')}${missing.length > 6 ? ' …' : ''}.` : ''}${inProgress ? ' 이번 달은 장부가 입력 중이면 적게 보일 수 있습니다.' : ''} ${new Date(hist.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 불러옴.${error}</p>
       ${historyCheckTable()}
+      ${revenueAuditTable(rows.filter((r) => hist.inRange({ m: r.month }) && hist.coaches.includes(r.coach) && (!coach || r.coach === coach)))}
       ${points.length ? `<details class="chart-table"><summary>표로 보기</summary>
         <div class="table-wrap"><table><thead><tr><th>월</th><th>개인매출</th>${byCoach ? byCoach.series.map((s) => `<th>${esc(s.label)}</th>`).join('') : ''}</tr></thead>
         <tbody>${points.slice().reverse().map((p) => {
