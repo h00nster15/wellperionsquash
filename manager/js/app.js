@@ -211,6 +211,11 @@
         <div class="full" style="border-top:1px solid var(--line);margin:6px 0 0"></div>
         <div class="full" style="font-size:12px;color:var(--muted)">앱 내부 정보 (시트에는 저장되지 않음)</div>` + dlgFields.innerHTML;
     }
+    // Members: the month's lesson dates from the coaches' schedule grids (N월S), at the top.
+    if (col === 'customers' && !isNew && !isLead(rec) && !isClub(rec)) {
+      dlgFields.insertAdjacentHTML('afterbegin', '<div class="full" id="att-box"></div>');
+      drawAttendance(rec, state.rosterMonth || today().slice(0, 7));
+    }
     dlgState.prevNext = rec.nextFollowUp || '';
     dlg.showModal();
   }
@@ -2303,6 +2308,68 @@
     });
   }
 
+  /** One month as a Monday-first calendar; byDate maps 'YYYY-MM-DD' → that day's bookings. */
+  function monthCalHtml(m, byDate, title) {
+    const t = today();
+    const lead = (new Date(`${m}-01T00:00:00`).getDay() + 6) % 7;
+    const days = new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 0).getDate();
+    const cells = [];
+    for (let i = 0; i < lead; i++) cells.push('<div class="cal-cell empty"></div>');
+    for (let d = 1; d <= days; d++) {
+      const date = `${m}-${('0' + d).slice(-2)}`;
+      const got = byDate.get(date) || [];
+      cells.push(`<div class="cal-cell${got.length ? ' on' : ''}${date === t ? ' today' : ''}">
+        <div class="cal-day">${d}</div>
+        ${got.map((b) => `<div class="cal-time" title="${esc(b.coach)}${b.group ? ' · 단체' : ''}">${esc(b.time)}</div>`).join('')}</div>`);
+    }
+    return `<div class="cal-month">${title}<div class="cal-grid">${WEEKDAYS.map((d) => `<div class="cal-head">${d}</div>`).join('')}${cells.join('')}</div></div>`;
+  }
+
+  /**
+   * Member dialog → 출석: the days this person was on a coach's schedule grid in one month
+   * (matched by personKey, so 'Augustus1' / '김무건(단체)' spellings count). Months not in the
+   * schedule cache are read on demand (slow, ~1 min); the dialog redraws when they arrive.
+   */
+  async function drawAttendance(rec, month) {
+    const box = $('#att-box');
+    if (!box) return;
+    const key = Sheets.personKey(labelOf('customers', rec));
+    const ym = (m) => `${m.slice(0, 4)}년 ${Number(m.slice(5, 7))}월`;
+    const nav = `<span style="display:inline-flex;gap:4px;margin-left:auto">
+      <button type="button" class="ghost" data-att="${ymAdd(month, -1)}" title="이전 달">‹</button>
+      <button type="button" class="ghost" data-att="${today().slice(0, 7)}">이번 달</button>
+      <button type="button" class="ghost" data-att="${ymAdd(month, 1)}" title="다음 달">›</button></span>`;
+    const head = (extra) => `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><strong>출석 · ${ym(month)}</strong>${extra || ''}${nav}</div>`;
+    const wire = () => box.querySelectorAll('[data-att]').forEach((b) => { b.onclick = () => drawAttendance(rec, b.dataset.att); });
+    box.dataset.month = month;
+
+    if (!schedMonths().includes(month)) {
+      if (!scriptSource()) { box.innerHTML = head() + '<p class="muted-note">스케줄 시트에 연결되어 있지 않습니다.</p><div style="border-top:1px solid var(--line);margin:10px 0 0"></div>'; wire(); return; }
+      box.innerHTML = head() + `<p class="muted-note">코치 스케줄(${esc(month)}) 읽는 중… 장부를 여는 데 30–60초 걸립니다.${schedError ? ` <span style="color:var(--bad)">${esc(schedError)}</span>` : ''}</p><div style="border-top:1px solid var(--line);margin:10px 0 0"></div>`;
+      wire();
+      if (schedLoading) { setTimeout(() => { if ($('#att-box') === box && box.dataset.month === month && dlg.open) drawAttendance(rec, month); }, 3000); return; }
+      await loadSchedule([month]);
+      if ($('#att-box') === box && box.dataset.month === month && dlg.open && schedMonths().includes(month)) drawAttendance(rec, month);
+      else if ($('#att-box') === box && box.dataset.month === month && schedError) box.querySelector('.muted-note').innerHTML = `읽지 못했습니다: <span style="color:var(--bad)">${esc(schedError)}</span>`;
+      return;
+    }
+
+    const mine = schedBookings()
+      .filter((b) => String(b.date).slice(0, 7) === month && key && Sheets.personKey(b.name) === key)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    const byDate = new Map();
+    for (const b of mine) (byDate.get(b.date) || byDate.set(b.date, []).get(b.date)).push(b);
+    const dates = Array.from(byDate.keys());
+    const coaches = Array.from(new Set(mine.map((b) => b.coach)));
+    const sum = `<span class="pill">${dates.length}일 · ${mine.length}회</span>`;
+    const list = dates.length
+      ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">${dates.map((d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}(${WEEKDAYS[(new Date(d + 'T00:00:00').getDay() + 6) % 7]})`).join(' · ')}${coaches.length ? ` — 강사 ${esc(coaches.join(', '))}` : ''}</div>`
+      : '<p class="muted-note" style="margin:6px 0 0">이 달 스케줄에 이름이 없습니다.</p>';
+    box.innerHTML = head(sum) + monthCalHtml(month, byDate, '') + list
+      + `<div style="font-size:11px;color:var(--muted);margin-top:4px">코치 스케줄 시트(${esc(month)} · N월S 탭)에 이름이 적힌 날 — 예약 기준이며 노쇼는 구분하지 못합니다.</div><div style="border-top:1px solid var(--line);margin:10px 0 0"></div>`;
+    wire();
+  }
+
   /**
    * A member's own calendar: every month of the range they booked in, the booked days
    * marked with the times. Opened by clicking a row of the 회원별 table.
@@ -2318,25 +2385,7 @@
     const times = {};
     mine.forEach((b) => { times[b.time] = (times[b.time] || 0) + 1; });
     const topTimes = Object.entries(times).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
-    const t = today();
-
-    const cal = (m) => {
-      const first = `${m}-01`;
-      const lead = (new Date(first + 'T00:00:00').getDay() + 6) % 7; // Monday-based
-      const days = new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 0).getDate();
-      const cells = [];
-      for (let i = 0; i < lead; i++) cells.push('<div class="cal-cell empty"></div>');
-      for (let d = 1; d <= days; d++) {
-        const date = `${m}-${('0' + d).slice(-2)}`;
-        const got = byDate.get(date) || [];
-        cells.push(`<div class="cal-cell${got.length ? ' on' : ''}${date === t ? ' today' : ''}">
-          <div class="cal-day">${d}</div>
-          ${got.map((b) => `<div class="cal-time" title="${esc(b.coach)}${b.group ? ' · 단체' : ''}">${esc(b.time)}</div>`).join('')}</div>`);
-      }
-      const inMonth = mine.filter((b) => b.date.slice(0, 7) === m).length;
-      return `<div class="cal-month"><h3>${Number(m.slice(5, 7))}월 <span class="pill">${inMonth}회</span></h3>
-        <div class="cal-grid">${WEEKDAYS.map((d) => `<div class="cal-head">${d}</div>`).join('')}${cells.join('')}</div></div>`;
-    };
+    const cal = (m) => monthCalHtml(m, byDate, `<h3>${Number(m.slice(5, 7))}월 <span class="pill">${mine.filter((b) => b.date.slice(0, 7) === m).length}회</span></h3>`);
 
     $('#cal-title').textContent = row.name;
     $('#cal-sum').innerHTML = `${esc(schedScope().label)} · 예약 <strong>${mine.length}회</strong> · 개인 ${mine.filter((b) => !b.group).length} · 단체 ${mine.filter((b) => b.group).length} · 강사 ${esc(row.coachList)}`

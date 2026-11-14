@@ -278,3 +278,4 @@ table.conv th:first-child, table.conv td:first-child { text-align: left; }
 .conv-bar i { display: block; height: 100%; }
 .conv-bar i.s { background: var(--ok); }
 .conv-bar i.l { background: var(--bad); }
+#att-box .cal-cell { min-height: 38px; }
